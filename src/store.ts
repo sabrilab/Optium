@@ -1,0 +1,402 @@
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+
+// ─── Types ─────────────────────────────────────────────
+export type TimerMode = 'focus' | 'break'
+export type TaskStatus = 'todo' | 'in_progress' | 'done'
+export type ProjectStatus = 'active' | 'completed'
+export type Tab = 'session' | 'projects' | 'stats'
+
+export interface Task {
+    id: string
+    projectId: string
+    title: string
+    estimatedPomodoros: number
+    completedPomodoros: number
+    status: TaskStatus
+    order: number
+}
+
+export interface AiMessage {
+    role: 'user' | 'ai'
+    content: string
+    timestamp: number
+}
+
+export interface Project {
+    id: string
+    name: string
+    description: string
+    status: ProjectStatus
+    tasks: Task[]
+    createdAt: number
+    color: string
+    aiHistory: AiMessage[]
+}
+
+export interface Session {
+    id: string
+    taskId: string | null
+    projectId: string | null
+    durationSeconds: number
+    type: 'focus' | 'break'
+    createdAt: number
+    location?: { lat: number; lng: number }
+}
+
+const PROJECT_COLORS = [
+    '#5B9BD5', '#70AD47', '#FFC000', '#ED7D31',
+    '#A855F7', '#EC4899', '#14B8A6', '#F97316',
+]
+
+const generateId = () => Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+
+const MAX_SESSIONS = 1000
+
+// ─── UI Slice ──────────────────────────────────────────
+interface UISlice {
+    theme: 'dark' | 'light'
+    setTheme: (theme: 'dark' | 'light') => void
+    toggleTheme: () => void
+    activeTab: Tab
+    setActiveTab: (tab: Tab) => void
+    settingsOpen: boolean
+    setSettingsOpen: (open: boolean) => void
+    showCompletionModal: boolean
+    setShowCompletionModal: (show: boolean) => void
+}
+
+// ─── Timer Slice ───────────────────────────────────────
+interface TimerSlice {
+    timerMode: TimerMode
+    timerSeconds: number
+    totalSeconds: number
+    isRunning: boolean
+    activeTaskId: string | null
+    activeProjectId: string | null
+    timerStartedAt: number | null // Date.now() when timer started (drift fix)
+    sessionCount: number // counts focus sessions for long break
+
+    // Customizable durations (in minutes)
+    focusDuration: number
+    breakDuration: number
+    longBreakDuration: number
+    longBreakInterval: number // every N sessions
+
+    startTimer: () => void
+    pauseTimer: () => void
+    resetTimer: (mode?: TimerMode) => void
+    tick: () => void
+    addTime: (seconds: number) => void
+    setActiveTask: (taskId: string | null, projectId: string | null) => void
+    switchToBreak: () => void
+    switchToFocus: () => void
+    setFocusDuration: (min: number) => void
+    setBreakDuration: (min: number) => void
+    setLongBreakDuration: (min: number) => void
+}
+
+// ─── Projects Slice ────────────────────────────────────
+interface ProjectsSlice {
+    projects: Project[]
+    selectedProjectId: string | null
+    setSelectedProjectId: (id: string | null) => void
+    addProject: (name: string, description: string) => string
+    deleteProject: (id: string) => void
+    addTasksToProject: (projectId: string, tasks: { title: string; estimated_pomodoros: number }[]) => void
+    deleteTask: (projectId: string, taskId: string) => void
+    reorderTasks: (projectId: string, fromIndex: number, toIndex: number) => void
+    updateTaskStatus: (projectId: string, taskId: string, status: TaskStatus) => void
+    updateTaskPomodoros: (projectId: string, taskId: string, count: number) => void
+    incrementTaskPomodoro: (projectId: string, taskId: string) => void
+    toggleProjectStatus: (projectId: string) => void
+    addAiMessage: (projectId: string, message: AiMessage) => void
+}
+
+// ─── Sessions Slice ────────────────────────────────────
+interface SessionsSlice {
+    sessions: Session[]
+    addSession: (session: Omit<Session, 'id' | 'createdAt'>) => void
+    getTodaySessions: () => Session[]
+    getProjectTimeSpent: (projectId: string) => number
+}
+
+// ─── Settings Slice ────────────────────────────────────
+interface SettingsSlice {
+    soundEnabled: boolean
+    toggleSound: () => void
+    geoEnabled: boolean
+    toggleGeo: () => void
+    userName: string
+    setUserName: (name: string) => void
+}
+
+// ─── Combined State ────────────────────────────────────
+type AppState = UISlice & TimerSlice & ProjectsSlice & SessionsSlice & SettingsSlice
+
+export const useAppStore = create<AppState>()(
+    persist(
+        (set, get) => ({
+            // ── UI ──
+            theme: 'dark',
+            setTheme: (theme) => {
+                document.documentElement.classList.toggle('dark', theme === 'dark')
+                set({ theme })
+            },
+            toggleTheme: () => {
+                const newTheme = get().theme === 'dark' ? 'light' : 'dark'
+                document.documentElement.classList.toggle('dark', newTheme === 'dark')
+                set({ theme: newTheme })
+            },
+            activeTab: 'session',
+            setActiveTab: (tab) => set({ activeTab: tab }),
+            settingsOpen: false,
+            setSettingsOpen: (open) => set({ settingsOpen: open }),
+            showCompletionModal: false,
+            setShowCompletionModal: (show) => set({ showCompletionModal: show }),
+
+            // ── Timer ──
+            timerMode: 'focus',
+            timerSeconds: 25 * 60,
+            totalSeconds: 25 * 60,
+            isRunning: false,
+            activeTaskId: null,
+            activeProjectId: null,
+            timerStartedAt: null,
+            sessionCount: 0,
+
+            focusDuration: 25,
+            breakDuration: 5,
+            longBreakDuration: 15,
+            longBreakInterval: 4,
+
+            startTimer: () => set({ isRunning: true, timerStartedAt: Date.now() }),
+            pauseTimer: () => set({ isRunning: false, timerStartedAt: null }),
+            resetTimer: (mode) => {
+                const timerMode = mode || get().timerMode
+                const dur = timerMode === 'focus' ? get().focusDuration : get().breakDuration
+                const totalSeconds = dur * 60
+                set({ timerMode, timerSeconds: totalSeconds, totalSeconds, isRunning: false, timerStartedAt: null })
+            },
+            tick: () => {
+                const { timerSeconds, timerStartedAt } = get()
+                if (timerSeconds <= 0) return
+
+                // Drift-corrected tick
+                if (timerStartedAt) {
+                    const elapsed = Math.floor((Date.now() - timerStartedAt) / 1000)
+                    const newSeconds = Math.max(0, get().totalSeconds - elapsed)
+                    if (newSeconds !== timerSeconds) {
+                        set({ timerSeconds: newSeconds })
+                    }
+                } else {
+                    set({ timerSeconds: timerSeconds - 1 })
+                }
+            },
+            addTime: (seconds) => {
+                const { timerSeconds, totalSeconds } = get()
+                set({ timerSeconds: timerSeconds + seconds, totalSeconds: totalSeconds + seconds, timerStartedAt: Date.now() })
+            },
+            setActiveTask: (taskId, projectId) => {
+                set({ activeTaskId: taskId, activeProjectId: projectId })
+                if (taskId && projectId) get().updateTaskStatus(projectId, taskId, 'in_progress')
+            },
+            switchToBreak: () => {
+                const { sessionCount, longBreakInterval, breakDuration, longBreakDuration } = get()
+                const newCount = sessionCount + 1
+                const isLongBreak = newCount % longBreakInterval === 0
+                const dur = isLongBreak ? longBreakDuration : breakDuration
+                set({
+                    timerMode: 'break',
+                    timerSeconds: dur * 60,
+                    totalSeconds: dur * 60,
+                    isRunning: true,
+                    timerStartedAt: Date.now(),
+                    sessionCount: newCount,
+                })
+            },
+            switchToFocus: () => {
+                const dur = get().focusDuration
+                set({
+                    timerMode: 'focus',
+                    timerSeconds: dur * 60,
+                    totalSeconds: dur * 60,
+                    isRunning: false,
+                    timerStartedAt: null,
+                })
+            },
+            setFocusDuration: (min) => {
+                set({ focusDuration: min })
+                if (!get().isRunning && get().timerMode === 'focus') {
+                    set({ timerSeconds: min * 60, totalSeconds: min * 60 })
+                }
+            },
+            setBreakDuration: (min) => {
+                set({ breakDuration: min })
+                if (!get().isRunning && get().timerMode === 'break') {
+                    set({ timerSeconds: min * 60, totalSeconds: min * 60 })
+                }
+            },
+            setLongBreakDuration: (min) => set({ longBreakDuration: min }),
+
+            // ── Projects ──
+            projects: [],
+            selectedProjectId: null,
+            setSelectedProjectId: (id) => set({ selectedProjectId: id }),
+            addProject: (name, description) => {
+                const id = generateId()
+                const color = PROJECT_COLORS[get().projects.length % PROJECT_COLORS.length]
+                const newProject: Project = {
+                    id, name, description, status: 'active', createdAt: Date.now(), tasks: [], color, aiHistory: [],
+                }
+                set({ projects: [newProject, ...get().projects], selectedProjectId: id })
+                return id
+            },
+            deleteProject: (id) => {
+                const { projects, selectedProjectId, activeProjectId } = get()
+                set({
+                    projects: projects.filter(p => p.id !== id),
+                    selectedProjectId: selectedProjectId === id ? null : selectedProjectId,
+                    activeProjectId: activeProjectId === id ? null : activeProjectId,
+                    activeTaskId: activeProjectId === id ? null : get().activeTaskId,
+                })
+            },
+            addTasksToProject: (projectId, tasks) => {
+                set({
+                    projects: get().projects.map(p =>
+                        p.id === projectId
+                            ? {
+                                ...p,
+                                tasks: [
+                                    ...p.tasks,
+                                    ...tasks.map((t, i) => ({
+                                        id: generateId(),
+                                        projectId,
+                                        title: t.title,
+                                        estimatedPomodoros: t.estimated_pomodoros,
+                                        completedPomodoros: 0,
+                                        status: 'todo' as TaskStatus,
+                                        order: p.tasks.length + i,
+                                    })),
+                                ],
+                            }
+                            : p
+                    ),
+                })
+            },
+            deleteTask: (projectId, taskId) => {
+                const { activeTaskId } = get()
+                set({
+                    projects: get().projects.map(p =>
+                        p.id === projectId
+                            ? { ...p, tasks: p.tasks.filter(t => t.id !== taskId) }
+                            : p
+                    ),
+                    activeTaskId: activeTaskId === taskId ? null : activeTaskId,
+                })
+            },
+            reorderTasks: (projectId, fromIndex, toIndex) => {
+                set({
+                    projects: get().projects.map(p => {
+                        if (p.id !== projectId) return p
+                        const tasks = [...p.tasks]
+                        const [moved] = tasks.splice(fromIndex, 1)
+                        tasks.splice(toIndex, 0, moved)
+                        return { ...p, tasks }
+                    }),
+                })
+            },
+            updateTaskStatus: (projectId, taskId, status) => {
+                set({
+                    projects: get().projects.map(p =>
+                        p.id === projectId
+                            ? { ...p, tasks: p.tasks.map(t => t.id === taskId ? { ...t, status } : t) }
+                            : p
+                    ),
+                })
+            },
+            updateTaskPomodoros: (projectId, taskId, count) => {
+                set({
+                    projects: get().projects.map(p =>
+                        p.id === projectId
+                            ? { ...p, tasks: p.tasks.map(t => t.id === taskId ? { ...t, estimatedPomodoros: Math.max(1, count) } : t) }
+                            : p
+                    ),
+                })
+            },
+            incrementTaskPomodoro: (projectId, taskId) => {
+                set({
+                    projects: get().projects.map(p =>
+                        p.id === projectId
+                            ? { ...p, tasks: p.tasks.map(t => t.id === taskId ? { ...t, completedPomodoros: t.completedPomodoros + 1 } : t) }
+                            : p
+                    ),
+                })
+            },
+            toggleProjectStatus: (projectId) => {
+                set({
+                    projects: get().projects.map(p =>
+                        p.id === projectId
+                            ? { ...p, status: p.status === 'active' ? 'completed' : 'active' }
+                            : p
+                    ),
+                })
+            },
+            addAiMessage: (projectId, message) => {
+                set({
+                    projects: get().projects.map(p =>
+                        p.id === projectId
+                            ? { ...p, aiHistory: [...(p.aiHistory || []), message] }
+                            : p
+                    ),
+                })
+            },
+
+            // ── Sessions ──
+            sessions: [],
+            addSession: (session) => {
+                const sessions = [...get().sessions, { ...session, id: generateId(), createdAt: Date.now() }]
+                // Trim to MAX_SESSIONS to prevent unbounded localStorage growth
+                set({ sessions: sessions.slice(-MAX_SESSIONS) })
+            },
+            getTodaySessions: () => {
+                const today = new Date()
+                today.setHours(0, 0, 0, 0)
+                return get().sessions.filter(s => s.createdAt >= today.getTime())
+            },
+            getProjectTimeSpent: (projectId) => {
+                const project = get().projects.find(p => p.id === projectId)
+                if (!project) return 0
+                const taskIds = new Set(project.tasks.map(t => t.id))
+                return get().sessions
+                    .filter(s => s.type === 'focus' && (s.projectId === projectId || (s.taskId && taskIds.has(s.taskId))))
+                    .reduce((sum, s) => sum + s.durationSeconds, 0)
+            },
+
+            // ── Settings ──
+            soundEnabled: true,
+            toggleSound: () => set({ soundEnabled: !get().soundEnabled }),
+            geoEnabled: false,
+            toggleGeo: () => set({ geoEnabled: !get().geoEnabled }),
+            userName: 'User',
+            setUserName: (name) => set({ userName: name }),
+        }),
+        {
+            name: 'optium-storage',
+            partialize: (state) => ({
+                theme: state.theme,
+                projects: state.projects,
+                sessions: state.sessions,
+                soundEnabled: state.soundEnabled,
+                geoEnabled: state.geoEnabled,
+                selectedProjectId: state.selectedProjectId,
+                userName: state.userName,
+                focusDuration: state.focusDuration,
+                breakDuration: state.breakDuration,
+                longBreakDuration: state.longBreakDuration,
+                longBreakInterval: state.longBreakInterval,
+                sessionCount: state.sessionCount,
+            }),
+        }
+    )
+)
