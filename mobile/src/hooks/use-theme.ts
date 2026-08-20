@@ -1,14 +1,12 @@
+import { Colors, type Palette } from '@/constants/theme';
+import { useAppStore } from '@/store';
+
 /**
- * Learn more about light and dark modes:
- * https://docs.expo.dev/guides/color-schemes/
+ * Optium impose son propre theme plutot que de suivre celui du systeme : la
+ * scene 3D est concue pour un fond sombre, et l'utilisateur garde la main via
+ * les reglages.
  */
-
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export function useTheme() {
-  const scheme = useColorScheme();
-  const theme = scheme === 'unspecified' ? 'light' : scheme;
-
-  return Colors[theme];
+export function useTheme(): { palette: Palette; scheme: 'dark' | 'light' } {
+  const scheme = useAppStore((s) => s.theme);
+  return { palette: Colors[scheme], scheme };
 }

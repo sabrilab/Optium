@@ -3,7 +3,7 @@ import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import type { GlassStyle } from 'expo-glass-effect';
 import { StyleSheet, View, type ViewProps } from 'react-native';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from '@/hooks/use-theme';
 
 export type GlassSurfaceProps = ViewProps & {
   /** 'regular' = verre teinte lisible, 'clear' = verre transparent sur media. */
@@ -30,7 +30,7 @@ export function GlassSurface({
   children,
   ...rest
 }: GlassSurfaceProps) {
-  const colorScheme = useColorScheme() ?? 'light';
+  const { scheme } = useTheme();
 
   if (isLiquidGlassAvailable()) {
     return (
@@ -49,7 +49,7 @@ export function GlassSurface({
     return (
       <BlurView
         intensity={glassEffectStyle === 'clear' ? 40 : 80}
-        tint={colorScheme === 'dark' ? 'systemThinMaterialDark' : 'systemThinMaterialLight'}
+        tint={scheme === 'dark' ? 'systemThinMaterialDark' : 'systemThinMaterialLight'}
         style={style}
         {...rest}>
         {children}
@@ -61,7 +61,7 @@ export function GlassSurface({
     <View
       style={[
         style,
-        colorScheme === 'dark' ? styles.fallbackDark : styles.fallbackLight,
+        scheme === 'dark' ? styles.fallbackDark : styles.fallbackLight,
         tintColor ? { backgroundColor: tintColor } : null,
       ]}
       {...rest}>
