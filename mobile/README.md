@@ -1,41 +1,63 @@
 # Optium — application mobile (Expo / React Native)
 
-Portage natif iOS + Android d'Optium. Le code web historique (Vite + React) reste
-a la racine du depot ; ce dossier contient l'app mobile.
+Portage iPhone d'Optium. Le code web d'origine reste a la racine du depot et
+sert de reference ; ce dossier contient l'application mobile.
 
-## Stack
-
-| Brique | Choix | Pourquoi |
-|---|---|---|
-| SDK | Expo 57 (React Native 0.86, React 19.2) | derniere version stable |
-| Navigation | `expo-router` + `NativeTabs` | vraie `UITabBarController`, Liquid Glass systeme offert sur iOS 26 |
-| Composants systeme | `@expo/ui/swift-ui` | vues SwiftUI reelles (Form, List, Picker, Chart...) |
-| Liquid Glass | `expo-glass-effect` | bindings sur `UIGlassEffect` (iOS 26) |
-| Backend | `@supabase/supabase-js` + AsyncStorage | session persistee, refresh pilote par l'AppState |
-
-## Demarrage
+## Lancer l'app sur un iPhone
 
 ```bash
 cd mobile
 npm install
-cp .env.example .env.local   # renseigner les cles Supabase
 npx expo start
 ```
 
-Scanner le QR code avec l'appareil photo de l'iPhone.
+Scanner le QR code affiche dans le terminal avec l'appareil photo de l'iPhone.
+L'app se recharge a chaque modification.
 
-## Installer sur un iPhone
+Aucune configuration n'est requise pour demarrer : les donnees sont stockees sur
+l'appareil. Le fichier `.env.local` (voir `.env.example`) n'est necessaire que
+pour l'authentification et la generation de taches par IA.
 
-Deux chemins, selon ce dont tu as besoin :
+## Ce qui est natif
 
-**Expo Go** — le plus rapide, zero compte payant. Suffit tant que l'app n'utilise
-que des modules du SDK Expo (c'est le cas aujourd'hui). Le Liquid Glass demande
-un iPhone sous iOS 26.
+| Element | Implementation | Rendu reel |
+|---|---|---|
+| Onglets | `expo-router/unstable-native-tabs` | `UITabBarController`, Liquid Glass systeme sur iOS 26 |
+| Panneaux flottants | `@/components/glass/glass-surface` | `UIGlassEffect`, repli en flou puis en aplat |
+| Reglages | `@expo/ui/swift-ui` (`settings.ios.tsx`) | `Form`, `Section`, `Toggle`, `Slider` SwiftUI |
+| Graphique | `@expo/ui/swift-ui` (`stats-chart.ios.tsx`) | Swift Charts |
+| Icones | `expo-symbols` (`icon.ios.tsx`) | SF Symbols |
 
-**Build de developpement** — necessaire des qu'un module natif hors SDK est
-ajoute. Passe par EAS, aucun Mac requis (la compilation tourne sur les serveurs
-Expo), mais demande un compte Apple Developer pour installer sur un appareil
-physique.
+Les modules `@expo/ui` et `expo-symbols` initialisent le pont natif des le
+chargement du module : ils ne peuvent pas etre importes puis ignores via un test
+`Platform.OS`. D'ou la separation par extension de fichier `.ios.tsx`, qui les
+tient hors des bundles web et Android.
+
+## Le modele 3D
+
+`assets/models/brain.glb` est genere, pas edite a la main :
+
+```bash
+python3 scripts/bake_brain.py ../public/scene.gltf assets/models/brain.glb
+```
+
+Le script applique la hierarchie de transformations du modele Sketchfab, fusionne
+les huit meshes en une seule geometrie, centre et met le tout a l'echelle, puis
+stocke les bornes dans les `extras` du GLB. L'app n'a donc aucun calcul a faire
+au demarrage, et la coque comme le fluide tiennent chacun en un seul draw call.
+
+Relancer ce script apres tout changement du modele source.
+
+## Conventions
+
+- Ne jamais importer `GlassView` directement : passer par `GlassSurface`, qui
+  degrade proprement sur iOS anterieur a 26, Android et web.
+- Les variables d'environnement lues par le client doivent etre prefixees
+  `EXPO_PUBLIC_`.
+- Aucune cle d'API tierce dans l'application : les appels au modele passent par
+  la fonction edge Supabase `generate-tasks`.
+
+## Build installable (sans Mac)
 
 ```bash
 npm install -g eas-cli
@@ -43,9 +65,6 @@ eas login
 eas build --profile development --platform ios
 ```
 
-## Conventions
-
-- Ne jamais importer `GlassView` directement : passer par `@/components/glass/glass-surface`,
-  qui degrade proprement sur iOS < 26, Android et web.
-- Les variables d'environnement exposees au client doivent etre prefixees `EXPO_PUBLIC_`.
-- `src/app/glass.tsx` est un banc de test temporaire, a supprimer une fois le portage fait.
+La compilation tourne sur les serveurs Expo. Installer sur un appareil physique
+demande un compte Apple Developer ; Expo Go suffit tant que l'app n'utilise que
+des modules du SDK, ce qui est le cas aujourd'hui.
