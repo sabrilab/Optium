@@ -32,7 +32,6 @@ function SwiftUISettings() {
   const hapticsEnabled = useAppStore((s) => s.hapticsEnabled);
   const geoEnabled = useAppStore((s) => s.geoEnabled);
   const brainEnabled = useAppStore((s) => s.brainEnabled);
-  const theme = useAppStore((s) => s.theme);
 
   const store = useAppStore.getState();
 
@@ -92,13 +91,6 @@ function SwiftUISettings() {
           />
         </Section>
 
-        <Section title="Apparence">
-          <Toggle
-            label="Thème sombre"
-            isOn={theme === 'dark'}
-            onIsOnChange={() => store.toggleTheme()}
-          />
-        </Section>
       </Form>
     </Host>
   );

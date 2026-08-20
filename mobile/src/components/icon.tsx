@@ -1,4 +1,4 @@
-import { Text } from 'react-native';
+import { Text, type ColorValue } from 'react-native';
 
 export type SFSymbol = string;
 
@@ -24,13 +24,15 @@ const FALLBACK_GLYPHS: Record<string, string> = {
   minus: '－',
   'chevron.up': '⌃',
   'chevron.down': '⌄',
+  'chevron.right': '›',
+  'chevron.left': '‹',
   'checkmark.circle.fill': '◉',
   circle: '○',
   sparkles: '✦',
   'forward.end': '⏭',
 };
 
-export function Icon({ name, size = 17, color }: { name: SFSymbol; size?: number; color: string }) {
+export function Icon({ name, size = 17, color }: { name: SFSymbol; size?: number; color: ColorValue }) {
   return (
     <Text style={{ fontSize: size * 0.9, color, lineHeight: size * 1.2 }}>
       {FALLBACK_GLYPHS[name] ?? '•'}

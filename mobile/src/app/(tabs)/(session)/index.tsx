@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrainScene } from '@/components/brain/brain-scene';
 import { GlassSurface } from '@/components/glass/glass-surface';
 import { Icon } from '@/components/icon';
-import { Radius, Spacing } from '@/constants/theme';
+import { Layout, Radius, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAppStore } from '@/store';
 
@@ -65,7 +65,7 @@ export default function SessionScreen() {
           <BrainScene />
         ) : (
           <View style={styles.sceneOff}>
-            <Text style={[styles.sceneOffText, { color: palette.textSecondary }]}>
+            <Text style={[styles.sceneOffText, { color: palette.secondaryLabel }]}>
               Visualisation désactivée
             </Text>
           </View>
@@ -74,30 +74,35 @@ export default function SessionScreen() {
 
       <View style={[styles.top, { paddingTop: insets.top + Spacing.two }]}>
         <GlassSurface glassEffectStyle="clear" style={styles.badge}>
-          <Text style={[styles.badgeText, { color: palette.text }]}>
+          <Text style={[styles.badgeText, { color: palette.label }]}>
             {isFocus ? 'Deep Focus' : 'Pause'}
           </Text>
         </GlassSurface>
 
         <Link href="/settings" asChild>
-          <Pressable hitSlop={12}>
+          <Pressable
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Réglages">
             <GlassSurface glassEffectStyle="clear" isInteractive style={styles.iconButton}>
-              <Icon name="gearshape" size={17} color={palette.text} />
+              <Icon name="gearshape" size={17} color={palette.label} />
             </GlassSurface>
           </Pressable>
         </Link>
       </View>
 
-      <View style={styles.bottom}>
+      <View style={[styles.bottom, { paddingBottom: Spacing.four }]}>
         {activeTask && (
           <GlassSurface glassEffectStyle="regular" style={styles.taskCard}>
-            <Text style={[styles.taskProject, { color: palette.textSecondary }]}>
+            <Text style={[styles.taskProject, { color: palette.secondaryLabel }]}>
               {activeProject?.name}
             </Text>
-            <Text style={[styles.taskTitle, { color: palette.text }]} numberOfLines={1}>
+            <Text style={[styles.taskTitle, { color: palette.label }]} numberOfLines={1}>
               {activeTask.title}
             </Text>
-            <View style={styles.pomodoroRow}>
+            <View
+              style={styles.pomodoroRow}
+              accessibilityLabel={`${activeTask.completedPomodoros} sur ${activeTask.estimatedPomodoros} sessions terminées`}>
               {Array.from({ length: activeTask.estimatedPomodoros }).map((_, index) => (
                 <View
                   key={index}
@@ -105,7 +110,7 @@ export default function SessionScreen() {
                     styles.pomodoroDot,
                     {
                       backgroundColor:
-                        index < activeTask.completedPomodoros ? palette.text : palette.border,
+                        index < activeTask.completedPomodoros ? palette.tint : palette.fill,
                     },
                   ]}
                 />
@@ -115,34 +120,41 @@ export default function SessionScreen() {
         )}
 
         <GlassSurface glassEffectStyle="regular" style={styles.timerCard}>
-          <View style={[styles.progressTrack, { backgroundColor: palette.border }]}>
+          <View style={[styles.progressTrack, { backgroundColor: palette.fill }]}>
             <View
               style={[
                 styles.progressFill,
-                { backgroundColor: palette.text, width: `${Math.min(100, progress * 100)}%` },
+                { backgroundColor: palette.label, width: `${Math.min(100, progress * 100)}%` },
               ]}
             />
           </View>
 
-          <Text style={[styles.timer, { color: palette.text }]}>{formatTime(timerSeconds)}</Text>
-          <Text style={[styles.timerLabel, { color: palette.textSecondary }]}>
+          <Text
+            style={[styles.timer, { color: palette.label }]}
+            accessibilityLabel={`${Math.floor(timerSeconds / 60)} minutes restantes`}>
+            {formatTime(timerSeconds)}
+          </Text>
+          <Text style={[styles.timerLabel, { color: palette.secondaryLabel }]}>
             {isFocus ? `Session · ${focusDuration} min` : `Pause · ${breakDuration} min`}
           </Text>
 
-          <Pressable onPress={toggle} hitSlop={8}>
+          <Pressable
+            onPress={toggle}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={isRunning ? 'Mettre en pause' : 'Démarrer'}>
             <GlassSurface isInteractive glassEffectStyle="regular" style={styles.playButton}>
-              <Icon
-                name={isRunning ? 'pause.fill' : 'play.fill'}
-                size={22}
-                color={palette.text}
-              />
+              <Icon name={isRunning ? 'pause.fill' : 'play.fill'} size={24} color={palette.label} />
             </GlassSurface>
           </Pressable>
 
           {progress > 0 && (
-            <Pressable onPress={endEarly} hitSlop={8} style={styles.endEarly}>
-              <Icon name="forward.end" size={11} color={palette.textSecondary} />
-              <Text style={[styles.endEarlyText, { color: palette.textSecondary }]}>
+            <Pressable
+              onPress={endEarly}
+              hitSlop={8}
+              style={styles.endEarly}
+              accessibilityRole="button">
+              <Text style={[styles.endEarlyText, { color: palette.tint }]}>
                 Terminer maintenant
               </Text>
             </Pressable>
@@ -155,15 +167,16 @@ export default function SessionScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  // La scene 3D occupe tout l'ecran ; les panneaux de verre flottent par dessus.
-  scene: { position: 'absolute', top: 0, left: 0, right: 0, bottom: '38%' },
+  // La scene occupe tout l'ecran ; les panneaux de verre flottent par dessus,
+  // comme les commandes du lecteur de Musique sur la pochette.
+  scene: { position: 'absolute', top: 0, left: 0, right: 0, bottom: '34%' },
   sceneOff: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  sceneOffText: { fontSize: 12 },
+  sceneOffText: Typography.footnote,
   top: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.four,
+    paddingHorizontal: Layout.margin,
     gap: Spacing.three,
   },
   badge: {
@@ -172,34 +185,35 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
     overflow: 'hidden',
   },
-  badgeText: { fontSize: 12, fontWeight: '600' },
+  badgeText: { ...Typography.footnote, fontWeight: '600' },
   iconButton: {
-    width: 34,
-    height: 34,
+    width: Layout.minTouchTarget - 8,
+    height: Layout.minTouchTarget - 8,
     borderRadius: Radius.pill,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bottom: { marginTop: 'auto', padding: Spacing.four, gap: Spacing.three },
+  bottom: { marginTop: 'auto', paddingHorizontal: Layout.margin, gap: Spacing.three },
   taskCard: {
-    padding: Spacing.four,
-    borderRadius: Radius.medium,
+    padding: Layout.margin,
+    borderRadius: Layout.cornerRadius + 4,
     overflow: 'hidden',
     gap: Spacing.one,
   },
-  taskProject: { fontSize: 11 },
-  taskTitle: { fontSize: 15, fontWeight: '500' },
+  taskProject: Typography.caption,
+  taskTitle: Typography.headline,
   pomodoroRow: { flexDirection: 'row', gap: Spacing.one, marginTop: Spacing.one },
-  pomodoroDot: { flex: 1, height: 3, borderRadius: 2 },
+  pomodoroDot: { flex: 1, height: 4, borderRadius: 2 },
   timerCard: {
-    padding: Spacing.six,
+    paddingVertical: Spacing.six,
+    paddingHorizontal: Layout.margin,
     borderRadius: Radius.large,
     overflow: 'hidden',
     alignItems: 'center',
   },
   progressTrack: {
-    height: 3,
+    height: 4,
     width: '70%',
     borderRadius: 2,
     overflow: 'hidden',
@@ -207,25 +221,21 @@ const styles = StyleSheet.create({
   },
   progressFill: { height: '100%', borderRadius: 2 },
   timer: {
-    fontSize: 58,
+    fontSize: 64,
+    lineHeight: 72,
     fontWeight: '600',
     letterSpacing: -1.5,
     fontVariant: ['tabular-nums'],
   },
-  timerLabel: { fontSize: 12, marginTop: Spacing.one, marginBottom: Spacing.five },
+  timerLabel: { ...Typography.subheadline, marginTop: Spacing.one, marginBottom: Spacing.five },
   playButton: {
-    width: 62,
-    height: 62,
+    width: 68,
+    height: 68,
     borderRadius: Radius.pill,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  endEarly: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.one + 2,
-    marginTop: Spacing.four,
-  },
-  endEarlyText: { fontSize: 12 },
+  endEarly: { minHeight: Layout.minTouchTarget, justifyContent: 'center', marginTop: Spacing.two },
+  endEarlyText: Typography.callout,
 });

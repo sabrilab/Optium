@@ -55,9 +55,6 @@ const generateId = () =>
 const MAX_SESSIONS = 1000;
 
 interface UISlice {
-  theme: 'dark' | 'light';
-  setTheme: (theme: 'dark' | 'light') => void;
-  toggleTheme: () => void;
   showCompletionModal: boolean;
   setShowCompletionModal: (show: boolean) => void;
 }
@@ -134,9 +131,6 @@ export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       // ── UI ──
-      theme: 'dark',
-      setTheme: (theme) => set({ theme }),
-      toggleTheme: () => set({ theme: get().theme === 'dark' ? 'light' : 'dark' }),
       showCompletionModal: false,
       setShowCompletionModal: (show) => set({ showCompletionModal: show }),
 
@@ -371,7 +365,6 @@ export const useAppStore = create<AppState>()(
       name: 'optium-storage',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
-        theme: state.theme,
         projects: state.projects,
         sessions: state.sessions,
         soundEnabled: state.soundEnabled,
