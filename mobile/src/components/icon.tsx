@@ -21,6 +21,7 @@ const FALLBACK_GLYPHS: Record<string, string> = {
   'play.fill': '▶',
   'pause.fill': '❚❚',
   plus: '＋',
+  minus: '－',
   'chevron.up': '⌃',
   'chevron.down': '⌄',
   'checkmark.circle.fill': '◉',

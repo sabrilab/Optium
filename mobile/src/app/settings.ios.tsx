@@ -1,6 +1,9 @@
 import { Host, Form, Section, Slider, Text as UIText, Toggle } from '@expo/ui/swift-ui';
 import { StyleSheet } from 'react-native';
 
+import { SettingsRows } from '@/components/settings-rows';
+import { supportsSwiftUI } from '@/lib/runtime';
+
 import { useAppStore } from '@/store';
 
 /**
@@ -12,7 +15,16 @@ import { useAppStore } from '@/store';
  * Android et web n'ont pas SwiftUI : ils recoivent une version en composants
  * React Native, fonctionnellement identique.
  */
+/**
+ * Expo Go n'embarque pas @expo/ui : y rendre un Form SwiftUI afficherait un
+ * ecran rouge « Unimplemented component ». Le choix se fait ici, une fois, et
+ * chaque variante appelle ses propres hooks sans condition.
+ */
 export default function SettingsScreen() {
+  return supportsSwiftUI ? <SwiftUISettings /> : <SettingsRows />;
+}
+
+function SwiftUISettings() {
   const focusDuration = useAppStore((s) => s.focusDuration);
   const breakDuration = useAppStore((s) => s.breakDuration);
   const longBreakDuration = useAppStore((s) => s.longBreakDuration);
