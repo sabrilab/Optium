@@ -72,7 +72,7 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 20, gap: 16, paddingBottom: 120 },
+  content: { padding: 20, gap: 16, paddingTop: 88, paddingBottom: 120 },
   backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   blob: { position: 'absolute', width: 260, height: 260, borderRadius: 130, opacity: 0.85 },
   blobA: { backgroundColor: '#FF6B6B', top: 40, left: -60 },
