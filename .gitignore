@@ -1,0 +1,13 @@
+node_modules/
+.DS_Store
+*.log
+
+# Environnement
+.env
+.env.local
+.env.*.local
+
+# Builds
+dist/
+build/
+.expo/
