@@ -83,18 +83,22 @@ private struct BentoSurface: ViewModifier {
         let radius = max(size.width, size.height)
 
         return ZStack {
-            tint.opacity(0.58)
+            // Le remplissage monte en meme temps que le coeur s'assombrit :
+            // c'est l'ecart entre les deux qui fait la lecture, pas leurs
+            // valeurs absolues.
+            tint.opacity(0.72)
 
             RadialGradient(
                 stops: [
-                    .init(color: .black.opacity(0.92), location: 0),
-                    .init(color: .black.opacity(0.62), location: 0.30),
-                    .init(color: .black.opacity(0.18), location: 0.62),
-                    .init(color: .clear, location: 0.95),
+                    .init(color: .black, location: 0),
+                    .init(color: .black.opacity(0.96), location: 0.26),
+                    .init(color: .black.opacity(0.74), location: 0.48),
+                    .init(color: .black.opacity(0.34), location: 0.72),
+                    .init(color: .clear, location: 1.0),
                 ],
                 center: .center,
                 startRadius: 0,
-                endRadius: radius * 0.62
+                endRadius: radius * 0.68
             )
 
             // Un second foyer, decale et d'une autre teinte : sans lui les

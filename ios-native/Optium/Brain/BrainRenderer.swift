@@ -180,7 +180,7 @@ final class BrainRenderer: NSObject, MTKViewDelegate {
 
     private func makeUniforms(rotation: Float, bob: Float, tilt: Float) -> Uniforms {
         let model = translation(0, bob, 0) * rotationY(rotation) * rotationX(tilt)
-        let view = translation(0, 0, -5.5)
+        let view = translation(0, 0, -5.0)
         let projection = perspective(fovRadians: 40 * .pi / 180, aspect: aspect, near: 0.1, far: 100)
 
         let modelView = view * model
