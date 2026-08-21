@@ -11,6 +11,8 @@ struct SessionScreen: View {
 
     @Query private var projects: [Project]
     @State private var showSettings = false
+    @State private var location = LocationRecorder()
+    @State private var finishedMode: TimerMode?
 
     private var activeTask: ProjectTask? {
         guard let id = timer.activeTaskID else { return nil }
@@ -50,6 +52,39 @@ struct SessionScreen: View {
         // le prochain battement.
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { timer.refresh() }
+        }
+        // Fin de session : detectee des que le restant atteint zero, d'ou que
+        // vienne le constat — battement d'affichage ou retour au premier plan.
+        .onChange(of: timer.isFinished) { _, finished in
+            guard finished else { return }
+            let mode = timer.mode
+            let recorded = SessionCompletion.record(
+                timer: timer,
+                settings: settings,
+                context: context,
+                tasks: projects.flatMap(\.tasks),
+                coordinate: location.coordinate
+            )
+            guard recorded else { return }
+            SessionCompletion.announce(settings: settings)
+            finishedMode = mode
+        }
+        // La notification est (re)programmee au demarrage et a l'arret, jamais
+        // a chaque seconde : la reprogrammer en boucle l'annulerait sans cesse.
+        .task(id: timer.isRunning) {
+            if let date = timer.finishesAt {
+                await TimerNotifications.schedule(at: date, mode: timer.mode)
+            } else {
+                await TimerNotifications.cancel()
+            }
+        }
+        .task(id: settings.locationEnabled) {
+            await location.refresh(enabled: settings.locationEnabled)
+        }
+        .sheet(item: $finishedMode) { mode in
+            CompletionSheet(mode: mode) {
+                if mode == .focus { timer.switchToRest() } else { timer.switchToFocus() }
+            }
         }
     }
 
