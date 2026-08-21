@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 @main
@@ -6,5 +7,6 @@ struct OptiumApp: App {
         WindowGroup {
             ContentView()
         }
+        .modelContainer(for: [Project.self, ProjectTask.self, FocusSession.self])
     }
 }
