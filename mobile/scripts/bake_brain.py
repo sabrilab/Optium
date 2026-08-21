@@ -76,6 +76,29 @@ def read_accessor(gltf, blob, index):
     return values
 
 
+def write_bin(path, positions, normals, indices, lo, hi):
+    """Ecrit le maillage dans la disposition memoire attendue par Metal.
+
+    Le GLB reste produit pour l'application Expo. Ce format-ci existe pour que
+    l'application native n'ait aucun decodage a faire au demarrage : elle lit
+    le fichier et le passe tel quel au GPU.
+
+    Disposition, petit-boutiste : signature "OPTB", version, nombre de sommets,
+    nombre d'indices, bornes min et max, puis positions, normales et indices.
+    """
+    with open(path, "wb") as handle:
+        handle.write(b"OPTB")
+        handle.write(struct.pack("<III", 1, len(positions), len(indices)))
+        handle.write(struct.pack("<3f", *lo))
+        handle.write(struct.pack("<3f", *hi))
+        for p in positions:
+            handle.write(struct.pack("<3f", *p))
+        for n in normals:
+            handle.write(struct.pack("<3f", *n))
+        for i in indices:
+            handle.write(struct.pack("<I", i))
+
+
 def main(src_path, out_path):
     src = Path(src_path)
     gltf = json.loads(src.read_text())
@@ -172,6 +195,10 @@ def main(src_path, out_path):
     print(f"triangles : {len(indices) // 3}")
     print(f"bornes    : min={[round(v, 3) for v in lo]} max={[round(v, 3) for v in hi]}")
     print(f"sortie    : {out_path} ({len(glb) / 1024 / 1024:.2f} Mo)")
+
+    bin_path = Path(out_path).with_suffix(".bin")
+    write_bin(bin_path, positions, normals, indices, lo, hi)
+    print(f"sortie    : {bin_path} ({bin_path.stat().st_size / 1024 / 1024:.2f} Mo)")
 
 
 if __name__ == "__main__":
