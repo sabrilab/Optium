@@ -91,8 +91,14 @@ struct SessionScreen: View {
     @ViewBuilder
     private var sceneArea: some View {
         if settings.brainEnabled {
-            // Remplace par BrainView en Task 10.
-            Color.clear
+            BrainView(
+                // Le fluide suit le temps restant, pas le temps ecoule.
+                progress: timer.total == 0 ? 1 : Double(timer.remaining) / Double(timer.total),
+                isFocus: timer.mode == .focus,
+                isVisible: selectedTab == .session && scenePhase == .active
+            )
+            .frame(maxHeight: .infinity)
+            .padding(.bottom, 260)
         } else {
             Text("Visualisation désactivée")
                 .font(.footnote)
