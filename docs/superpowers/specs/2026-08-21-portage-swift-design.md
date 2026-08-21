@@ -51,8 +51,20 @@ l'élargir. La place du bouton IA reste libre pour un chantier ultérieur.
 
 Le projet vit dans `ios-native/`, à la racine du dépôt, à côté de `mobile/`.
 Il est créé depuis l'assistant d'Xcode plutôt qu'à la main : application iOS,
-interface SwiftUI, stockage SwiftData, système de test Swift Testing, identifiant
-d'organisation `com.sabrilab`.
+interface SwiftUI, stockage SwiftData, système de test Swift Testing.
+
+L'identifiant de bundle est **`com.sabrilab.optium.native`**, et non
+`com.sabrilab.optium` qu'utilise déjà l'application Expo. Les deux doivent
+pouvoir coexister sur l'iPhone de test pendant tout le portage — c'est la
+condition de la comparaison écran par écran. Un identifiant qui ne différerait
+que par la casse les distinguerait techniquement, mais rendrait indiscernable,
+à l'usage, laquelle des deux est lancée.
+
+Le dossier n'est pas dans Dropbox, contrairement au Bureau et aux Documents de
+cette machine. C'est délibéré : Dropbox recopie les fichiers en continu et entre
+en conflit avec Xcode au milieu d'une écriture, notamment sur le
+`project.pbxproj`. Le versionnement est assuré par git, dont le dépôt distant
+existe déjà.
 
 Les fichiers Swift sont ensuite écrits directement sur le disque. Depuis
 Xcode 16, un projet créé par l'assistant utilise un
