@@ -21,21 +21,21 @@ struct StatsScreen: View {
                         hero(stats)
 
                         LazyVGrid(columns: columns, spacing: 12) {
-                            BentoCard(tint: Ink.restGlow) {
+                            BentoCard(tint: Ink.restGlow, accent: Ink.restGlowFar) {
                                 BentoStat(label: "Série en cours",
                                           value: "\(stats.streak)",
                                           unit: stats.streak <= 1 ? "jour" : "jours")
                             }
-                            BentoCard(tint: Ink.focusGlowFar) {
+                            BentoCard(tint: Ink.focusGlowFar, accent: Ink.focusGlow) {
                                 BentoStat(label: "Sessions aujourd’hui",
                                           value: "\(stats.todayCount)")
                             }
-                            BentoCard(tint: Ink.focusGlow) {
+                            BentoCard(tint: Ink.focusGlow, accent: Ink.focusGlowFar) {
                                 BentoStat(label: "Moyenne / jour",
                                           value: minutes(stats.averageSeconds),
                                           unit: "min")
                             }
-                            BentoCard(tint: Ink.restGlowFar) {
+                            BentoCard(tint: Ink.restGlowFar, accent: Ink.restGlow) {
                                 BentoStat(label: "Sessions / jour",
                                           value: String(format: "%.1f", stats.averageCount))
                             }
@@ -82,11 +82,11 @@ struct StatsScreen: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
-        .bentoSurface(tint: Ink.focusGlow, corner: 28)
+        .bentoSurface(tint: Ink.focusGlow, accent: Ink.focusGlowFar, corner: 28)
     }
 
     private func bestCard(_ stats: Stats) -> some View {
-        BentoCard(tint: Ink.marker) {
+        BentoCard(tint: Ink.marker, accent: Ink.ember) {
             HStack {
                 BentoStat(
                     label: "Meilleur jour",

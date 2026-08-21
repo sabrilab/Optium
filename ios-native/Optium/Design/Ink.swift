@@ -35,6 +35,9 @@ enum Ink {
     /// des deux ambiances, ce qui le rend lisible dans les deux.
     static let marker = Color(red: 0.851, green: 0.918, blue: 0.353)
 
+    /// Teinte chaude, pour les cartes qui ne relevent d'aucun des deux modes.
+    static let ember = Color(red: 0.945, green: 0.478, blue: 0.271)
+
     static func glow(isFocus: Bool) -> Color { isFocus ? focusGlow : restGlow }
     static func glowFar(isFocus: Bool) -> Color { isFocus ? focusGlowFar : restGlowFar }
 }

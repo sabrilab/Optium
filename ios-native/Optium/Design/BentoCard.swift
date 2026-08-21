@@ -2,28 +2,19 @@ import SwiftUI
 
 /// Carte d'une grille bento.
 ///
-/// Le degrade est **vertical et clipe a la forme** : couleur saturee en haut,
-/// fondu vers le noir en bas, sur toute la largeur.
-///
-/// Deux erreurs ont ete faites avant d'arriver la, et elles valent d'etre
-/// notees. Un degrade radial dessine une tache au centre de la carte au lieu
-/// de la traverser — il se lit comme un fond pose derriere, pas comme une
-/// teinte. Et un `.background` sans forme n'est clipe par rien : la couleur
-/// deborde des coins arrondis en aretes droites. D'ou `background(_:in:)`,
-/// qui clipe, pose par-dessus le verre dont il laisse voir la refraction dans
-/// la partie fondue.
+/// La carte est remplie de couleur bord a bord, avec un coeur sombre au centre
+/// et un second foyer decale. Voir `BentoSurface` pour le detail du pourquoi.
 struct BentoCard<Content: View>: View {
     var tint: Color = Ink.focusGlow
+    var accent: Color?
     var corner: CGFloat = 24
-    /// Ou le degrade a fini de s'effacer, en fraction de la hauteur.
-    var fade: Double = 0.85
     @ViewBuilder var content: Content
 
     var body: some View {
         content
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
-            .bentoSurface(tint: tint, corner: corner, fade: fade)
+            .bentoSurface(tint: tint, accent: accent, corner: corner)
     }
 }
 
@@ -52,28 +43,75 @@ struct BentoStat: View {
     }
 }
 
-/// Meme traitement, applique a n'importe quelle vue.
 extension View {
-    func bentoSurface(tint: Color, corner: CGFloat = 24, fade: Double = 0.85) -> some View {
-        // L'ordre compte, et il est contre-intuitif : chaque `.background` se
-        // dessine *derriere* le precedent. Le degrade doit donc etre pose
-        // avant `glassEffect`, sinon le verre passerait devant lui — et un
-        // fond opaque pose en premier le masquerait tout a fait.
-        self
+    /// Surface d'une carte : maillage colore diffus, puis verre d'Apple.
+    ///
+    /// L'ordre importe et il est contre-intuitif — chaque fond se dessine
+    /// *derriere* le precedent. Le maillage est donc pose avant `glassEffect`,
+    /// faute de quoi le verre passerait devant lui.
+    func bentoSurface(tint: Color, accent: Color? = nil, corner: CGFloat = 24) -> some View {
+        modifier(BentoSurface(tint: tint, accent: accent ?? tint, corner: corner))
+    }
+}
+
+private struct BentoSurface: ViewModifier {
+    let tint: Color
+    let accent: Color
+    let corner: CGFloat
+
+    func body(content: Content) -> some View {
+        content
             .background {
-                LinearGradient(
-                    stops: [
-                        .init(color: tint.opacity(0.62), location: 0),
-                        .init(color: tint.opacity(0.22), location: 0.45),
-                        .init(color: .clear, location: fade),
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                // Sans clip, la couleur deborde des coins arrondis en aretes
-                // droites : `.background { }` n'est clipe par aucune forme.
-                .clipShape(.rect(cornerRadius: corner))
+                GeometryReader { proxy in
+                    wash(in: proxy.size)
+                        .clipShape(.rect(cornerRadius: corner))
+                }
             }
             .glassEffect(.regular, in: .rect(cornerRadius: corner))
+    }
+
+    /// La carte est **remplie de couleur bord a bord**, et c'est son centre qui
+    /// est sombre.
+    ///
+    /// C'est l'inverse d'une vignette, et c'est ce qui fait lire un panneau
+    /// retro-eclaire plutot qu'un aplat degrade. Un fondu lineaire, ou une
+    /// masse de couleur logee dans un coin, donnent tous deux une direction a
+    /// l'oeil : la carte se lit alors comme un remplissage. Un coeur sombre
+    /// centre n'a pas de direction — la lumiere semble venir de derriere la
+    /// surface.
+    private func wash(in size: CGSize) -> some View {
+        let radius = max(size.width, size.height)
+
+        return ZStack {
+            tint.opacity(0.58)
+
+            RadialGradient(
+                stops: [
+                    .init(color: .black.opacity(0.92), location: 0),
+                    .init(color: .black.opacity(0.62), location: 0.30),
+                    .init(color: .black.opacity(0.18), location: 0.62),
+                    .init(color: .clear, location: 0.95),
+                ],
+                center: .center,
+                startRadius: 0,
+                endRadius: radius * 0.62
+            )
+
+            // Un second foyer, decale et d'une autre teinte : sans lui les
+            // deux moities de la carte sont symetriques et l'ensemble parait
+            // fabrique.
+            RadialGradient(
+                colors: [accent.opacity(0.50), .clear],
+                center: UnitPoint(x: 0.80, y: 0.18),
+                startRadius: 0,
+                endRadius: radius * 0.55
+            )
+            .blendMode(.plusLighter)
+        }
+        // Le flou acheve la diffusion et efface les raccords entre les foyers.
+        .blur(radius: 22)
+        // Agrandir avant le clip : le flou attaquerait sinon les bords et
+        // laisserait un lisere sombre le long de l'arrondi.
+        .scaleEffect(1.3)
     }
 }

@@ -215,7 +215,11 @@ struct SessionScreen: View {
         .padding(.vertical, 26)
         .padding(.horizontal, 18)
         .frame(maxWidth: .infinity)
-        .glassEffect(.regular, in: .rect(cornerRadius: 30))
+        .bentoSurface(
+            tint: Ink.glow(isFocus: isFocus),
+            accent: Ink.glowFar(isFocus: isFocus),
+            corner: 30
+        )
     }
 
     /// Une session interrompue compte pour le temps reellement passe, pas pour

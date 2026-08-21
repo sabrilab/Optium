@@ -111,7 +111,11 @@ struct ProjectsScreen: View {
             .buttonStyle(.glass)
         }
         .padding(18)
-        .bentoSurface(tint: Color(hex: project.colorHex), corner: 26)
+        .bentoSurface(
+            tint: Color(hex: project.colorHex),
+            accent: Color(hex: project.colorHex).mix(with: .white, by: 0.25),
+            corner: 26
+        )
     }
 
     private func row(_ task: ProjectTask) -> some View {
