@@ -28,7 +28,7 @@ struct TaskComposer: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .background(Ink.canvas.ignoresSafeArea())
+            .background(InkBackground())
             .navigationTitle("Nouvelle tâche")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -53,7 +53,7 @@ struct StatsScreen: View {
     }
 
     private var background: some View {
-        Ink.canvas.ignoresSafeArea()
+        InkBackground()
     }
 
     /// La carte principale porte le chiffre du jour en matrice de points et
@@ -82,7 +82,7 @@ struct StatsScreen: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
-        .bentoSurface(tint: Ink.focusGlow, accent: Ink.focusGlowFar, corner: 28)
+        .bentoSurface(tint: Ink.focusGlow, accent: Ink.focusGlowFar, corner: 34)
     }
 
     private func bestCard(_ stats: Stats) -> some View {

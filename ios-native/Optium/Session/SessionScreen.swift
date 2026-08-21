@@ -39,7 +39,7 @@ struct SessionScreen: View {
 
     private var content: some View {
         ZStack {
-            Ink.canvas.ignoresSafeArea()
+            InkBackground()
 
             // L'aura est posee derriere le cerveau et remonte avec lui : c'est
             // elle qui donne au noir sa profondeur.
@@ -218,7 +218,7 @@ struct SessionScreen: View {
         .bentoSurface(
             tint: Ink.glow(isFocus: isFocus),
             accent: Ink.glowFar(isFocus: isFocus),
-            corner: 30
+            corner: 36
         )
     }
 

@@ -44,7 +44,7 @@ struct ProjectsScreen: View {
     }
 
     private var background: some View {
-        Ink.canvas.ignoresSafeArea()
+        InkBackground()
     }
 
     private var empty: some View {
@@ -114,7 +114,7 @@ struct ProjectsScreen: View {
         .bentoSurface(
             tint: Color(hex: project.colorHex),
             accent: Color(hex: project.colorHex).mix(with: .white, by: 0.25),
-            corner: 26
+            corner: 30
         )
     }
 

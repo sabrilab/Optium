@@ -35,7 +35,7 @@ struct SettingsScreen: View {
         // Le Form reste le composant natif : on lui retire seulement son fond
         // opaque pour laisser passer le noir et l'aura.
         .scrollContentBackground(.hidden)
-        .background(Ink.canvas.ignoresSafeArea())
+        .background(InkBackground())
         .navigationTitle("Réglages")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

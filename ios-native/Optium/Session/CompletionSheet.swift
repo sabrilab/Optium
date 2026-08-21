@@ -35,7 +35,7 @@ struct CompletionSheet: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
             ZStack {
-                Ink.canvas
+                InkBackground()
                 Aura(isFocus: mode == .focus, intensity: 0.8)
                     .frame(height: 380)
             }

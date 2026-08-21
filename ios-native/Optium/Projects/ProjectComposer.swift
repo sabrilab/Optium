@@ -21,7 +21,7 @@ struct ProjectComposer: View {
                 }
             }
             .scrollContentBackground(.hidden)
-            .background(Ink.canvas.ignoresSafeArea())
+            .background(InkBackground())
             .navigationTitle("Nouveau projet")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

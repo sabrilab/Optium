@@ -7,7 +7,7 @@ import SwiftUI
 struct BentoCard<Content: View>: View {
     var tint: Color = Ink.focusGlow
     var accent: Color?
-    var corner: CGFloat = 24
+    var corner: CGFloat = 28
     @ViewBuilder var content: Content
 
     var body: some View {
@@ -49,7 +49,7 @@ extension View {
     /// L'ordre importe et il est contre-intuitif — chaque fond se dessine
     /// *derriere* le precedent. Le maillage est donc pose avant `glassEffect`,
     /// faute de quoi le verre passerait devant lui.
-    func bentoSurface(tint: Color, accent: Color? = nil, corner: CGFloat = 24) -> some View {
+    func bentoSurface(tint: Color, accent: Color? = nil, corner: CGFloat = 28) -> some View {
         modifier(BentoSurface(tint: tint, accent: accent ?? tint, corner: corner))
     }
 }
@@ -88,6 +88,10 @@ private struct BentoSurface: ViewModifier {
             // valeurs absolues.
             tint.opacity(0.72)
 
+            // Le coeur sombre est decale sous le centre. Centre, il partage la
+            // carte en deux moities egales et la lumiere n'a plus d'origine ;
+            // pousse vers le bas, il laisse le bord haut s'allumer, et c'est de
+            // la que la lumiere parait venir.
             RadialGradient(
                 stops: [
                     .init(color: .black, location: 0),
@@ -96,19 +100,30 @@ private struct BentoSurface: ViewModifier {
                     .init(color: .black.opacity(0.34), location: 0.72),
                     .init(color: .clear, location: 1.0),
                 ],
-                center: .center,
+                center: UnitPoint(x: 0.50, y: 0.62),
                 startRadius: 0,
                 endRadius: radius * 0.68
             )
 
-            // Un second foyer, decale et d'une autre teinte : sans lui les
-            // deux moities de la carte sont symetriques et l'ensemble parait
-            // fabrique.
+            // Arete superieure rallumee, dans la seconde teinte.
+            LinearGradient(
+                stops: [
+                    .init(color: accent.opacity(0.60), location: 0),
+                    .init(color: accent.opacity(0.22), location: 0.22),
+                    .init(color: .clear, location: 0.52),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .blendMode(.plusLighter)
+
+            // Un second foyer, decale : sans lui les deux moities de la carte
+            // sont symetriques et l'ensemble parait fabrique.
             RadialGradient(
-                colors: [accent.opacity(0.50), .clear],
-                center: UnitPoint(x: 0.80, y: 0.18),
+                colors: [accent.opacity(0.40), .clear],
+                center: UnitPoint(x: 0.82, y: 0.14),
                 startRadius: 0,
-                endRadius: radius * 0.55
+                endRadius: radius * 0.50
             )
             .blendMode(.plusLighter)
         }
