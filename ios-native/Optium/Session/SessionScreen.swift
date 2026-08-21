@@ -91,12 +91,16 @@ struct SessionScreen: View {
     @ViewBuilder
     private var sceneArea: some View {
         if settings.brainEnabled {
-            BrainView(
-                // Le fluide suit le temps restant, pas le temps ecoule.
-                progress: timer.total == 0 ? 1 : Double(timer.remaining) / Double(timer.total),
-                isFocus: timer.mode == .focus,
-                isVisible: selectedTab == .session && scenePhase == .active
-            )
+            ZStack {
+                SceneBackdrop(isFocus: timer.mode == .focus)
+                    .ignoresSafeArea(edges: .top)
+                BrainView(
+                    // Le fluide suit le temps restant, pas le temps ecoule.
+                    progress: timer.total == 0 ? 1 : Double(timer.remaining) / Double(timer.total),
+                    isFocus: timer.mode == .focus,
+                    isVisible: selectedTab == .session && scenePhase == .active
+                )
+            }
             .frame(maxHeight: .infinity)
             .padding(.bottom, 260)
         } else {
@@ -127,6 +131,10 @@ struct SessionScreen: View {
             .buttonStyle(.glass)
             .accessibilityLabel("Réglages")
         }
+        // Ces commandes flottent sur la scene, pas sur le fond systeme : leur
+        // contenu doit se lire clair quel que soit le mode de l'appareil.
+        // C'est ce que fait Musique pour ses commandes posees sur la pochette.
+        .environment(\.colorScheme, .dark)
     }
 
     private var controls: some View {

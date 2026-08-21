@@ -78,12 +78,12 @@ fragment float4 fluid_fragment(FluidOut in [[stage_in]],
     color *= 1.0 - in.normalizedY * 0.3;
 
     // Menisque : lisere clair a la surface du liquide.
-    color += smoothstep(0.06, 0.0, abs(in.normalizedY - fillEdge)) * 0.4 * float3(0.6, 0.7, 1.0);
+    color += smoothstep(0.06, 0.0, abs(in.normalizedY - fillEdge)) * 0.6 * float3(0.6, 0.7, 1.0);
 
     float rim = pow(1.0 - abs(dot(in.normal, float3(0.0, 0.0, 1.0))), 2.5);
     color += rim * u.colorA * 0.3;
 
-    return float4(color, fill * (0.55 + rim * 0.15));
+    return float4(color, fill * (0.78 + rim * 0.18));
 }
 
 struct ShellOut {
@@ -113,8 +113,15 @@ vertex ShellOut shell_vertex(VertexIn in [[stage_in]],
 /// telechargee, pour une lecture de verre equivalente a cette taille d'affichage.
 fragment float4 shell_fragment(ShellOut in [[stage_in]],
                                constant Uniforms &u [[buffer(1)]]) {
-    float fresnel = pow(1.0 - abs(dot(normalize(in.normal), normalize(in.viewDir))), 2.5);
+    float fresnel = pow(1.0 - abs(dot(normalize(in.normal), normalize(in.viewDir))), 3.0);
     float3 tint = float3(0.812, 0.878, 1.0);
-    float3 color = tint * (0.3 + fresnel * 1.7);
-    return float4(color, 0.10 + fresnel * 0.7);
+    float3 color = tint * (0.35 + fresnel * 1.9);
+
+    // Le terme constant de l'alpha est reduit a presque rien. Verse par chaque
+    // fragment, il s'accumulait sur les dix replis superposes que traverse un
+    // meme rayon dans un cerveau, jusqu'a saturer en blanc et effacer le
+    // fluide en dessous. Tout le poids passe sur le Fresnel, qui ne s'allume
+    // qu'aux silhouettes : c'est ce qui donne une lecture de verre plutot
+    // qu'un bloc laiteux.
+    return float4(color, 0.015 + fresnel * 0.85);
 }
