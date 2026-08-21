@@ -10,7 +10,7 @@ struct CompletionSheet: View {
         VStack(spacing: 20) {
             Image(systemName: mode == .focus ? "checkmark.circle.fill" : "cup.and.saucer.fill")
                 .font(.system(size: 56))
-                .foregroundStyle(.tint)
+                .foregroundStyle(Ink.glow(isFocus: mode == .focus))
 
             Text(mode == .focus ? "Session terminée" : "Pause terminée")
                 .font(.title2.weight(.semibold))
@@ -26,11 +26,21 @@ struct CompletionSheet: View {
                 onContinue()
                 dismiss()
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.glassProminent)
+            .tint(Ink.glow(isFocus: mode == .focus))
             .controlSize(.large)
             .frame(minHeight: 44)
         }
         .padding(32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+            ZStack {
+                Ink.canvas
+                Aura(isFocus: mode == .focus, intensity: 0.8)
+                    .frame(height: 380)
+            }
+            .ignoresSafeArea()
+        }
         .presentationDetents([.medium])
     }
 }

@@ -19,11 +19,19 @@ struct SessionScreen: View {
         return projects.flatMap(\.tasks).first { $0.id == id }
     }
 
+    private var isFocus: Bool { timer.mode == .focus }
+
     var body: some View {
         ZStack {
-            // La scene occupe le haut de l'ecran ; les panneaux de verre
-            // flottent par dessus, comme les commandes du lecteur de Musique
-            // sur la pochette d'album.
+            Ink.canvas.ignoresSafeArea()
+
+            // L'aura est posee derriere le cerveau et remonte avec lui : c'est
+            // elle qui donne au noir sa profondeur.
+            Aura(isFocus: isFocus, intensity: 0.55 + timer.progress * 0.45)
+                .frame(height: 620)
+                .offset(y: -160)
+                .ignoresSafeArea()
+
             sceneArea
                 .frame(maxHeight: .infinity, alignment: .top)
 
@@ -34,7 +42,6 @@ struct SessionScreen: View {
             }
             .padding(.horizontal, 16)
         }
-        .background(Color(.systemBackground))
         .sheet(isPresented: $showSettings) {
             NavigationStack { SettingsScreen() }
         }
@@ -91,18 +98,14 @@ struct SessionScreen: View {
     @ViewBuilder
     private var sceneArea: some View {
         if settings.brainEnabled {
-            ZStack {
-                SceneBackdrop(isFocus: timer.mode == .focus)
-                    .ignoresSafeArea(edges: .top)
-                BrainView(
-                    // Le fluide suit le temps restant, pas le temps ecoule.
-                    progress: timer.total == 0 ? 1 : Double(timer.remaining) / Double(timer.total),
-                    isFocus: timer.mode == .focus,
-                    isVisible: selectedTab == .session && scenePhase == .active
-                )
-            }
+            BrainView(
+                // Le fluide suit le temps restant, pas le temps ecoule.
+                progress: timer.total == 0 ? 1 : Double(timer.remaining) / Double(timer.total),
+                isFocus: isFocus,
+                isVisible: selectedTab == .session && scenePhase == .active
+            )
             .frame(maxHeight: .infinity)
-            .padding(.bottom, 260)
+            .padding(.bottom, 300)
         } else {
             Text("Visualisation désactivée")
                 .font(.footnote)
@@ -111,110 +114,127 @@ struct SessionScreen: View {
         }
     }
 
+    /// Les elements de verre d'une meme zone sont groupes dans un
+    /// `GlassEffectContainer` : c'est lui qui leur fait partager une seule
+    /// couche de refraction et qui autorise les fusions entre eux.
     private var header: some View {
-        HStack {
-            Text(timer.mode.label)
-                .font(.footnote.weight(.semibold))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .glassEffect(.clear)
+        GlassEffectContainer(spacing: 16) {
+            HStack(spacing: 12) {
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(Ink.glow(isFocus: isFocus))
+                        .frame(width: 7, height: 7)
+                        .shadow(color: Ink.glow(isFocus: isFocus), radius: 5)
+                    Text(timer.mode.label.uppercased())
+                        .font(.caption2.weight(.semibold))
+                        .tracking(1.4)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 9)
+                .glassEffect(.clear, in: .capsule)
 
-            Spacer()
+                Spacer()
 
-            Button {
-                showSettings = true
-            } label: {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 17))
-                    .frame(width: 44, height: 44)
+                Button {
+                    showSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 16))
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.glass)
+                .accessibilityLabel("Réglages")
             }
-            .buttonStyle(.glass)
-            .accessibilityLabel("Réglages")
         }
-        // Ces commandes flottent sur la scene, pas sur le fond systeme : leur
-        // contenu doit se lire clair quel que soit le mode de l'appareil.
-        // C'est ce que fait Musique pour ses commandes posees sur la pochette.
-        .environment(\.colorScheme, .dark)
     }
 
     private var controls: some View {
-        VStack(spacing: 12) {
-            if let task = activeTask {
-                taskCard(task)
+        GlassEffectContainer(spacing: 14) {
+            VStack(spacing: 14) {
+                if let task = activeTask {
+                    taskCard(task)
+                }
+                timerCard
             }
-            timerCard
         }
-        .padding(.bottom, 16)
+        .padding(.bottom, 12)
     }
 
     private func taskCard(_ task: ProjectTask) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(task.project?.name ?? "")
-                .font(.caption)
+        VStack(alignment: .leading, spacing: 6) {
+            Text((task.project?.name ?? "").uppercased())
+                .font(.caption2)
+                .tracking(1.2)
                 .foregroundStyle(.secondary)
             Text(task.title)
                 .font(.headline)
                 .lineLimit(1)
 
-            HStack(spacing: 4) {
+            HStack(spacing: 5) {
                 ForEach(0..<task.estimatedPomodoros, id: \.self) { index in
                     Capsule()
-                        .fill(index < task.completedPomodoros ? Color.accentColor : Color(.tertiarySystemFill))
-                        .frame(height: 4)
+                        .fill(index < task.completedPomodoros
+                              ? Ink.marker
+                              : Color.white.opacity(0.16))
+                        .frame(height: 3)
                 }
             }
-            .padding(.top, 4)
+            .padding(.top, 6)
             .accessibilityLabel(
                 "\(task.completedPomodoros) sur \(task.estimatedPomodoros) sessions terminées"
             )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .glassEffect(.regular, in: .rect(cornerRadius: 20))
+        .glassEffect(.regular, in: .rect(cornerRadius: 22))
     }
 
     private var timerCard: some View {
         VStack(spacing: 0) {
-            ProgressView(value: min(1, timer.progress))
-                .tint(.primary)
-                .frame(width: 220)
-                .padding(.bottom, 20)
+            DotMatrixText(
+                text: formatted(timer.remaining),
+                color: .primary,
+                glow: Ink.glow(isFocus: isFocus)
+            )
+            .padding(.bottom, 18)
+            .accessibilityLabel("\(timer.remaining / 60) minutes restantes")
 
-            Text(formatted(timer.remaining))
-                .font(.system(size: 64, weight: .semibold))
-                .monospacedDigit()
-                .contentTransition(.numericText())
-                .accessibilityLabel("\(timer.remaining / 60) minutes restantes")
+            TickScale(progress: min(1, timer.progress))
+                .padding(.horizontal, 8)
+                .padding(.bottom, 16)
 
-            Text(timer.mode == .focus
-                 ? "Session · \(settings.focusMinutes) min"
-                 : "Pause · \(settings.restMinutes) min")
-                .font(.subheadline)
+            Text(isFocus
+                 ? "SESSION · \(settings.focusMinutes) MIN"
+                 : "PAUSE · \(settings.restMinutes) MIN")
+                .font(.caption2.weight(.medium))
+                .tracking(1.6)
                 .foregroundStyle(.secondary)
-                .padding(.top, 4)
-                .padding(.bottom, 20)
+                .padding(.bottom, 22)
 
-            Button {
-                if timer.isRunning { timer.pause() } else { timer.start() }
-            } label: {
-                Image(systemName: timer.isRunning ? "pause.fill" : "play.fill")
-                    .font(.system(size: 24))
-                    .frame(width: 68, height: 68)
-            }
-            .buttonStyle(.glass)
-            .accessibilityLabel(timer.isRunning ? "Mettre en pause" : "Démarrer")
+            HStack(spacing: 12) {
+                if timer.progress > 0 {
+                    Button("Terminer") { endEarly() }
+                        .font(.footnote.weight(.medium))
+                        .frame(minWidth: 96, minHeight: 44)
+                        .buttonStyle(.glass)
+                }
 
-            if timer.progress > 0 {
-                Button("Terminer maintenant") { endEarly() }
-                    .font(.callout)
-                    .frame(minHeight: 44)
-                    .padding(.top, 8)
+                Button {
+                    if timer.isRunning { timer.pause() } else { timer.start() }
+                } label: {
+                    Image(systemName: timer.isRunning ? "pause.fill" : "play.fill")
+                        .font(.system(size: 22))
+                        .frame(width: 68, height: 68)
+                }
+                .buttonStyle(.glassProminent)
+                .tint(Ink.glow(isFocus: isFocus))
+                .accessibilityLabel(timer.isRunning ? "Mettre en pause" : "Démarrer")
             }
         }
-        .padding(.vertical, 24)
-        .padding(.horizontal, 16)
+        .padding(.vertical, 26)
+        .padding(.horizontal, 18)
         .frame(maxWidth: .infinity)
-        .glassEffect(.regular, in: .rect(cornerRadius: 28))
+        .glassEffect(.regular, in: .rect(cornerRadius: 30))
     }
 
     /// Une session interrompue compte pour le temps reellement passe, pas pour
@@ -222,11 +242,11 @@ struct SessionScreen: View {
     private func endEarly() {
         context.insert(FocusSession(
             durationSeconds: timer.elapsed,
-            isFocus: timer.mode == .focus,
+            isFocus: isFocus,
             projectID: timer.activeProjectID,
             taskID: timer.activeTaskID
         ))
-        if timer.mode == .focus { timer.switchToRest() } else { timer.switchToFocus() }
+        if isFocus { timer.switchToRest() } else { timer.switchToFocus() }
     }
 
     private func formatted(_ seconds: Int) -> String {

@@ -20,6 +20,8 @@ struct ProjectComposer: View {
                     Text("L’objectif décrit ce que le projet doit accomplir.")
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Ink.canvas.ignoresSafeArea())
             .navigationTitle("Nouveau projet")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

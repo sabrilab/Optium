@@ -27,6 +27,8 @@ struct TaskComposer: View {
                     Text("Une session dure le temps réglé pour la concentration.")
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Ink.canvas.ignoresSafeArea())
             .navigationTitle("Nouvelle tâche")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

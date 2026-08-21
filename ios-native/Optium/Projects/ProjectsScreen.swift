@@ -12,20 +12,22 @@ struct ProjectsScreen: View {
 
     var body: some View {
         NavigationStack {
-            Group {
+            ScrollView {
                 if projects.isEmpty {
-                    ContentUnavailableView {
-                        Label("Aucun projet", systemImage: "folder")
-                    } description: {
-                        Text("Créez un projet, puis découpez-le en tâches.")
-                    } actions: {
-                        Button("Nouveau projet") { composingProject = true }
-                            .buttonStyle(.borderedProminent)
-                    }
+                    empty
                 } else {
-                    list
+                    GlassEffectContainer(spacing: 12) {
+                        VStack(spacing: 12) {
+                            ForEach(projects) { project in
+                                card(project)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 100)
+                    }
                 }
             }
+            .background(background)
             .navigationTitle("Projets")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -41,47 +43,109 @@ struct ProjectsScreen: View {
         }
     }
 
-    private var list: some View {
-        List {
-            ForEach(projects) { project in
-                Section {
-                    ForEach(project.orderedTasks) { task in
-                        Button { start(task, in: project) } label: { row(task) }
-                            .buttonStyle(.plain)
-                    }
-                    .onDelete { offsets in delete(offsets, from: project) }
+    private var background: some View {
+        ZStack {
+            Ink.canvas
+            Aura(isFocus: true, intensity: 0.35)
+                .frame(height: 460)
+                .offset(y: -220)
+        }
+        .ignoresSafeArea()
+    }
 
-                    Button {
-                        composingTaskFor = project
-                    } label: {
-                        Label("Ajouter une tâche", systemImage: "plus.circle")
-                    }
-                } header: {
+    private var empty: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "folder")
+                .font(.system(size: 44))
+                .foregroundStyle(.tertiary)
+            Text("Aucun projet")
+                .font(.title3.weight(.semibold))
+            Text("Créez un projet, puis découpez-le en tâches.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Button("Nouveau projet") { composingProject = true }
+                .buttonStyle(.glassProminent)
+                .tint(Ink.focusGlow)
+                .padding(.top, 4)
+        }
+        .padding(.top, 120)
+        .padding(.horizontal, 40)
+    }
+
+    /// Un projet est une carte, teintee de sa propre couleur : c'est ce qui
+    /// permet de le reconnaitre d'un coup d'oeil dans une liste.
+    private func card(_ project: Project) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(project.name)
-                } footer: {
+                        .font(.title3.weight(.semibold))
                     if !project.tasks.isEmpty {
                         let done = project.tasks.filter(\.isDone).count
-                        Text("\(done) sur \(project.tasks.count) tâches terminées")
+                        Text("\(done) sur \(project.tasks.count) terminées")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
+                Spacer()
+                Menu {
+                    Button("Ajouter une tâche") { composingTaskFor = project }
+                    Button("Supprimer le projet", role: .destructive) {
+                        delete(project)
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 15, weight: .semibold))
+                        .frame(width: 44, height: 44, alignment: .trailing)
+                }
+                .accessibilityLabel("Actions du projet")
             }
-            .onDelete(perform: deleteProjects)
+
+            ForEach(project.orderedTasks) { task in
+                Button { start(task, in: project) } label: { row(task) }
+                    .buttonStyle(.plain)
+            }
+
+            Button {
+                composingTaskFor = project
+            } label: {
+                Label("Ajouter une tâche", systemImage: "plus")
+                    .font(.footnote.weight(.medium))
+                    .frame(maxWidth: .infinity, minHeight: 40)
+            }
+            .buttonStyle(.glass)
         }
+        .padding(18)
+        .background {
+            RadialGradient(
+                colors: [Color(hex: project.colorHex).opacity(0.34), .clear],
+                center: .topLeading, startRadius: 8, endRadius: 320
+            )
+        }
+        .glassEffect(.regular, in: .rect(cornerRadius: 26))
     }
 
     private func row(_ task: ProjectTask) -> some View {
-        HStack {
+        HStack(spacing: 12) {
             Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(task.isDone ? Color.accentColor : Color(.tertiaryLabel))
+                .font(.system(size: 18))
+                .foregroundStyle(task.isDone ? Ink.marker : Color.white.opacity(0.3))
             Text(task.title)
-                .foregroundStyle(.primary)
+                .font(.subheadline)
+                .strikethrough(task.isDone, color: .secondary)
+                .foregroundStyle(task.isDone ? .secondary : .primary)
             Spacer()
             Text("\(task.completedPomodoros)/\(task.estimatedPomodoros)")
-                .font(.subheadline)
+                .font(.caption)
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
         }
         .frame(minHeight: 44)
+        .contentShape(.rect)
+        .contextMenu {
+            Button("Supprimer la tâche", role: .destructive) { delete(task) }
+        }
     }
 
     /// Demarrer une tache la rend active et lance immediatement une session.
@@ -92,25 +156,32 @@ struct ProjectsScreen: View {
         timer.start()
     }
 
-    private func delete(_ offsets: IndexSet, from project: Project) {
-        let ordered = project.orderedTasks
-        for index in offsets {
-            let task = ordered[index]
-            // Supprimer la tache en cours doit liberer le minuteur, sinon il
-            // pointerait vers un objet disparu.
-            if timer.activeTaskID == task.id { timer.activeTaskID = nil }
-            context.delete(task)
-        }
+    private func delete(_ task: ProjectTask) {
+        // Supprimer la tache en cours doit liberer le minuteur, sinon il
+        // pointerait vers un objet disparu.
+        if timer.activeTaskID == task.id { timer.activeTaskID = nil }
+        context.delete(task)
     }
 
-    private func deleteProjects(_ offsets: IndexSet) {
-        for index in offsets {
-            let project = projects[index]
-            if timer.activeProjectID == project.id {
-                timer.activeProjectID = nil
-                timer.activeTaskID = nil
-            }
-            context.delete(project)
+    private func delete(_ project: Project) {
+        if timer.activeProjectID == project.id {
+            timer.activeProjectID = nil
+            timer.activeTaskID = nil
         }
+        context.delete(project)
+    }
+}
+
+extension Color {
+    /// Les couleurs de projet sont stockees en hexadecimal : c'est une donnee
+    /// du modele, portee telle quelle depuis la version Expo.
+    init(hex: String) {
+        let cleaned = hex.hasPrefix("#") ? String(hex.dropFirst()) : hex
+        let value = UInt64(cleaned, radix: 16) ?? 0
+        self.init(
+            red: Double((value >> 16) & 0xFF) / 255,
+            green: Double((value >> 8) & 0xFF) / 255,
+            blue: Double(value & 0xFF) / 255
+        )
     }
 }

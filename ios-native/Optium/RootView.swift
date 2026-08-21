@@ -21,5 +21,10 @@ struct RootView: View {
                 StatsScreen()
             }
         }
+        // L'application ne suit plus l'apparence d'iOS : le noir est un choix
+        // de direction artistique, et la scene comme les auras n'existent que
+        // sur lui. Les couleurs de texte restent semantiques et s'y adaptent.
+        .preferredColorScheme(.dark)
+        .tint(Ink.focusGlow)
     }
 }
