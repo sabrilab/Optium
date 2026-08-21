@@ -1,12 +1,3 @@
-/* eslint-disable react-hooks/immutability, react-hooks/refs --
- * react-three-fiber pilote son propre boucle de rendu : le callback passe a
- * useFrame s'execute soixante fois par seconde en dehors du cycle de rendu de
- * React, et c'est precisement l'interet de ce composant — muter des uniformes
- * GPU et des refs sans provoquer le moindre rendu React. Le meme raisonnement
- * vaut pour les callbacks de geste, invoques par le systeme apres le rendu.
- * Ces deux regles supposent un flux de donnees gere par React et produisent ici
- * des faux positifs.
- */
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';

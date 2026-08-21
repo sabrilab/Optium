@@ -30,18 +30,31 @@
     "plugins": [
       "expo-router",
       "expo-dev-client",
-      "expo-secure-store",
       "expo-asset",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#000000",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
       ],
-      "expo-audio",
-      "expo-build-properties"
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Optium enregistre le lieu de vos sessions pour vous montrer où vous vous concentrez le mieux.",
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false,
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

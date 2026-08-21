@@ -39,6 +39,8 @@ yarn-error.*
 example
 
 # generated native folders
-/ios
+# Le projet iOS est versionne : il porte la configuration de signature et
+# permet d'ouvrir l'app dans Xcode sans regenerer quoi que ce soit.
+# Regenerer apres toute modification d'app.json : npx expo prebuild -p ios --clean
 /android
 .env.local
