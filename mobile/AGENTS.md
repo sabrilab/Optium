@@ -1,5 +1,23 @@
 # Optium — application mobile
 
+> **Ce fichier decrit l'application Expo (`mobile/`), qui n'est plus le projet
+> actif.** Depuis le 2026-08-22, Optium est reecrite en SwiftUI natif dans
+> `ios-native/`, et le code Expo n'est conserve que comme reference de
+> comparaison pendant le portage. Voir `docs/superpowers/specs/` et
+> `docs/superpowers/plans/`.
+>
+> Deux contraintes ci-dessous ne valent que pour la version Expo et ont ete
+> explicitement abandonnees dans la version native :
+>
+> - **le SDK fige en 54**, impose par Expo Go, n'a plus d'objet : l'app native
+>   se compile et s'installe directement ;
+> - **« pas de bascule de theme, l'apparence suit iOS »** : la version native
+>   est en noir permanent, choix de direction artistique assume. La scene 3D,
+>   les auras et les cartes n'existent que sur un noir vrai.
+>
+> En revanche, les trois choix de rendu de la scene 3D restent valables et ont
+> ete portes tels quels en Metal.
+
 Application Pomodoro pour iPhone : minuteur de sessions, projets decoupes en
 taches par IA, statistiques, et une scene 3D dont le remplissage suit la
 progression de la session.

@@ -73,8 +73,8 @@ struct StatsScreen: View {
 
             HStack(alignment: .bottom, spacing: 10) {
                 DotMatrixText(
-                    text: paddedMinutes(stats.todaySeconds),
-                    dot: 6, gap: 3.5,
+                    text: minutes(stats.todaySeconds),
+                    dot: 7, gap: 4,
                     glow: Ink.focusGlow
                 )
                 Text("min")
@@ -136,11 +136,5 @@ struct StatsScreen: View {
 
     private func minutes(_ seconds: Int) -> String {
         "\(Int((Double(seconds) / 60).rounded()))"
-    }
-
-    /// La matrice de points a besoin d'une largeur stable : on cadre sur trois
-    /// chiffres, sinon le bloc sauterait a chaque passage de 99 a 100.
-    private func paddedMinutes(_ seconds: Int) -> String {
-        String(format: "%03d", min(999, Int((Double(seconds) / 60).rounded())))
     }
 }
