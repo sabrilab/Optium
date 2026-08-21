@@ -8,13 +8,16 @@ struct BentoCard<Content: View>: View {
     var tint: Color = Ink.focusGlow
     var accent: Color?
     var corner: CGFloat = 28
+    /// Hierarchie : une carte secondaire est plus sombre, pas d'une autre
+    /// teinte. Varier les couleurs pour hierarchiser produit un arc-en-ciel.
+    var intensity: Double = 1
     @ViewBuilder var content: Content
 
     var body: some View {
         content
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
-            .bentoSurface(tint: tint, accent: accent, corner: corner)
+            .bentoSurface(tint: tint, accent: accent, corner: corner, intensity: intensity)
     }
 }
 
@@ -49,8 +52,13 @@ extension View {
     /// L'ordre importe et il est contre-intuitif — chaque fond se dessine
     /// *derriere* le precedent. Le maillage est donc pose avant `glassEffect`,
     /// faute de quoi le verre passerait devant lui.
-    func bentoSurface(tint: Color, accent: Color? = nil, corner: CGFloat = 28) -> some View {
-        modifier(BentoSurface(tint: tint, accent: accent ?? tint, corner: corner))
+    func bentoSurface(
+        tint: Color,
+        accent: Color? = nil,
+        corner: CGFloat = 28,
+        intensity: Double = 1
+    ) -> some View {
+        modifier(BentoSurface(tint: tint, accent: accent ?? tint, corner: corner, intensity: intensity))
     }
 }
 
@@ -58,6 +66,7 @@ private struct BentoSurface: ViewModifier {
     let tint: Color
     let accent: Color
     let corner: CGFloat
+    let intensity: Double
 
     func body(content: Content) -> some View {
         content
@@ -86,7 +95,7 @@ private struct BentoSurface: ViewModifier {
             // Le remplissage monte en meme temps que le coeur s'assombrit :
             // c'est l'ecart entre les deux qui fait la lecture, pas leurs
             // valeurs absolues.
-            tint.opacity(0.72)
+            tint.opacity(0.72 * intensity)
 
             // Le coeur sombre est decale sous le centre. Centre, il partage la
             // carte en deux moities egales et la lumiere n'a plus d'origine ;
@@ -108,8 +117,8 @@ private struct BentoSurface: ViewModifier {
             // Arete superieure rallumee, dans la seconde teinte.
             LinearGradient(
                 stops: [
-                    .init(color: accent.opacity(0.60), location: 0),
-                    .init(color: accent.opacity(0.22), location: 0.22),
+                    .init(color: accent.opacity(0.60 * intensity), location: 0),
+                    .init(color: accent.opacity(0.22 * intensity), location: 0.22),
                     .init(color: .clear, location: 0.52),
                 ],
                 startPoint: .top,
@@ -120,7 +129,7 @@ private struct BentoSurface: ViewModifier {
             // Un second foyer, decale : sans lui les deux moities de la carte
             // sont symetriques et l'ensemble parait fabrique.
             RadialGradient(
-                colors: [accent.opacity(0.40), .clear],
+                colors: [accent.opacity(0.40 * intensity), .clear],
                 center: UnitPoint(x: 0.82, y: 0.14),
                 startRadius: 0,
                 endRadius: radius * 0.50

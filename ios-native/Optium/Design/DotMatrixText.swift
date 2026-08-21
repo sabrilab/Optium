@@ -8,11 +8,11 @@ import SwiftUI
 /// « afficheur » plutot que « police pointilliste ».
 struct DotMatrixText: View {
     let text: String
-    var dot: CGFloat = 7
-    var gap: CGFloat = 4
+    var dot: CGFloat = 6.5
+    var gap: CGFloat = 4.5
     var color: Color = .primary
     /// Luminosite des points eteints. Les garder visibles dessine la grille.
-    var dimOpacity: Double = 0.09
+    var dimOpacity: Double = 0.055
     /// Halo des points allumes, comme la diffusion d'une vraie diode.
     var glow: Color?
 

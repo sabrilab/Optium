@@ -21,21 +21,21 @@ struct StatsScreen: View {
                         hero(stats)
 
                         LazyVGrid(columns: columns, spacing: 12) {
-                            BentoCard(tint: Ink.restGlow, accent: Ink.restGlowFar) {
+                            BentoCard(tint: Ink.focusGlowFar, accent: Ink.focusGlow, intensity: 0.62) {
                                 BentoStat(label: "Série en cours",
                                           value: "\(stats.streak)",
                                           unit: stats.streak <= 1 ? "jour" : "jours")
                             }
-                            BentoCard(tint: Ink.focusGlowFar, accent: Ink.focusGlow) {
+                            BentoCard(tint: Ink.focusGlow, accent: Ink.focusGlowFar, intensity: 0.62) {
                                 BentoStat(label: "Sessions aujourd’hui",
                                           value: "\(stats.todayCount)")
                             }
-                            BentoCard(tint: Ink.focusGlow, accent: Ink.focusGlowFar) {
+                            BentoCard(tint: Ink.focusGlowFar, accent: Ink.focusGlow, intensity: 0.42) {
                                 BentoStat(label: "Moyenne / jour",
                                           value: minutes(stats.averageSeconds),
                                           unit: "min")
                             }
-                            BentoCard(tint: Ink.restGlowFar, accent: Ink.restGlow) {
+                            BentoCard(tint: Ink.focusGlow, accent: Ink.focusGlowFar, intensity: 0.42) {
                                 BentoStat(label: "Sessions / jour",
                                           value: String(format: "%.1f", stats.averageCount))
                             }
@@ -86,7 +86,7 @@ struct StatsScreen: View {
     }
 
     private func bestCard(_ stats: Stats) -> some View {
-        BentoCard(tint: Ink.marker, accent: Ink.ember) {
+        BentoCard(tint: Ink.focusGlowFar, accent: Ink.focusGlow, intensity: 0.52) {
             HStack {
                 BentoStat(
                     label: "Meilleur jour",
@@ -108,14 +108,13 @@ struct StatsScreen: View {
             BarMark(
                 x: .value("Jour", day.date, unit: .day),
                 y: .value("Minutes", day.seconds / 60),
-                width: .fixed(6)
+                width: .fixed(2)
             )
             .foregroundStyle(
                 Calendar.current.isDateInToday(day.date)
                 ? Ink.marker
-                : Color.white.opacity(0.28)
+                : Color.white.opacity(0.30)
             )
-            .cornerRadius(3)
         }
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)

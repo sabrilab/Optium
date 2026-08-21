@@ -192,24 +192,38 @@ struct SessionScreen: View {
                 .foregroundStyle(.secondary)
                 .padding(.bottom, 22)
 
-            HStack(spacing: 12) {
-                if timer.progress > 0 {
-                    Button("Terminer") { endEarly() }
-                        .font(.footnote.weight(.medium))
-                        .frame(minWidth: 96, minHeight: 44)
-                        .buttonStyle(.glass)
-                }
-
+            HStack(spacing: 10) {
+                // Principal : une pilule large, avec son libelle. Un aplat
+                // sature de 68 points est le reflexe par defaut ; aucune des
+                // references n'en a. Le verre suffit a designer l'action
+                // principale des lors qu'elle est la plus large.
                 Button {
                     if timer.isRunning { timer.pause() } else { timer.start() }
                 } label: {
-                    Image(systemName: timer.isRunning ? "pause.fill" : "play.fill")
-                        .font(.system(size: 22))
-                        .frame(width: 68, height: 68)
+                    HStack(spacing: 9) {
+                        Image(systemName: timer.isRunning ? "pause.fill" : "play.fill")
+                            .font(.system(size: 14))
+                        Text(timer.isRunning ? "Mettre en pause" : "Démarrer")
+                            .font(.subheadline.weight(.medium))
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 54)
+                    // Libelle en blanc, pas dans la couleur d'accent : le
+                    // verre suffit a designer l'action, et une teinte de plus
+                    // ne ferait qu'ajouter du bruit.
+                    .foregroundStyle(.primary)
                 }
-                .buttonStyle(.glassProminent)
-                .tint(Ink.glow(isFocus: isFocus))
-                .accessibilityLabel(timer.isRunning ? "Mettre en pause" : "Démarrer")
+                .buttonStyle(.glass)
+
+                if timer.progress > 0 {
+                    Button(action: endEarly) {
+                        Image(systemName: "stop.fill")
+                            .font(.system(size: 14))
+                            .frame(width: 54, height: 54)
+                            .foregroundStyle(.primary)
+                    }
+                    .buttonStyle(.glass)
+                    .accessibilityLabel("Terminer maintenant")
+                }
             }
         }
         .padding(.vertical, 26)
