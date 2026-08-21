@@ -1,0 +1,7 @@
+# Etat local d'Xcode : preferences de fenetre, onglets ouverts, breakpoints.
+xcuserdata/
+*.xcuserstate
+
+# Produits de compilation.
+build/
+DerivedData/
