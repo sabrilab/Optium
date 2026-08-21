@@ -26,7 +26,7 @@ imposaient.
 |---|---|
 | Cohabitation | Projet natif neuf ; le code Expo reste intact comme référence pendant le portage |
 | Scène 3D | Metal + `MTKView`, portage des deux shaders GLSL en Metal Shading Language |
-| Persistance | SwiftData pour les projets, tâches et sessions ; `@AppStorage` pour les réglages |
+| Persistance | SwiftData pour les projets, tâches et sessions ; `UserDefaults` pour les réglages |
 | Périmètre v1 | Parité avec l'application Expo, **sans** la génération de tâches par IA |
 | Cible | iOS 26 |
 
@@ -97,9 +97,9 @@ Optium/
   OptiumApp.swift          point d'entrée, ModelContainer, TabView racine
   Model/
     Project.swift          @Model
-    Task.swift             @Model
+    ProjectTask.swift      @Model — nomme ainsi car `Task` est pris par Swift Concurrency
     FocusSession.swift     @Model
-    AppSettings.swift      réglages en @AppStorage
+    AppSettings.swift      reglages persistes dans UserDefaults
   Timer/
     TimerEngine.swift      @Observable — état du minuteur
     TimerNotifications.swift
@@ -134,9 +134,12 @@ réelle de chaque donnée :
   et durables. Le modèle actuel les recopie intégralement à chaque écriture et
   plafonne les sessions à 1000 pour contenir la taille du blob ; ce plafond
   disparaît.
-- **`@AppStorage`** — durées, carillon, vibrations, géolocalisation,
-  visualisation 3D, nom d'utilisateur. Une poignée de scalaires : un `@Model`
-  serait démesuré.
+- **`UserDefaults`** — durées, carillon, vibrations, géolocalisation,
+  visualisation 3D. Une poignée de scalaires : un `@Model` serait démesuré.
+  (`@AppStorage` est réservé aux vues SwiftUI ; on écrit donc dans
+  `UserDefaults`, ce qui a l'avantage de rendre la source injectable en test.)
+  Le réglage `userName` du magasin Expo n'est pas repris : il est persisté mais
+  n'est écrit ni lu nulle part, c'est de l'état mort.
 - **`TimerEngine`** — l'état du minuteur, volatile par nature, qui n'a rien à
   faire en base.
 
