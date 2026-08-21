@@ -35,15 +35,7 @@ struct SettingsScreen: View {
         // Le Form reste le composant natif : on lui retire seulement son fond
         // opaque pour laisser passer le noir et l'aura.
         .scrollContentBackground(.hidden)
-        .background {
-            ZStack {
-                Ink.canvas
-                Aura(isFocus: true, intensity: 0.3)
-                    .frame(height: 420)
-                    .offset(y: -180)
-            }
-            .ignoresSafeArea()
-        }
+        .background(Ink.canvas.ignoresSafeArea())
         .navigationTitle("Réglages")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

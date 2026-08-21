@@ -53,13 +53,7 @@ struct StatsScreen: View {
     }
 
     private var background: some View {
-        ZStack {
-            Ink.canvas
-            Aura(isFocus: true, intensity: 0.4)
-                .frame(height: 500)
-                .offset(y: -200)
-        }
-        .ignoresSafeArea()
+        Ink.canvas.ignoresSafeArea()
     }
 
     /// La carte principale porte le chiffre du jour en matrice de points et
@@ -88,13 +82,7 @@ struct StatsScreen: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
-        .background {
-            RadialGradient(
-                colors: [Ink.focusGlow.opacity(0.38), Ink.focusGlowFar.opacity(0.06)],
-                center: .topLeading, startRadius: 8, endRadius: 340
-            )
-        }
-        .glassEffect(.regular, in: .rect(cornerRadius: 28))
+        .bentoSurface(tint: Ink.focusGlow, corner: 28)
     }
 
     private func bestCard(_ stats: Stats) -> some View {

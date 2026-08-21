@@ -22,6 +22,22 @@ struct SessionScreen: View {
     private var isFocus: Bool { timer.mode == .focus }
 
     var body: some View {
+        NavigationStack {
+            content
+                .navigationTitle("Session")
+                .toolbar {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            showSettings = true
+                        } label: {
+                            Label("Réglages", systemImage: "gearshape")
+                        }
+                    }
+                }
+        }
+    }
+
+    private var content: some View {
         ZStack {
             Ink.canvas.ignoresSafeArea()
 
@@ -36,7 +52,6 @@ struct SessionScreen: View {
                 .frame(maxHeight: .infinity, alignment: .top)
 
             VStack(spacing: 0) {
-                header
                 Spacer()
                 controls
             }
@@ -111,40 +126,6 @@ struct SessionScreen: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .frame(maxHeight: .infinity)
-        }
-    }
-
-    /// Les elements de verre d'une meme zone sont groupes dans un
-    /// `GlassEffectContainer` : c'est lui qui leur fait partager une seule
-    /// couche de refraction et qui autorise les fusions entre eux.
-    private var header: some View {
-        GlassEffectContainer(spacing: 16) {
-            HStack(spacing: 12) {
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(Ink.glow(isFocus: isFocus))
-                        .frame(width: 7, height: 7)
-                        .shadow(color: Ink.glow(isFocus: isFocus), radius: 5)
-                    Text(timer.mode.label.uppercased())
-                        .font(.caption2.weight(.semibold))
-                        .tracking(1.4)
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 9)
-                .glassEffect(.clear, in: .capsule)
-
-                Spacer()
-
-                Button {
-                    showSettings = true
-                } label: {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 16))
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.glass)
-                .accessibilityLabel("Réglages")
-            }
         }
     }
 

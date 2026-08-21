@@ -44,13 +44,7 @@ struct ProjectsScreen: View {
     }
 
     private var background: some View {
-        ZStack {
-            Ink.canvas
-            Aura(isFocus: true, intensity: 0.35)
-                .frame(height: 460)
-                .offset(y: -220)
-        }
-        .ignoresSafeArea()
+        Ink.canvas.ignoresSafeArea()
     }
 
     private var empty: some View {
@@ -117,13 +111,7 @@ struct ProjectsScreen: View {
             .buttonStyle(.glass)
         }
         .padding(18)
-        .background {
-            RadialGradient(
-                colors: [Color(hex: project.colorHex).opacity(0.34), .clear],
-                center: .topLeading, startRadius: 8, endRadius: 320
-            )
-        }
-        .glassEffect(.regular, in: .rect(cornerRadius: 26))
+        .bentoSurface(tint: Color(hex: project.colorHex), corner: 26)
     }
 
     private func row(_ task: ProjectTask) -> some View {
