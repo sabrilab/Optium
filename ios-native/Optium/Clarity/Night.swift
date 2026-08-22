@@ -20,6 +20,22 @@ struct Night: Equatable, Hashable {
         /// Deduite de l'immobilite du telephone. Une estimation, et elle doit
         /// se presenter comme telle.
         case inferred
+        /// **Corrigee a la main, et elle fait autorite sur les deux autres.**
+        ///
+        /// Refuser la correction avait ete pose comme un principe : laisser
+        /// modifier une nuit ferait de l'historique une declaration, et la
+        /// promesse tient a ce qu'Optium mesure au lieu de demander.
+        ///
+        /// Le raisonnement etait incomplet. Une montre se retire la nuit, se
+        /// decharge, ou date un lever d'un reveil bref a 5 h ; l'utilisateur
+        /// est alors le seul a savoir. Refuser la correction ne protege pas la
+        /// mesure — elle construit tout le produit sur une mesure fausse que
+        /// personne ne peut rattraper.
+        ///
+        /// Ce qui reste du principe : **on ne demande jamais.** L'application
+        /// ne saisit rien, ne relance sur rien, n'ouvre aucun formulaire de
+        /// son propre chef. Elle mesure, et accepte d'etre corrigee.
+        case corrected
     }
 
     let asleepAt: Date

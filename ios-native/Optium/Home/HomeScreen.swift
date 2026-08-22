@@ -151,6 +151,7 @@ struct HomeScreen: View {
                 base: base,
                 agitation: agitation,
                 isDay: true,
+                effort: clarityStore.isRefreshing ? 1 : 0,
                 isVisible: isVisible && scenePhase == .active
             )
             .frame(height: 260)
@@ -193,7 +194,13 @@ struct HomeScreen: View {
                 .tracking(1.6)
                 .foregroundStyle(.secondary)
 
-            if let clarity = reading.clarity {
+            ReadingBanner(isReading: clarityStore.isRefreshing)
+
+            if clarityStore.isRefreshing && reading.clarity == nil {
+                // Pas encore de mesure et une lecture en cours : on montre la
+                // place du mot, jamais un mot invente.
+                SkeletonBar(width: 148, height: 34)
+            } else if let clarity = reading.clarity {
                 // Un mot, jamais un nombre. Un score chiffré de performance
                 // cognitive s'approcherait d'un diagnostic.
                 Text(clarity.level.word)

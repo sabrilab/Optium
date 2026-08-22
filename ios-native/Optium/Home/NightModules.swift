@@ -296,3 +296,54 @@ struct SocialLagDial: View {
         }
     }
 }
+
+// ── Le biais de la source ──
+
+/// L'ecart median entre ce que la source annonce et ce qui est vrai.
+///
+/// **Deux reperes et la distance entre eux**, pas une courbe. La grandeur est
+/// un decalage systematique, pas une evolution : la montrer comme une serie
+/// temporelle laisserait croire qu'elle bouge, alors qu'elle se stabilise.
+struct BiasArrow: View {
+    /// Positif : le vrai reveil est plus tard que l'annonce.
+    let minutes: Double
+
+    private var isLater: Bool { minutes > 0 }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            GeometryReader { proxy in
+                let width = proxy.size.width
+                // Le decalage occupe au plus un tiers de la largeur : au-dela,
+                // une correction d'une heure et une de trois heures se
+                // dessineraient pareil.
+                let travel = min(width * 0.32, width * CGFloat(abs(minutes)) / 180)
+
+                ZStack(alignment: .leading) {
+                    Rectangle()
+                        .fill(Color.white.opacity(0.12))
+                        .frame(height: 1)
+                        .offset(y: 9)
+
+                    marker(x: width * 0.28, opacity: 0.35, label: "annoncé")
+                    marker(x: width * 0.28 + (isLater ? travel : -travel),
+                           opacity: 0.9, label: "réel")
+                }
+            }
+            .frame(height: 44)
+        }
+    }
+
+    private func marker(x: CGFloat, opacity: Double, label: String) -> some View {
+        VStack(spacing: 3) {
+            Capsule()
+                .fill(Ink.marker.opacity(opacity))
+                .frame(width: 3, height: 18)
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .frame(width: 60)
+        .offset(x: x - 30)
+    }
+}

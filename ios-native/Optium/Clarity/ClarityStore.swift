@@ -96,7 +96,11 @@ final class ClarityStore {
                 context.insert(RecordedNight(night, measured: night.origin == .measured))
                 continue
             }
-            guard night.origin == .measured else { continue }
+            // **Une correction ne se fait jamais ecraser.** C'est ce qui la
+            // rend utilisable : corriger une nuit puis la voir revenir a sa
+            // valeur fausse au prochain rafraichissement decouragerait pour de
+            // bon.
+            guard !stored.corrected, night.origin == .measured else { continue }
             let unchanged = stored.measured
                 && abs(stored.asleepAt.timeIntervalSince(night.asleepAt)) < 60
                 && abs(stored.wokeAt.timeIntervalSince(night.wokeAt)) < 60

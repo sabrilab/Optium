@@ -18,6 +18,11 @@ import SwiftUI
 /// a ce qu'il mesure au lieu de demander. Ce qui est faux se corrige dans
 /// Sante, a la source.
 struct NightsScreen: View {
+    @Environment(ClarityStore.self) private var clarityStore
+    /// La nuit qu'on corrige. L'ecran ne s'ouvre jamais tout seul.
+    @State private var correcting: RecordedNight?
+    @Environment(\.modelContext) private var context
+
     @Query(sort: \RecordedNight.asleepAt, order: .reverse)
     private var nights: [RecordedNight]
 
@@ -46,7 +51,8 @@ struct NightsScreen: View {
                 }
 
                 ForEach(Array(nights.prefix(60).enumerated()), id: \.element.id) { index, night in
-                    row(night)
+                    Button { correcting = night } label: { row(night) }
+                        .buttonStyle(Pressable())
                         .cardEntrance(index)
                 }
 
@@ -55,7 +61,12 @@ struct NightsScreen: View {
             .padding(.horizontal, 18)
             .padding(.bottom, 110)
         }
+        .refreshable {
+            Feedback.play(.threadOpened)
+            await clarityStore.refresh(context: context)
+        }
         .background(InkBackground())
+        .sheet(item: $correcting) { NightEditor(night: $0) }
         .navigationTitle("Mes nuits")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -70,6 +81,13 @@ struct NightsScreen: View {
                     .font(.system(size: 17, weight: .light))
                     .frame(maxWidth: .infinity, alignment: .leading)
 
+                if corrected == 0 && inferred == 0 {
+                    Text("Une nuit fausse ? Touche-la pour la corriger. Ta correction fait autorité et aucune relecture ne l’écrase.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
                 if inferred > 0 {
                     Text("Une nuit déduite est une estimation faite à partir de l’immobilité du téléphone. Elle ne figure pas dans Santé, et tu ne peux pas la vérifier ailleurs qu’ici.")
                         .font(.footnote)
@@ -82,13 +100,19 @@ struct NightsScreen: View {
         }
     }
 
-    private var measured: Int { nights.count { $0.measured } }
-    private var inferred: Int { nights.count { !$0.measured } }
+    private var measured: Int { nights.count { $0.measured && !$0.corrected } }
+    private var inferred: Int { nights.count { !$0.measured && !$0.corrected } }
+    private var corrected: Int { nights.count { $0.corrected } }
 
     private var provenance: String {
-        if inferred == 0 { return "\(measured) nuits, toutes lues dans Santé." }
-        if measured == 0 { return "\(inferred) nuits, toutes déduites du mouvement du téléphone." }
-        return "\(nights.count) nuits : \(measured) lues dans Santé, \(inferred) déduites du mouvement."
+        var parts = [String]()
+        if measured > 0 { parts.append("\(measured) lues dans Santé") }
+        if inferred > 0 { parts.append("\(inferred) déduites du mouvement") }
+        if corrected > 0 { parts.append("\(corrected) corrigées à la main") }
+        guard parts.count > 1 else {
+            return "\(nights.count) nuits, \(parts.first ?? "")."
+        }
+        return "\(nights.count) nuits : " + parts.joined(separator: ", ") + "."
     }
 
     private var empty: some View {
@@ -112,11 +136,40 @@ struct NightsScreen: View {
 
     @ViewBuilder
     private var modules: some View {
+        biais
         empreinte
         levers
         durees
         decalage
         cafe
+    }
+
+    /// Ce que les corrections ont appris.
+    ///
+    /// **Le seul module qui parle de la mesure et non du sommeil.** Corriger
+    /// une nuit repare cette nuit-la ; corriger quatre fois dans le meme sens
+    /// dit que la source se trompe systematiquement, et de combien.
+    ///
+    /// Il n'applique rien. Un decalage applique en silence fabriquerait des
+    /// nuits que personne n'a mesurees ni validees.
+    @ViewBuilder
+    private var biais: some View {
+        if let estimate = SleepBias.estimate(from: nights), estimate.isMeaningful {
+            NightModule(
+                title: "Ce que tes corrections apprennent",
+                fact: biaisFact(estimate),
+                limit: "Optium ne corrige rien tout seul. Il te dit ce qu’il observe ; les nuits restent telles que Santé les rend, sauf celles que tu corriges.",
+                hue: Ink.violet
+            ) {
+                BiasArrow(minutes: estimate.wakeShift / 60)
+            }
+        }
+    }
+
+    private func biaisFact(_ estimate: SleepBias.Estimate) -> String {
+        let shift = Int((abs(estimate.wakeShift) / 60).rounded())
+        let direction = estimate.wakeShift > 0 ? "plus tard" : "plus tôt"
+        return "Sur \(estimate.sampleCount) corrections, ton vrai réveil arrive en médiane \(shift) min \(direction) que ce que la source annonce."
     }
 
     private var empreinte: some View {
@@ -244,12 +297,10 @@ struct NightsScreen: View {
                 Text(duration(night))
                     .font(.system(size: 18, weight: .medium))
                     .monospacedDigit()
-                Label(
-                    night.measured ? "Santé" : "déduite",
-                    systemImage: night.measured ? "heart.fill" : "iphone.gen3"
-                )
-                .font(.caption2)
-                .foregroundStyle(night.measured ? Color.secondary : Ink.marker)
+                Label(originWord(night), systemImage: originSymbol(night))
+                    .font(.caption2)
+                    .foregroundStyle(night.corrected || !night.measured
+                                     ? Ink.marker : Color.secondary)
             }
         }
         .padding(16)
@@ -272,6 +323,16 @@ struct NightsScreen: View {
         let awake = night.night.span - night.night.duration
         guard awake >= 5 * 60 else { return base }
         return base + " · \(Int((awake / 60).rounded())) min éveillé"
+    }
+
+    private func originWord(_ night: RecordedNight) -> String {
+        if night.corrected { return "corrigée" }
+        return night.measured ? "Santé" : "déduite"
+    }
+
+    private func originSymbol(_ night: RecordedNight) -> String {
+        if night.corrected { return "pencil" }
+        return night.measured ? "heart.fill" : "iphone.gen3"
     }
 
     private func duration(_ night: RecordedNight) -> String {

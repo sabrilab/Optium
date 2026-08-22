@@ -17,6 +17,12 @@ final class RecordedNight {
     /// deduite du mouvement. Une nuit mesuree ne se laisse pas remplacer par
     /// une nuit devinee.
     var measured: Bool = false
+    /// Corrigee a la main. **Aucune relecture ne l'ecrase.**
+    var corrected: Bool = false
+    /// Ce que la source annoncait avant correction, pour que l'application
+    /// puisse apprendre de l'ecart — et pour pouvoir revenir en arriere.
+    var originalWokeAt: Date?
+    var originalAsleepAt: Date?
 
     init(_ night: Night, measured: Bool) {
         self.id = UUID()
@@ -25,7 +31,13 @@ final class RecordedNight {
         self.measured = measured
     }
 
-    var night: Night { Night(asleepAt: asleepAt, wokeAt: wokeAt, origin: measured ? .measured : .inferred) }
+    var night: Night {
+        Night(
+            asleepAt: asleepAt,
+            wokeAt: wokeAt,
+            origin: corrected ? .corrected : (measured ? .measured : .inferred)
+        )
+    }
 }
 
 /// Une prise de cafe.

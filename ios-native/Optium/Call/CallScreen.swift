@@ -42,6 +42,7 @@ struct CallScreen: View {
                             base: 1,
                             agitation: thinking ? 0.9 : 0.2,
                             isDay: true,
+                            effort: thinking ? 1 : 0,
                             isVisible: scenePhase == .active
                         )
                         .frame(height: 190)

@@ -344,6 +344,43 @@ Réglages → **« Relire toutes mes nuits »** efface les enregistrements et
 redemande tout à Santé. Rien d'irrécupérable n'est détruit : la source est
 ailleurs.
 
+### Corriger une nuit — décision renversée
+
+`AGENTS.md` a longtemps porté : « elle ne se corrige pas ici, et c'est
+délibéré — laisser modifier une nuit ferait de l'historique une déclaration ».
+
+**Le raisonnement était incomplet et la décision a été renversée.** Une montre
+se retire la nuit, se décharge, ou date le lever d'un réveil bref à 5 h ;
+l'utilisateur est alors le seul à savoir. Refuser la correction ne protège pas
+la mesure — elle construit tout le produit sur une mesure fausse que personne
+ne peut rattraper.
+
+Ce qui reste du principe, et qui ne bouge pas : **on ne demande jamais.**
+L'application n'ouvre pas l'éditeur d'elle-même, ne relance sur rien, ne
+signale aucune nuit « à vérifier ». La saisie reste possible, elle n'est jamais
+attendue.
+
+`Night.Origin.corrected` prime sur `.measured` et `.inferred`. **Aucune
+relecture n'écrase une correction** — sans cette garantie, corriger puis voir
+la valeur fausse revenir découragerait pour de bon. `originalWokeAt` et
+`originalAsleepAt` conservent ce que la source annonçait, ce qui permet de
+revenir en arrière et surtout d'apprendre.
+
+### Ce que les corrections apprennent
+
+`Clarity/SleepBias.swift`. Corriger une nuit répare cette nuit-là ; corriger
+quatre fois dans le même sens dit que la source se trompe **systématiquement**,
+et de combien.
+
+**Le biais n'est jamais appliqué en silence.** Il est calculé, montré, et rien
+d'autre. Un décalage appliqué automatiquement fabriquerait des nuits que
+personne n'a mesurées ni validées — exactement ce que le moteur s'interdit en
+rendant la clarté optionnelle plutôt qu'en inventant une valeur par défaut.
+
+Médiane et non moyenne : une nuit oubliée puis rattrapée de six heures
+déplacerait une moyenne pour toujours. Seuil de signalement à dix minutes,
+soit l'ordre de grandeur de l'imprécision de la mesure elle-même.
+
 ### La provenance d'une nuit
 
 `Night.Origin` : `measured` (Santé) ou `inferred` (mouvement du téléphone).
@@ -651,6 +688,27 @@ la spécifie ; l'arbitrage sur le rendu réel l'emporte.
 
 **Les chiffres en matrice de points.** Un document de design prévoit des
 chiffres fins ; ils sont **conservés** comme signature.
+
+---
+
+## 11 bis. Le chargement, et le régime du cerveau
+
+**Une application qui lit des données doit se voir lire.** Sans état de
+chargement, une lecture instantanée et une lecture qui échoue se ressemblent :
+dans les deux cas rien ne bouge.
+
+Trois surfaces le portent, et aucune n'est un indicateur système générique :
+
+- **Le cerveau change de régime.** `BrainRenderer.effort` (0…1) accélère la
+  rotation, amplifie le flottement et agite le fluide. La rotation de repos est
+  passée de 0,3 à 0,52 radian/s — à 0,3 il fallait vingt secondes pour un tour,
+  et l'œil lisait un objet fixe.
+- **`ReadingBanner`** nomme ce qui est lu. « Chargement… » n'apprend rien.
+- **`SkeletonBar`** tient la place du mot de clarté — **jamais un mot inventé**,
+  ce serait une valeur affichée qui n'a jamais été mesurée.
+
+Un tirage vers le bas relance la lecture sur l'accueil et sur l'écran des
+nuits : rien ne permettait de la relancer après une correction dans Santé.
 
 ---
 

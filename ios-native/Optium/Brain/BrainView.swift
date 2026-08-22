@@ -9,6 +9,8 @@ struct BrainView: UIViewRepresentable {
     /// Nombre de fils ouverts, normalise 0…1.
     var agitation: Double = 0
     var isDay: Bool = true
+    /// 0…1 : la scene travaille — lecture des nuits, appel au modele.
+    var effort: Double = 0
     /// Le rendu est totalement suspendu quand la scene n'est pas visible :
     /// sans cela, la boucle continuerait a 60 images par seconde et viderait
     /// la batterie pendant qu'on consulte ses statistiques.
@@ -57,6 +59,7 @@ struct BrainView: UIViewRepresentable {
         context.coordinator.renderer?.base = Float(base)
         context.coordinator.renderer?.agitation = Float(agitation)
         context.coordinator.renderer?.isDay = isDay
+        context.coordinator.renderer?.effort = Float(effort)
         view.isPaused = !isVisible
     }
 

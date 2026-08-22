@@ -52,6 +52,9 @@ final class BrainRenderer: NSObject, MTKViewDelegate {
     private var colorA = BrainRenderer.dayColorA
     private var colorB = BrainRenderer.dayColorB
     private var rotation: Float = 0
+    /// Suit `effort` avec retard : un basculement instantane du regime se
+    /// verrait comme un a-coup.
+    private var effortLevel: Float = 0
     private var elapsed: Float = 0
     private var wobble: Float = 0
     private var aspect: Float = 1
@@ -66,6 +69,16 @@ final class BrainRenderer: NSObject, MTKViewDelegate {
     var agitation: Float = 0
     /// Vrai le jour, faux la nuit. Deux familles de teintes, jamais trois.
     var isDay = true
+
+    /// 0…1 : la scene est-elle en train de travailler.
+    ///
+    /// **Une application qui lit des donnees doit se voir lire.** Sans etat de
+    /// chargement, une lecture instantanee et une lecture qui echoue se
+    /// ressemblent, et l'utilisateur ne sait jamais si quelque chose est en
+    /// cours. Ici c'est le cerveau qui le porte : il accelere, il s'agite un
+    /// peu, il respire plus vite. Rien de nouveau n'apparait a l'ecran — c'est
+    /// le meme objet, dans un autre regime.
+    var effort: Float = 0
 
     init?(view: MTKView, mesh: BrainMesh) {
         guard let device = view.device ?? MTLCreateSystemDefaultDevice(),
@@ -146,18 +159,28 @@ final class BrainRenderer: NSObject, MTKViewDelegate {
         fillLevel += (target - fillLevel) * 0.037
         baseLevel += (base * Self.maxFill - baseLevel) * 0.09
 
-        wobble = min(1, wobble * 0.95 + abs(dragVelocity) * 0.6)
+        // L'agitation du fluide monte aussi a l'effort : le liquide bouge
+        // quand la scene travaille, ce qui est le signal le plus lisible.
+        wobble = min(1, wobble * 0.95 + abs(dragVelocity) * 0.6 + effortLevel * 0.06)
         dragVelocity *= 0.9
 
         // La teinte croise a l'extinction, une seule fois par jour : 2,4 s.
         colorA = lerp(colorA, isDay ? Self.dayColorA : Self.nightColorA, t: 0.007)
         colorB = lerp(colorB, isDay ? Self.dayColorB : Self.nightColorB, t: 0.007)
 
-        rotation += delta * 0.3 + dragVelocity
-        // Leger flottement vertical et roulis, pour que la scene ne paraisse
-        // jamais figee.
-        let bob = sin(elapsed * 1.0) * 0.06
-        let tilt = sin(elapsed * 0.6) * 0.04
+        effortLevel += (effort - effortLevel) * 0.05
+
+        // **La rotation de repos etait trop lente pour se voir.** A 0,3 radian
+        // par seconde, il faut vingt secondes pour un tour : l'oeil lit un
+        // objet fixe. A 0,52, le mouvement se percoit sans distraire, et il
+        // double quand la scene travaille.
+        rotation += delta * (0.52 + effortLevel * 0.55) + dragVelocity
+
+        // Flottement vertical et roulis, pour que la scene ne paraisse jamais
+        // figee. Les deux s'amplifient a l'effort.
+        let breath = 1 + effortLevel * 0.9
+        let bob = sin(elapsed * (1.0 + effortLevel * 0.7)) * 0.06 * breath
+        let tilt = sin(elapsed * 0.6) * 0.04 * breath
 
         var uniforms = makeUniforms(rotation: rotation, bob: bob, tilt: tilt)
 
