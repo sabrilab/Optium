@@ -5,8 +5,9 @@ import SwiftUI
 /// La carte est remplie de couleur bord a bord, avec un coeur sombre au centre
 /// et un second foyer decale. Voir `BentoSurface` pour le detail du pourquoi.
 struct BentoCard<Content: View>: View {
-    var tint: Color = Ink.focusGlow
-    var accent: Color?
+    var hue: Ink.CardHue = Ink.indigo
+    var tint: Color { hue.tint }
+    var accent: Color? { hue.accent }
     var corner: CGFloat = 28
     /// Hierarchie : une carte secondaire est plus sombre, pas d'une autre
     /// teinte. Varier les couleurs pour hierarchiser produit un arc-en-ciel.
@@ -47,6 +48,11 @@ struct BentoStat: View {
 }
 
 extension View {
+    /// Variante prenant une teinte de carte complete.
+    func bentoSurface(_ hue: Ink.CardHue, corner: CGFloat = 28, intensity: Double = 1) -> some View {
+        bentoSurface(tint: hue.tint, accent: hue.accent, corner: corner, intensity: intensity)
+    }
+
     /// Surface d'une carte : maillage colore diffus, puis verre d'Apple.
     ///
     /// L'ordre importe et il est contre-intuitif — chaque fond se dessine

@@ -24,11 +24,7 @@ enum Ink {
 
     // ── Teintes d'ambiance ──
     //
-    // Une seule famille par mode, deux nuances chacune. La tentation est de
-    // varier les teintes d'une carte a l'autre pour « animer » un ecran ;
-    // c'est ce qui le fait paraitre bricole. La hierarchie se fait par la
-    // valeur — une carte plus importante est plus lumineuse, pas d'une autre
-    // couleur.
+    // Deux teintes par mode pour la scene 3D et la surface active.
 
     static let focusGlow = Color(red: 0.322, green: 0.325, blue: 0.941)
     static let focusGlowFar = Color(red: 0.541, green: 0.290, blue: 0.867)
@@ -36,10 +32,57 @@ enum Ink {
     static let restGlow = Color(red: 0.086, green: 0.647, blue: 0.588)
     static let restGlowFar = Color(red: 0.157, green: 0.463, blue: 0.612)
 
-    /// Accent des graduations et du jour courant. Unique couleur franche de
-    /// l'application, et c'est ce qui lui donne sa valeur : elle ne signale
-    /// qu'une chose, le present.
+    /// Accent des graduations et du present. Unique couleur franche hors
+    /// cartes, et c'est ce qui lui donne sa valeur : elle ne signale qu'une
+    /// chose, l'instant courant ou la position de l'utilisateur.
     static let marker = Color(red: 0.839, green: 0.910, blue: 0.365)
+
+    // ── Teintes de carte ──
+    //
+    // Six teintes, et non une seule famille. La variete n'est pas ce qui fait
+    // paraitre un ecran bricole — ce sont des teintes *sans parente*. Un bleu
+    // de tableur a cote d'un vert pomme et d'un olive n'appartiennent a rien
+    // ensemble.
+    //
+    // Celles-ci sont choisies au meme registre : meme saturation, meme valeur,
+    // aucune plus claire ni plus criarde que les autres. Traitees au lavis a
+    // coeur sombre, elles se lisent comme une famille d'egales. C'est ce que
+    // font les references qui ont nourri cette direction, qui melangent
+    // librement rose, bleu, vert et ambre sur un meme ecran.
+    //
+    // Chaque entree porte sa teinte et son second foyer, un cran plus clair.
+
+    struct CardHue {
+        let tint: Color
+        let accent: Color
+    }
+
+    static let indigo = CardHue(
+        tint: Color(red: 0.322, green: 0.325, blue: 0.941),
+        accent: Color(red: 0.541, green: 0.290, blue: 0.867))
+
+    static let violet = CardHue(
+        tint: Color(red: 0.541, green: 0.290, blue: 0.867),
+        accent: Color(red: 0.753, green: 0.361, blue: 0.910))
+
+    static let rose = CardHue(
+        tint: Color(red: 0.820, green: 0.278, blue: 0.561),
+        accent: Color(red: 0.941, green: 0.420, blue: 0.659))
+
+    static let teal = CardHue(
+        tint: Color(red: 0.086, green: 0.647, blue: 0.588),
+        accent: Color(red: 0.247, green: 0.839, blue: 0.690))
+
+    static let amber = CardHue(
+        tint: Color(red: 0.851, green: 0.565, blue: 0.235),
+        accent: Color(red: 0.941, green: 0.722, blue: 0.369))
+
+    static let coral = CardHue(
+        tint: Color(red: 0.878, green: 0.341, blue: 0.310),
+        accent: Color(red: 0.961, green: 0.502, blue: 0.439))
+
+    /// Les six, dans l'ordre ou elles se suivent le mieux.
+    static let cardHues = [indigo, violet, rose, teal, amber, coral]
 
     /// Teint des commandes.
     ///

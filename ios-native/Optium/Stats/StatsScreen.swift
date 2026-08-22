@@ -21,21 +21,21 @@ struct StatsScreen: View {
                         hero(stats)
 
                         LazyVGrid(columns: columns, spacing: 12) {
-                            BentoCard(tint: Ink.focusGlowFar, accent: Ink.focusGlow, intensity: 0.62) {
+                            BentoCard(hue: Ink.violet, intensity: 0.62) {
                                 BentoStat(label: "Série en cours",
                                           value: "\(stats.streak)",
                                           unit: stats.streak <= 1 ? "jour" : "jours")
                             }
-                            BentoCard(tint: Ink.focusGlow, accent: Ink.focusGlowFar, intensity: 0.62) {
+                            BentoCard(hue: Ink.teal, intensity: 0.62) {
                                 BentoStat(label: "Sessions aujourd’hui",
                                           value: "\(stats.todayCount)")
                             }
-                            BentoCard(tint: Ink.focusGlowFar, accent: Ink.focusGlow, intensity: 0.42) {
+                            BentoCard(hue: Ink.indigo, intensity: 0.42) {
                                 BentoStat(label: "Moyenne / jour",
                                           value: minutes(stats.averageSeconds),
                                           unit: "min")
                             }
-                            BentoCard(tint: Ink.focusGlow, accent: Ink.focusGlowFar, intensity: 0.42) {
+                            BentoCard(hue: Ink.rose, intensity: 0.42) {
                                 BentoStat(label: "Sessions / jour",
                                           value: String(format: "%.1f", stats.averageCount))
                             }
@@ -86,7 +86,7 @@ struct StatsScreen: View {
     }
 
     private func bestCard(_ stats: Stats) -> some View {
-        BentoCard(tint: Ink.focusGlowFar, accent: Ink.focusGlow, intensity: 0.52) {
+        BentoCard(hue: Ink.amber, intensity: 0.52) {
             HStack {
                 BentoStat(
                     label: "Meilleur jour",
