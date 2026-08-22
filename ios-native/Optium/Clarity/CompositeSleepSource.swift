@@ -22,8 +22,13 @@ struct CompositeSleepSource: SleepSource {
     }
 
     func nights(from start: Date, to end: Date) async -> [Night] {
+        // La provenance est posee ici, au seul endroit qui la connaisse.
+        // Elle etait perdue jusqu'a present : tout arrivait dans le magasin
+        // marque « mesure », y compris ce que l'accelerometre avait devine.
         let measured = await health.nights(from: start, to: end)
+            .map { Night(asleepAt: $0.asleepAt, wokeAt: $0.wokeAt, origin: .measured) }
         let inferred = await motion.nights(from: start, to: end)
+            .map { Night(asleepAt: $0.asleepAt, wokeAt: $0.wokeAt, origin: .inferred) }
 
         // Le mouvement ne comble que les nuits absentes du mesure : il ne le
         // corrige jamais.

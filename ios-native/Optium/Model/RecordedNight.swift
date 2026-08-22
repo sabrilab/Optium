@@ -25,7 +25,7 @@ final class RecordedNight {
         self.measured = measured
     }
 
-    var night: Night { Night(asleepAt: asleepAt, wokeAt: wokeAt) }
+    var night: Night { Night(asleepAt: asleepAt, wokeAt: wokeAt, origin: measured ? .measured : .inferred) }
 }
 
 /// Une prise de cafe.

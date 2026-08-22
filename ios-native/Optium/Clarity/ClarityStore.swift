@@ -43,7 +43,7 @@ final class ClarityStore {
 
         let horizon = calendar.date(byAdding: .day, value: -Self.window, to: now) ?? now
         let fetched = await source.nights(from: horizon, to: now)
-        record(fetched, measured: true, context: context)
+        record(fetched, context: context)
 
         let stored = (try? context.fetch(
             FetchDescriptor<RecordedNight>(
@@ -67,12 +67,12 @@ final class ClarityStore {
     /// Conserve les nuits inconnues. Une nuit deja enregistree n'est pas
     /// reecrite : la premiere lecture fait foi, et une source qui se contredit
     /// d'un jour a l'autre ne doit pas faire bouger l'historique.
-    private func record(_ nights: [Night], measured: Bool, context: ModelContext) {
+    private func record(_ nights: [Night], context: ModelContext) {
         let existing = (try? context.fetch(FetchDescriptor<RecordedNight>())) ?? []
         let known = Set(existing.map { calendar.startOfDay(for: $0.wokeAt) })
 
         for night in nights where !known.contains(calendar.startOfDay(for: night.wokeAt)) {
-            context.insert(RecordedNight(night, measured: measured))
+            context.insert(RecordedNight(night, measured: night.origin == .measured))
         }
     }
 }

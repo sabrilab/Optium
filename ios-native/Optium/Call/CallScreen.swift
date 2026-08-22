@@ -118,9 +118,9 @@ struct CallScreen: View {
     /// reste « tout », qui est une reponse honnete quand on n'a qu'un projet.
     private var scopePicker: some View {
         Menu {
-            Button("Tout") { scope = nil }
+            Button("Tout") { Feedback.play(.answered); scope = nil }
             ForEach(projects) { project in
-                Button(project.title) { scope = project }
+                Button(project.title) { Feedback.play(.answered); scope = project }
             }
         } label: {
             HStack(spacing: 8) {
@@ -143,6 +143,7 @@ struct CallScreen: View {
         VStack(spacing: 12) {
             ForEach(Self.questions, id: \.self) { question in
                 Button {
+                    Feedback.play(.threadOpened)
                     subject = question
                     Task {
                         await call.ask(question, facts: facts, stage: stage)

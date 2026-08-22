@@ -54,6 +54,9 @@ extension ClarityReading {
         return ClarityReading(
             clarity: Clarity(value: value),
             observedNights: 28,
+            // L'outil de developpement simule une mesure complete : ce qu'il
+            // sert a eprouver, c'est la porte, pas l'absence de donnees.
+            inferredNights: 0,
             regularity: Double(value),
             window: window,
             projectedNightPenalty: 0,

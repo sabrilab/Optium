@@ -315,6 +315,36 @@ Demi-vie de cinq heures, seuil à huit heures.
 `CompositeSleepSource`. Le mouvement ne comble que les nuits absentes du
 mesuré ; il ne le corrige jamais.
 
+### La provenance d'une nuit
+
+`Night.Origin` : `measured` (Santé) ou `inferred` (mouvement du téléphone).
+
+**Ce n'est pas cosmétique, ça décide de ce que l'application a le droit
+d'affirmer.** La règle du projet est de n'afficher que des faits vérifiables
+par l'utilisateur — « tu as dormi 5 h 10 » se contrôle dans Santé. Une nuit
+déduite du mouvement **ne s'y contrôle pas**.
+
+**Défaut corrigé, et c'était le plus grave du produit** : `CompositeSleepSource`
+fusionnait les deux sources et `ClarityStore` enregistrait tout avec
+`measured: true`. Le champ existait, était écrit, et était **faux** — jamais
+affiché nulle part, personne ne pouvait s'en apercevoir. L'application
+annonçait donc « clarté basse », et refusait des décisions à la porte, à partir
+de nuits déduites de l'accéléromètre que l'utilisateur n'avait aucun moyen de
+consulter. Une affirmation sans recours n'est pas une mesure.
+
+Trois conséquences tenues par des tests :
+
+- `ClarityReading.inferredNights` et `restsOnInference` existent pour que
+  l'affichage puisse le dire.
+- La légende de l'accueil écrit « Nuit déduite » plutôt que « Nuit », et la
+  porte ajoute « d'après le mouvement de ton téléphone, faute de sommeil
+  enregistré ». **On ne s'excuse pas et on ne relativise pas le refus** — on
+  nomme sa source, ce qui le rend contestable, donc acceptable.
+- `NightsScreen` liste chaque nuit avec sa provenance. **Elle ne s'y corrige
+  pas** : laisser modifier une nuit ferait de l'historique une déclaration, et
+  toute la promesse tient à ce qu'Optium mesure au lieu de demander. Ce qui est
+  faux se corrige dans Santé.
+
 **Aucune composante du moteur ne doit jamais reposer sur les STADES de
 sommeil.** Les validations 2024 contre polysomnographie donnent, pour les
 montres grand public : sommeil contre éveil au-dessus de 95 % de sensibilité,
@@ -602,7 +632,15 @@ jamais des intensités.** Un appelant qui écrit `impact(.medium)` décide d'une
 sensation ; un appelant qui écrit `.threadClosed` décide d'un sens, et la
 sensation se règle en un seul endroit.
 
-- **`Shared/Feedback.swift`** — huit moments. La porte a un motif Core Haptics
+**Les générateurs sont retenus, et c'était le bug.** Ils étaient créés en
+variables locales — `UIImpactFeedbackGenerator(style:)`, `prepare()`,
+`impactOccurred()` — puis relâchés dans la foulée. Un générateur libéré avant
+que le moteur ait joué ne produit rien : la plupart des gestes étaient muets
+alors que le code les appelait bien. Ne pas revenir à des générateurs locaux.
+
+- **`Shared/Feedback.swift`** — neuf moments, dont le cerveau qu'on fait
+  tourner : des crans, pas une vibration continue. La main lit une molette, et
+  un bourdonnement pendant tout le geste fatiguerait en trois secondes. La porte a un motif Core Haptics
   écrit à la main : deux frappes sourdes puis un appui tenu. **Pas le motif
   système `.error`** — il est sec et se lit comme une faute, alors que la porte
   ne reproche rien, elle interrompt.

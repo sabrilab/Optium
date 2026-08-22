@@ -200,3 +200,62 @@ private func lowReading(now: Date) -> ClarityReading {
     let reading = ClarityEngine.reading(nights: [], now: day0, calendar: calendar)
     #expect(GateJustification.sentence(for: reading, now: day0, calendar: calendar) == nil)
 }
+
+// ── La provenance des nuits ──
+//
+// L'application n'affiche que des faits verifiables par l'utilisateur : « tu
+// as dormi 5 h 10 » se controle dans Sante. Une nuit deduite du mouvement du
+// telephone ne s'y controle pas. Elle etait pourtant enregistree comme mesuree
+// et annoncee comme telle — la seule entorse de l'application a sa propre
+// regle.
+
+private func inferredNight(dayOffset: Int, bedHour: Double = 23, hours: Double = 8) -> Night {
+    let base = night(dayOffset: dayOffset, bedHour: bedHour, hours: hours)
+    return Night(asleepAt: base.asleepAt, wokeAt: base.wokeAt, origin: .inferred)
+}
+
+@Test func uneLectureEntierementDevineeSeSait() {
+    let nights = (0..<28).map { inferredNight(dayOffset: $0) }
+    let reading = ClarityEngine.reading(
+        nights: nights, now: nights.last!.wokeAt.addingTimeInterval(3600), calendar: calendar)
+
+    #expect(reading.inferredNights == 28)
+    #expect(reading.restsOnInference)
+}
+
+@Test func uneSeuleNuitMesureeSuffitANePlusReposerSurLaDeduction() {
+    var nights = (0..<27).map { inferredNight(dayOffset: $0) }
+    nights.append(night(dayOffset: 27))
+    let reading = ClarityEngine.reading(
+        nights: nights, now: nights.last!.wokeAt.addingTimeInterval(3600), calendar: calendar)
+
+    #expect(reading.inferredNights == 27)
+    #expect(!reading.restsOnInference)
+}
+
+@Test func laPorteNommeSaSourceQuandElleDevine() throws {
+    var nights = (0..<27).map { inferredNight(dayOffset: $0, bedHour: 20 + Double($0 % 5), hours: 5) }
+    nights.append(inferredNight(dayOffset: 27, bedHour: 3, hours: 3.5))
+    let now = day0.addingTimeInterval(28 * 86_400 + 15 * 3600)
+    let reading = ClarityEngine.reading(nights: nights, now: now, calendar: calendar)
+
+    let sentence = try #require(GateJustification.sentence(for: reading, now: now, calendar: calendar))
+    #expect(sentence.contains("mouvement de ton téléphone"))
+}
+
+@Test func laPorteNeParleDeSourceQueSiElleDevine() throws {
+    let now = day0.addingTimeInterval(28 * 86_400 + 15 * 3600)
+    let sentence = try #require(
+        GateJustification.sentence(for: lowReading(now: now), now: now, calendar: calendar))
+
+    // Mesurees, les nuits se verifient dans Sante : rien a preciser.
+    #expect(!sentence.contains("mouvement"))
+}
+
+@Test func laProvenanceSurvitAuStockage() {
+    let stored = RecordedNight(inferredNight(dayOffset: 0), measured: false)
+    #expect(stored.night.origin == .inferred)
+
+    let real = RecordedNight(night(dayOffset: 0), measured: true)
+    #expect(real.night.origin == .measured)
+}

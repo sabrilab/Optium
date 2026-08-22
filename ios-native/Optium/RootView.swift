@@ -69,7 +69,12 @@ struct RootView: View {
         .onAppear {
             Feedback.isEnabled = settings.hapticsEnabled
             Chime.isEnabled = settings.soundsEnabled
+            Feedback.prepare()
         }
+        // Le moteur redescend en veille tout seul ; on le releve a chaque
+        // changement d'onglet pour que le premier geste sur l'ecran suivant
+        // ne soit pas le seul a manquer.
+        .onChange(of: selection) { _, _ in Feedback.prepare() }
         .onChange(of: settings.hapticsEnabled) { Feedback.isEnabled = $1 }
         .onChange(of: settings.soundsEnabled) { Chime.isEnabled = $1 }
         .tint(Ink.control)

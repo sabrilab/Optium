@@ -5,8 +5,26 @@ import Foundation
 /// Ni saisie ni declaree : deduite du sommeil enregistre quand il existe, du
 /// mouvement du telephone sinon.
 struct Night: Equatable, Hashable {
+    /// D'ou vient une nuit.
+    ///
+    /// **La distinction n'est pas cosmetique, elle decide de ce que
+    /// l'application a le droit d'affirmer.** Le projet pose comme regle de
+    /// n'afficher que des faits verifiables par l'utilisateur : « tu as dormi
+    /// 5 h 10 » se controle dans Sante, « ta regularite est de 71 » nulle
+    /// part. Or une nuit deduite du mouvement du telephone **ne se controle
+    /// pas non plus dans Sante** — l'annoncer comme un fait mesure violait la
+    /// regle en croyant la respecter.
+    enum Origin: String, Codable, Sendable {
+        /// Enregistree par Sante. Verifiable hors de l'application.
+        case measured
+        /// Deduite de l'immobilite du telephone. Une estimation, et elle doit
+        /// se presenter comme telle.
+        case inferred
+    }
+
     let asleepAt: Date
     let wokeAt: Date
+    var origin: Origin = .measured
 
     var duration: TimeInterval { wokeAt.timeIntervalSince(asleepAt) }
 

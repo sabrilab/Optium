@@ -25,6 +25,13 @@ struct ClarityReading {
     /// elle produirait un refus injustifiable.
     let clarity: Clarity?
     let observedNights: Int
+    /// Combien de ces nuits ont ete **devinees** plutot que mesurees.
+    ///
+    /// Elle existe pour que l'affichage puisse le dire. Une lecture qui repose
+    /// sur des nuits deduites du mouvement du telephone reste utilisable —
+    /// c'est la seule source pour qui n'enregistre pas son sommeil — mais elle
+    /// ne peut pas etre presentee comme un fait verifiable dans Sante.
+    let inferredNights: Int
     let regularity: Double?
     let window: DateInterval
     /// 0…1 : ce que la cafeine encore active retirera a la nuit **prochaine**.
@@ -43,6 +50,15 @@ struct ClarityReading {
 
     /// Les manques, du plus grand au plus petit.
     let shortfalls: [ClarityShortfall]
+
+    /// La lecture repose-t-elle entierement sur des nuits devinees.
+    ///
+    /// Le cas ordinaire de quelqu'un sans montre : ce n'est pas un defaut, et
+    /// l'application doit continuer de fonctionner. Mais elle doit le dire —
+    /// et la porte, quand elle refuse, doit nommer sa source.
+    var restsOnInference: Bool {
+        observedNights > 0 && inferredNights == observedNights
+    }
 
     /// Les manques que la porte a le droit de citer.
     ///
@@ -141,6 +157,7 @@ enum ClarityEngine {
             return ClarityReading(
                 clarity: nil,
                 observedNights: recent.count,
+                inferredNights: recent.count { $0.origin == .inferred },
                 regularity: nil,
                 window: window,
                 projectedNightPenalty: penalty,
@@ -173,6 +190,7 @@ enum ClarityEngine {
         return ClarityReading(
             clarity: Clarity(value: Int(min(100, max(0, value.rounded())))),
             observedNights: recent.count,
+            inferredNights: recent.count { $0.origin == .inferred },
             regularity: regularity,
             window: window,
             projectedNightPenalty: penalty,

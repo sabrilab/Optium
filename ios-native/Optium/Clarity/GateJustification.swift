@@ -20,12 +20,29 @@ enum GateJustification {
 
         let parts = cited.compactMap { phrase(for: $0.component, reading: reading, now: now, calendar: calendar) }
         guard let first = parts.first else { return nil }
-        guard parts.count > 1 else { return first + "." }
+        guard parts.count > 1 else { return first + "." + source(reading) }
 
         // Deux faits se joignent en une seule phrase : deux phrases separees
         // se liraient comme un reproche qui s'accumule.
         let second = parts[1].prefix(1).lowercased() + parts[1].dropFirst()
-        return first + ", et " + second + "."
+        return first + ", et " + second + "." + source(reading)
+    }
+
+    /// D'ou vient ce qu'on vient d'affirmer.
+    ///
+    /// **Une porte qui refuse doit nommer sa source.** Quand la lecture repose
+    /// entierement sur des nuits deduites du mouvement du telephone, « tu as
+    /// dormi 5 h 10 » n'est pas verifiable dans Sante : c'est une estimation,
+    /// et la presenter comme un releve etait la seule entorse de l'application
+    /// a sa propre regle d'afficher des faits controlables.
+    ///
+    /// On ne s'excuse pas et on ne relativise pas le refus — la phrase reste
+    /// une phrase de fait. On ajoute d'ou il vient, ce qui le rend
+    /// contestable, donc acceptable.
+    private static func source(_ reading: ClarityReading) -> String {
+        reading.restsOnInference
+            ? " D’après le mouvement de ton téléphone, faute de sommeil enregistré."
+            : ""
     }
 
     private static func phrase(

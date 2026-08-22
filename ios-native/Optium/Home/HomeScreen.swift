@@ -204,6 +204,22 @@ struct HomeScreen: View {
             Divider().overlay(Color.white.opacity(0.12))
 
             legend
+
+            // Le recours : voir sur quoi tout cela se fonde. Discret, mais
+            // toujours la — une affirmation sans recours n'est pas une mesure.
+            NavigationLink { NightsScreen() } label: {
+                HStack(spacing: 6) {
+                    Text(reading.observedNights > 0
+                         ? "Voir mes \(reading.observedNights) nuits"
+                         : "Voir mes nuits")
+                    Image(systemName: "chevron.right").font(.caption2)
+                }
+                .font(.footnote)
+                .foregroundStyle(reading.restsOnInference ? Ink.marker : .secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(minHeight: 44)
+            }
+            .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
@@ -270,7 +286,15 @@ struct HomeScreen: View {
     private var legend: some View {
         VStack(spacing: 6) {
             if let duration = reading.lastNightDuration, isRecent(duration) {
-                legendRow("Nuit", format(duration))
+                // **La ligne nomme sa provenance.** Elle annoncait « Nuit
+                // 5 h 10 » sans dire d'ou venait le chiffre. Quand il est
+                // deduit du mouvement, il ne se verifie nulle part ailleurs —
+                // l'annoncer comme un fait mesure etait la seule entorse de
+                // l'application a sa propre regle.
+                legendRow(
+                    reading.restsOnInference ? "Nuit déduite" : "Nuit",
+                    format(duration)
+                )
             }
             legendRow("Fenêtre", windowRange, muted: Date() > window.end)
             // Le café porte son bouton : c'est le seul geste déclaratif de

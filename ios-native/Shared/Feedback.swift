@@ -45,9 +45,10 @@ enum Feedback {
         case .threadOpened, .coffee:
             impact(.light)
         case .answered:
-            UISelectionFeedbackGenerator().selectionChanged()
+            selection.selectionChanged()
+            selection.prepare()
         case .threadClosed:
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            notification.notificationOccurred(.success)
         case .threadClosedThroughGate, .tierChanged:
             // Deux frappes montantes : quelque chose s'est acheve, et il a
             // fallu passer par quelque part.
@@ -65,12 +66,51 @@ enum Feedback {
         }
     }
 
+    /// Le cerveau qu'on fait tourner.
+    ///
+    /// Des crans, pas une vibration continue : la main lit une molette, et un
+    /// bourdonnement pendant tout le geste fatiguerait au bout de trois
+    /// secondes. L'intensite suit la vitesse — tourner lentement doit se
+    /// sentir moins que lancer la scene.
+    static func brainTurned(by radians: Double, speed: Double) {
+        guard isEnabled else { return }
+        turned += abs(radians)
+        guard turned >= 0.30 else { return }
+        turned = 0
+        soft.impactOccurred(intensity: min(0.85, max(0.18, speed)))
+    }
+
+    private static var turned = 0.0
+
     // ── Details ──
 
+    // **Les generateurs sont retenus, et c'est la tout le sujet.**
+    //
+    // Ils etaient crees en variables locales : `UIImpactFeedbackGenerator(...)`,
+    // `prepare()`, `impactOccurred()`, puis l'objet etait relache dans la
+    // foulee. Un generateur libere avant que le moteur ait joue ne produit
+    // rien — la plupart des gestes etaient muets alors que le code les
+    // appelait bien. Retenus, ils restent en outre prepares, et le retour
+    // arrive avec le geste au lieu d'arriver apres.
+    private static let light = UIImpactFeedbackGenerator(style: .light)
+    private static let medium = UIImpactFeedbackGenerator(style: .medium)
+    private static let soft = UIImpactFeedbackGenerator(style: .soft)
+    private static let selection = UISelectionFeedbackGenerator()
+    private static let notification = UINotificationFeedbackGenerator()
+
+    /// A appeler des qu'un geste devient probable : le moteur monte en
+    /// puissance et le retour suivant est immediat.
+    static func prepare() {
+        guard isEnabled else { return }
+        light.prepare()
+        soft.prepare()
+        selection.prepare()
+    }
+
     private static func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.prepare()
+        let generator = style == .light ? light : medium
         generator.impactOccurred()
+        generator.prepare()
     }
 
     /// Le moteur, cree paresseusement et garde.

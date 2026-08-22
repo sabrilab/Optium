@@ -103,9 +103,9 @@ struct ThreadComposer: View {
                 .foregroundStyle(.secondary)
 
             Menu {
-                Button("Aucun") { project = nil }
+                Button("Aucun") { Feedback.play(.answered); project = nil }
                 ForEach(projects) { candidate in
-                    Button(candidate.title) { project = candidate }
+                    Button(candidate.title) { Feedback.play(.answered); project = candidate }
                 }
                 Divider()
                 Button("Nouveau projet…") { namingProject = true }
@@ -126,7 +126,7 @@ struct ThreadComposer: View {
         .alert("Nouveau projet", isPresented: $namingProject) {
             TextField("Nom", text: $newProjectTitle)
             Button("Annuler", role: .cancel) { newProjectTitle = "" }
-            Button("Créer") { createProject() }
+            Button("Créer") { Feedback.play(.threadOpened); createProject() }
         }
     }
 
@@ -141,6 +141,7 @@ struct ThreadComposer: View {
 
     private func natureRow(_ option: ThreadNature) -> some View {
         Button {
+            Feedback.play(.answered)
             nature = option
         } label: {
             HStack(alignment: .top, spacing: 12) {

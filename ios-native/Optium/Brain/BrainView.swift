@@ -63,9 +63,31 @@ struct BrainView: UIViewRepresentable {
     final class Coordinator {
         var renderer: BrainRenderer?
 
+        private var lastTranslation: CGFloat = 0
+
+        @MainActor
         @objc func handlePan(_ gesture: UIPanGestureRecognizer) {
             let velocity = gesture.velocity(in: gesture.view).x
             renderer?.dragVelocity = Float(velocity) / 12_000
+
+            switch gesture.state {
+            case .began:
+                lastTranslation = 0
+                Feedback.prepare()
+            case .changed:
+                // La scene tourne sous le doigt : elle doit se sentir. C'est
+                // le seul objet manipulable de l'application, et le seul
+                // endroit ou le retour dit une matiere plutot qu'un evenement.
+                let translation = gesture.translation(in: gesture.view).x
+                let delta = translation - lastTranslation
+                lastTranslation = translation
+                Feedback.brainTurned(
+                    by: Double(delta) / 90,
+                    speed: min(1, abs(Double(velocity)) / 2_400)
+                )
+            default:
+                break
+            }
         }
     }
 }
