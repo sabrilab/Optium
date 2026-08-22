@@ -21,11 +21,21 @@ de design antérieur qui dirait le contraire.
 
 ---
 
----
-
 ## Le produit
 
-Optium est une application Pomodoro pour iPhone. Trois onglets :
+> **Attention — cette section est périmée.** Le 2026-08-22, le produit a changé
+> de nature : Optium abandonne le minuteur Pomodoro pour devenir une app qui
+> lit passivement la clarté cognitive et dit quand arrêter de valider. Le
+> travail s'organise en *fils* et non en sessions. La spécification du nouveau
+> produit vit dans le projet Claude Design « Optium ».
+>
+> **Tout ce qui suit dans ce document reste valable** : le langage visuel, les
+> valeurs, les recettes et la liste de ce qu'il ne faut pas proposer ont été
+> établis sur le rendu réel et survivent au changement de produit. Seule la
+> description des écrans ci-dessous ne correspond plus à rien.
+
+Description historique, conservée pour la trace — Optium était une application
+Pomodoro pour iPhone, avec trois onglets :
 
 - **Session** — le minuteur, écran principal, celui qu'on regarde 25 minutes
   d'affilée. Une scène 3D y occupe le haut de l'écran : un cerveau en verre
@@ -63,9 +73,8 @@ Native. Trois conséquences directes :
 - **Noir vrai** (`#000000`), permanent. L'application ne suit pas l'apparence
   d'iOS : il n'y a pas de mode clair. La scène 3D, les auras et les cartes
   n'existent que sur du noir.
-- Le noir porte une **trame de points** : points de 1,7 pt, espacés de 17 pt,
-  blanc à 8,5 % d'opacité. Sans elle le noir est un vide — rien n'y donne
-  l'échelle et les cartes flottent sur rien. On ne la voit pas, on la sent.
+- **Rien d'autre.** Voir les arbitrages en tête de document : une trame de
+  points a été essayée ici puis retirée.
 
 ### Les cartes — le point le plus important
 
