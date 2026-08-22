@@ -76,6 +76,7 @@ struct ThreadComposer: View {
                 .padding(.top, 12)
                 .padding(.bottom, 120)
             }
+            .scrollIndicators(.hidden)
             .background(InkBackground())
             .navigationTitle(isEditing ? "Modifier le fil" : "Nouveau fil")
             .navigationBarTitleDisplayMode(.inline)

@@ -93,6 +93,7 @@ struct ClosedScreen: View {
             .padding(.top, 28)
             .padding(.bottom, 120)
         }
+        .scrollIndicators(.hidden)
         .safeAreaInset(edge: .bottom) {
             Button(action: finish) {
                 Text("C’est bien ça")

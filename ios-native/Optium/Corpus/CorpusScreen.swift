@@ -43,6 +43,7 @@ struct CorpusScreen: View {
                     .padding(.horizontal, 16)
                     .padding(.bottom, 110)
                 }
+                .scrollIndicators(.hidden)
             }
         }
         .background(InkBackground())

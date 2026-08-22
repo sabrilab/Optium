@@ -59,6 +59,7 @@ struct NightEditor: View {
                 .padding(.top, 12)
                 .padding(.bottom, 120)
             }
+            .scrollIndicators(.hidden)
             .background(InkBackground())
             .navigationTitle("Corriger la nuit")
             .navigationBarTitleDisplayMode(.inline)

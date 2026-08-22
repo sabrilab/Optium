@@ -83,6 +83,14 @@ struct RootView: View {
         // lui.
         .undoBar()
         .animation(Motion.state, value: actions.pending)
+        // **Aucune barre de defilement.** Elle se pose par l'environnement et
+        // se propage a toutes les vues defilantes, feuilles comprises ; elle
+        // est aussi posee sur chaque `ScrollView` pour que le comportement
+        // survive a un ecran presente hors de cette hierarchie.
+        //
+        // Le contenu de l'application est court et titre : la barre
+        // n'apprenait rien et rayait le lavis des cartes sur toute la hauteur.
+        .scrollIndicators(.hidden)
         .preferredColorScheme(.dark)
         // Le tactile et le son sont lus ici, une fois : les vues appellent
         // `Feedback.play` sans avoir a connaitre les reglages.

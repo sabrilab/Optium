@@ -61,6 +61,7 @@ struct NightsScreen: View {
             .padding(.horizontal, 18)
             .padding(.bottom, 110)
         }
+        .scrollIndicators(.hidden)
         .refreshable {
             Feedback.play(.threadOpened)
             await clarityStore.refresh(context: context)

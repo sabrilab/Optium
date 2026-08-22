@@ -87,6 +87,7 @@ struct CallScreen: View {
                 .padding(.horizontal, 22)
                 .padding(.bottom, 60)
             }
+            .scrollIndicators(.hidden)
             .background(InkBackground())
             // L'aura deborde jusqu'aux bords pendant qu'on parle.
             .overlay {

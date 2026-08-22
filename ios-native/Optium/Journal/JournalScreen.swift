@@ -58,6 +58,7 @@ struct JournalScreen: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 110)
             }
+            .scrollIndicators(.hidden)
             .background(InkBackground())
             // Le palier ne bouge qu'apres des semaines : c'est ce qui autorise
             // a le souligner. La premiere valeur ne compte pas — arriver sur

@@ -30,6 +30,7 @@ struct TierScreen: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 110)
         }
+        .scrollIndicators(.hidden)
         .background(InkBackground())
         .navigationTitle("Les paliers")
         .navigationBarTitleDisplayMode(.inline)

@@ -79,6 +79,7 @@ struct HomeScreen: View {
                     .padding(.horizontal, 16)
                     .padding(.bottom, 110)
                 }
+                .scrollIndicators(.hidden)
             }
             .navigationTitle("Aujourd’hui")
             .toolbar {

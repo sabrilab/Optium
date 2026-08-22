@@ -111,6 +111,7 @@ struct GateScreen: View {
             .padding(.top, 24)
             .padding(.bottom, 140)
         }
+        .scrollIndicators(.hidden)
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 10) {
                 Button {
