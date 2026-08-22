@@ -37,6 +37,7 @@ enum RootTab: Hashable {
 
 struct RootView: View {
     @Environment(ClarityStore.self) private var clarity
+    @Environment(AppSettings.self) private var settings
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
 
@@ -63,6 +64,14 @@ struct RootView: View {
         // direction artistique, et la scene comme les lavis n'existent que sur
         // lui.
         .preferredColorScheme(.dark)
+        // Le tactile et le son sont lus ici, une fois : les vues appellent
+        // `Feedback.play` sans avoir a connaitre les reglages.
+        .onAppear {
+            Feedback.isEnabled = settings.hapticsEnabled
+            Chime.isEnabled = settings.soundsEnabled
+        }
+        .onChange(of: settings.hapticsEnabled) { Feedback.isEnabled = $1 }
+        .onChange(of: settings.soundsEnabled) { Chime.isEnabled = $1 }
         .tint(Ink.control)
         // La lecture de la clarte vit ici, et non dans un ecran : elle est
         // lue par les deux onglets et par l'appel. Laissee dans l'accueil,

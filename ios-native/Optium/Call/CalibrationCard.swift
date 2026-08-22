@@ -60,6 +60,7 @@ struct CalibrationCard: View {
 
     private func answerButton(_ label: String, felt: Bool) -> some View {
         Button {
+            Feedback.play(.answered)
             let calibration = Calibration(feltClear: felt, measured: measured)
             context.insert(calibration)
             withAnimation { justAnswered = calibration }

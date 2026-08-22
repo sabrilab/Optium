@@ -12,6 +12,10 @@ final class AppSettings {
     @ObservationIgnored private let defaults: UserDefaults
 
     var hapticsEnabled: Bool { didSet { defaults.set(hapticsEnabled, forKey: Key.haptics) } }
+    /// **Coupe par defaut.** Le tactile porte l'essentiel ; le son n'ajoute
+    /// quelque chose que dans les deux moments ou l'on ne regarde peut-etre
+    /// pas l'ecran. L'imposer serait un pari sur le contexte de l'utilisateur.
+    var soundsEnabled: Bool { didSet { defaults.set(soundsEnabled, forKey: Key.sounds) } }
     /// Coupe la 3D : economise la batterie et debloque les appareils lents.
     var brainEnabled: Bool { didSet { defaults.set(brainEnabled, forKey: Key.brain) } }
 
@@ -33,6 +37,7 @@ final class AppSettings {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         hapticsEnabled = defaults.object(forKey: Key.haptics) as? Bool ?? true
+        soundsEnabled = defaults.object(forKey: Key.sounds) as? Bool ?? false
         brainEnabled = defaults.object(forKey: Key.brain) as? Bool ?? true
         hasSeenThreshold = defaults.object(forKey: Key.threshold) as? Bool ?? false
         clarityOverride = (defaults.object(forKey: Key.clarity) as? String)
@@ -41,6 +46,7 @@ final class AppSettings {
 
     private enum Key {
         static let haptics = "hapticsEnabled"
+        static let sounds = "soundsEnabled"
         static let brain = "brainEnabled"
         static let threshold = "hasSeenThreshold"
         static let clarity = "simulatedClarity"

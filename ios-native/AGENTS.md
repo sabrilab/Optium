@@ -566,6 +566,35 @@ chiffres fins ; ils sont **conservés** comme signature.
 
 ---
 
+## 12 bis. Le tactile, le son, le mouvement
+
+Trois fichiers, trois vocabulaires. Le point commun : **on nomme des moments,
+jamais des intensités.** Un appelant qui écrit `impact(.medium)` décide d'une
+sensation ; un appelant qui écrit `.threadClosed` décide d'un sens, et la
+sensation se règle en un seul endroit.
+
+- **`Shared/Feedback.swift`** — huit moments. La porte a un motif Core Haptics
+  écrit à la main : deux frappes sourdes puis un appui tenu. **Pas le motif
+  système `.error`** — il est sec et se lit comme une faute, alors que la porte
+  ne reproche rien, elle interrompt.
+- **`Shared/Chime.swift`** — deux sons, **synthétisés**, aucun fichier
+  embarqué. La session audio est en `.ambient` : elle laisse la musique jouer
+  et **respecte l'interrupteur silencieux**. Coupé par défaut.
+- **`Optium/Design/Motion.swift`** — trois courbes. Celle de la porte est plus
+  lente que les autres : une interruption qui arrive vite se lit comme un refus
+  sec.
+
+**Le réglage « Vibrations » a existé pendant tout le développement sans être
+branché à quoi que ce soit** : il s'écrivait dans `UserDefaults` et aucun code
+ne le lisait. `Feedback.isEnabled` et `Chime.isEnabled` sont renseignés depuis
+`RootView` et constituent la seule porte d'entrée.
+
+Tout le mouvement doit pouvoir être coupé sans qu'une seule chose devienne
+incompréhensible — c'est ce qui rend `accessibilityReduceMotion` tenable plutôt
+qu'un mode dégradé.
+
+---
+
 ## 13. Le langage visuel
 
 ### Deux représentations du cerveau, et une seule règle

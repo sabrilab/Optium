@@ -166,6 +166,7 @@ struct ThreadComposer: View {
 
     private func open() {
         guard !trimmed.isEmpty else { return }
+        Feedback.play(.threadOpened)
         let thread = WorkThread(phrase: trimmed, nature: nature)
         context.insert(thread)
         project?.threads.append(thread)

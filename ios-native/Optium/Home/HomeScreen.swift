@@ -337,6 +337,7 @@ struct HomeScreen: View {
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
             Button {
+                Feedback.play(.coffee)
                 context.insert(CoffeeIntake())
                 Task { await clarityStore.refresh(context: context) }
             } label: {
@@ -446,7 +447,7 @@ struct HomeScreen: View {
             ForEach(Array(groups.enumerated()), id: \.offset) { index, group in
                 VStack(alignment: .leading, spacing: 12) {
                     projectHeader(group.project, index: index)
-                    ForEach(group.threads) { thread in
+                    ForEach(Array(group.threads.enumerated()), id: \.element.id) { rank, thread in
                         Button {
                             active = thread
                         } label: {
@@ -462,7 +463,8 @@ struct HomeScreen: View {
                                 showsProject: false
                             )
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(Pressable())
+                        .cardEntrance(index + rank)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

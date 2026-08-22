@@ -59,6 +59,13 @@ struct JournalScreen: View {
                 .padding(.bottom, 110)
             }
             .background(InkBackground())
+            // Le palier ne bouge qu'apres des semaines : c'est ce qui autorise
+            // a le souligner. La premiere valeur ne compte pas — arriver sur
+            // l'ecran n'est pas franchir un palier.
+            .onChange(of: tier) { previous, current in
+                guard previous != nil, current != nil, previous != current else { return }
+                Feedback.play(.tierChanged)
+            }
             .navigationTitle("Où tu en es")
             .navigationDestination(isPresented: $showsCorpus) { CorpusScreen() }
         }

@@ -117,6 +117,10 @@ struct GateScreen: View {
                     // son objet : on ne franchit pas en tapant, on franchit en
                     // disant ce qu'on accepte.
                     if thread.closeThroughGate(acceptance: acceptance, at: Date()) {
+                        // Plus appuye qu'une fermeture directe : il a fallu
+                        // passer par quelque part, et la main doit le savoir.
+                        Feedback.play(.threadClosedThroughGate)
+                        Chime.play(.closed)
                         Task { await LiveActivityController.end() }
                         onClosed()
                     }
@@ -131,6 +135,7 @@ struct GateScreen: View {
 
                 Button {
                     thread.hold(until: nextWindow, at: Date())
+                    Feedback.play(.held)
                     Task { await LiveActivityController.end() }
                     onHeld()
                 } label: {

@@ -64,11 +64,17 @@ struct ResumptionFlow: View {
     private func attemptClose() {
         switch thread.closingOutcome(clarity: reading.clarity?.level) {
         case .gate:
-            step = .gate
+            // Le retour precede l'ecran : la main sait qu'on l'arrete avant
+            // que l'oeil ait lu pourquoi.
+            Feedback.play(.gate)
+            Chime.play(.gate)
+            withAnimation(Motion.gate) { step = .gate }
         case .direct:
             thread.close(at: Date())
+            Feedback.play(.threadClosed)
+            Chime.play(.closed)
             Task { await LiveActivityController.end() }
-            step = .closed
+            withAnimation(Motion.entrance) { step = .closed }
         }
     }
 }

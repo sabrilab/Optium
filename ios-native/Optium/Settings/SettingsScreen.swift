@@ -24,6 +24,7 @@ struct SettingsScreen: View {
         List {
             Section {
                 Toggle("Vibrations", isOn: $settings.hapticsEnabled)
+                Toggle("Sons", isOn: $settings.soundsEnabled)
                     .listRowBackground(row)
                 Toggle("Visualisation 3D", isOn: $settings.brainEnabled)
                     .listRowBackground(row)
