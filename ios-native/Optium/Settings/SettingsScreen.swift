@@ -43,7 +43,7 @@ struct SettingsScreen: View {
             } header: {
                 header("Mesure")
             } footer: {
-                footer("La clarté est lue du sommeil enregistré, ou déduite du mouvement du téléphone quand il n’y en a pas. Elle a besoin de deux semaines de nuits pour vouloir dire quelque chose.")
+                footer("La clarté est lue du sommeil enregistré, ou déduite du mouvement du téléphone quand il n’y en a pas. Il lui faut trois nuits pour exister — elles sont souvent déjà là, lues de ton historique.")
             }
 
             Section {

@@ -107,6 +107,7 @@ struct HomeScreen: View {
             .onAppear(perform: releaseDueThreads)
 
 
+
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { releaseDueThreads() }
             }
@@ -203,7 +204,6 @@ struct HomeScreen: View {
             Divider().overlay(Color.white.opacity(0.12))
 
             legend
-            coffeeRow
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
@@ -273,10 +273,12 @@ struct HomeScreen: View {
                 legendRow("Nuit", format(duration))
             }
             legendRow("Fenêtre", windowRange, muted: Date() > window.end)
-            // Rien à zéro : une ligne à zéro est un reproche.
-            if todayCoffees > 0 {
-                legendRow("Café", "\(todayCoffees) café\(todayCoffees > 1 ? "s" : "")")
-            }
+            // Le café porte son bouton : c'est le seul geste déclaratif de
+            // l'application, et le séparer de sa ligne le faisait apparaître
+            // deux fois.
+            //
+            // Rien à zéro dans la valeur : une ligne à zéro est un reproche.
+            coffeeRow
             // Au-delà de deux, seuil à partir duquel l'agitation se voit.
             if threads.count > 2 {
                 legendRow("Fils", "\(threads.count) ouverts")
@@ -325,36 +327,36 @@ struct HomeScreen: View {
     /// sur celle d'aujourd'hui. C'est ce qui en fait un enseignement plutôt
     /// qu'une punition.
     private var coffeeRow: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Café")
-                    .font(.subheadline)
-                Text(coffeeSentence)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+        HStack(spacing: 8) {
+            Text("Café")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
             Spacer()
+            Text(coffeeSentence)
+                .font(.footnote)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
             Button {
                 context.insert(CoffeeIntake())
                 Task { await clarityStore.refresh(context: context) }
             } label: {
                 Image(systemName: "plus")
-                    .font(.system(size: 14, weight: .medium))
-                    .frame(width: 44, height: 44)
+                    .font(.system(size: 12, weight: .semibold))
+                    .frame(width: 30, height: 30)
             }
             .buttonStyle(.glass)
             .tint(Ink.control)
             .accessibilityLabel("Noter un café")
         }
+        .frame(minHeight: 34)
     }
 
     private var coffeeSentence: String {
-        let today = coffees.filter { Calendar.current.isDateInToday($0.takenAt) }
-        if today.isEmpty { return "aucun aujourd’hui" }
-        let penalty = reading.projectedNightPenalty
-        let count = "\(today.count) aujourd’hui"
-        guard penalty > 0.05 else { return count }
-        return "\(count) · la nuit de ce soir en pâtira"
+        guard todayCoffees > 0 else { return "aucun" }
+        let count = "\(todayCoffees)"
+        // La pénalité porte sur la nuit prochaine, jamais sur aujourd'hui.
+        guard reading.projectedNightPenalty > 0.05 else { return count }
+        return "\(count) · la nuit en pâtira"
     }
 
     private var windowSentence: String {
