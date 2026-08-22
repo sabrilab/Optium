@@ -11,33 +11,54 @@ import Testing
 // lui-meme tranche la collision en se rabattant sur « tu ». Les faits qu'on lui
 // donne doivent etre les siens, sans quoi il ne fait que les rapporter.
 
-private let sample = BrainCall.Context(
+private let sample = CallFacts(
     nightCount: 28,
     regularity: 81,
-    clarity: .high,
-    closedThreads: [(phrase: "Choisir le palier", resumptions: 3, nights: 2, held: 1)],
-    openPhrases: ["Trancher le positionnement"],
-    memory: ""
+    clarityWord: "haute",
+    window: DateInterval(start: Date(), duration: 9600),
+    closed: [ClosedThreadFact(phrase: "Choisir le palier", resumptions: 3, nights: 2, held: 1)],
+    open: ["Trancher le positionnement"],
+    tierWord: "Net",
+    tierShare: "26 % sont à ton palier.",
+    tierDays: 9,
+    memory: "",
+    scope: nil
 )
 
-@Test func lesFaitsSontEnoncesALaPremierePersonne() {
+// ── Les faits ont quitte le prompt ──
+//
+// Ils sont derriere quatre outils. Le prompt ne porte plus que la question, le
+// perimetre et la levee d'ambiguite des pronoms.
+
+@Test func lePromptNePorteplusLesFaits() {
     let prompt = BrainCall.prompt("Qu’est-ce que j’ai appris ?", sample)
 
-    #expect(prompt.contains("J’ai observé 28 nuits."))
-    #expect(prompt.contains("Ma régularité"))
-    #expect(prompt.contains("Ma clarté"))
-    #expect(prompt.contains("j’y suis revenu 3 fois"))
+    #expect(!prompt.contains("28"))
+    #expect(!prompt.contains("81"))
+    #expect(!prompt.contains("Choisir le palier"))
+    // Il tient en quelques lignes : c'est tout l'objet du tool calling.
+    #expect(prompt.count < 700)
 }
 
-@Test func aucunFaitNEstAdresseALaDeuxiemePersonne() {
-    let prompt = BrainCall.prompt("Qu’est-ce que j’ai appris ?", sample)
-    // On ne teste que le bloc de faits : la consigne finale, elle, s'adresse
-    // legitimement au modele en « tu ».
-    let facts = prompt.components(separatedBy: "La personne te demande")[0]
+@Test func lePromptRappelleLePerimetreQuandIlYEnAUn() {
+    var scoped = sample
+    let prompt = BrainCall.prompt("Et ensuite ?", CallFacts(
+        nightCount: scoped.nightCount, regularity: scoped.regularity,
+        clarityWord: scoped.clarityWord, window: scoped.window,
+        closed: scoped.closed, open: scoped.open,
+        tierWord: scoped.tierWord, tierShare: scoped.tierShare, tierDays: scoped.tierDays,
+        memory: "", scope: "Refonte tarifaire"
+    ))
 
-    for banned in ["Ta régularité", "Ta clarté", "Tu as observé", "ton cerveau"] {
-        #expect(!facts.contains(banned), "« \(banned) » dans les faits")
-    }
+    #expect(prompt.contains("Refonte tarifaire"))
+    #expect(prompt.contains("Ne cite rien d’un autre projet"))
+    _ = scoped
+}
+
+@Test func lePromptExigeLaConsultationAvantTouteAffirmation() {
+    let prompt = BrainCall.prompt("Qu’est-ce que j’ai appris ?", sample)
+    #expect(prompt.contains("Consulte tes outils"))
+    #expect(prompt.contains("N’invente"))
 }
 
 @Test func laConsigneDesambiguiseLesDeuxJe() {

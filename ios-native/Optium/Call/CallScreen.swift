@@ -17,6 +17,12 @@ struct CallScreen: View {
     @Query(sort: \Project.openedAt, order: .reverse) private var projects: [Project]
 
     @State private var call = BrainCall()
+    @State private var stage = CallStage()
+    @State private var voice = Voice()
+    /// La question choisie. **La parole libre n'ouvre qu'a l'interieur d'un
+    /// sujet** : les trois questions bornent le role du cerveau, et ce bornage
+    /// est ce qui l'empeche de devenir un assistant generique.
+    @State private var subject: String?
     /// Le projet dont on parle. `nil` veut dire « tout », et non « aucun ».
     @State private var scope: Project?
 
@@ -55,16 +61,39 @@ struct CallScreen: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     case .answered(let text):
                         answer(text, muted: false)
-                        Button("Autre chose") { call.reset() }
+                        holdToSpeak
+                        Button("Autre chose") {
+                            voice.stopSpeaking()
+                            subject = nil
+                            // La scene se vide avec l'appel : il ne doit rien
+                            // rester a faire defiler.
+                            stage.clear()
+                            call.reset()
+                        }
                             .font(.subheadline)
                             .foregroundStyle(Ink.marker)
                             .frame(minHeight: 44)
                     }
+
+                    // Ce que le cerveau vient de consulter. Une seule carte, et
+                    // elle remplace la precedente.
+                    if let exhibit = stage.exhibit {
+                        ExhibitCard(exhibit: exhibit)
+                            .id(exhibit)
+                    }
                 }
+                .animation(Motion.state, value: stage.exhibit)
                 .padding(.horizontal, 22)
                 .padding(.bottom, 60)
             }
             .background(InkBackground())
+            // L'aura deborde jusqu'aux bords pendant qu'on parle.
+            .overlay {
+                CallAura(
+                    level: voice.level,
+                    isActive: voice.state == .listening || thinking
+                )
+            }
             .navigationTitle("Appel")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -114,7 +143,11 @@ struct CallScreen: View {
         VStack(spacing: 12) {
             ForEach(Self.questions, id: \.self) { question in
                 Button {
-                    Task { await call.ask(question, context: context) }
+                    subject = question
+                    Task {
+                        await call.ask(question, facts: facts, stage: stage)
+                        if case let .answered(text) = call.state { voice.say(text) }
+                    }
                 } label: {
                     Text(question)
                         .font(.system(size: 18, weight: .light))
@@ -143,6 +176,64 @@ struct CallScreen: View {
         return lines.suffix(24).joined(separator: "\n")
     }
 
+    /// Reprendre la parole, a l'interieur du sujet choisi.
+    ///
+    /// **Appui maintenu.** On parle tant qu'on appuie : pas de seuil de silence
+    /// a regler, pas de faux depart, et la fin appartient a l'utilisateur. Un
+    /// appel qu'on tient est un appel qui se termine quand on lache.
+    @ViewBuilder
+    private var holdToSpeak: some View {
+        if voice.isSupported {
+            VStack(alignment: .leading, spacing: 10) {
+                Image(systemName: voice.state == .listening ? "waveform" : "mic.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(voice.state == .listening ? Ink.marker : Ink.control)
+                    .frame(width: 58, height: 58)
+                    .glassEffect(.regular, in: .circle)
+                    .scaleEffect(voice.state == .listening ? 1.06 : 1)
+                    .animation(Motion.state, value: voice.state)
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { _ in
+                                guard voice.state == .idle else { return }
+                                Feedback.play(.threadOpened)
+                                voice.stopSpeaking()
+                                Task { await voice.startListening() }
+                            }
+                            .onEnded { _ in
+                                Task {
+                                    let question = await voice.stopListening()
+                                    guard !question.isEmpty else { return }
+                                    Feedback.play(.answered)
+                                    await call.ask(prefixed(question), facts: facts, stage: stage)
+                                    if case let .answered(text) = call.state { voice.say(text) }
+                                }
+                            }
+                    )
+
+                Text(spokenLabel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    private var spokenLabel: String {
+        switch voice.state {
+        case .listening: voice.heard.isEmpty ? "Je t’écoute…" : voice.heard
+        case .preparing: "Un instant…"
+        case .unavailable(let why): why
+        case .idle: "Maintiens pour parler"
+        }
+    }
+
+    /// La parole libre reste rattachee au sujet choisi.
+    private func prefixed(_ question: String) -> String {
+        guard let subject else { return question }
+        return "Toujours sur « \(subject) » : \(question)"
+    }
+
     private func answer(_ text: String, muted: Bool) -> some View {
         Text(text)
             .font(.system(size: 19, weight: .light))
@@ -150,27 +241,41 @@ struct CallScreen: View {
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var context: BrainCall.Context {
+
+    /// L'instantane passe aux outils.
+    ///
+    /// Il est capture avant l'appel et ne bouge plus : les outils sont
+    /// `Sendable` et consultes hors du fil principal, leur donner le contexte
+    /// SwiftData les rendrait dependants d'un acteur.
+    private var facts: CallFacts {
         // Le perimetre filtre ce que le cerveau voit. « Tout » ne filtre rien.
         let inScope = scope.map { project in
             threads.filter { $0.project?.id == project.id }
         } ?? threads
         let closed = inScope.filter { $0.closedAt != nil }
-        return BrainCall.Context(
+        let tier = clarityStore.reading.regularity.map(Tier.init(regularity:))
+
+        return CallFacts(
             nightCount: nights.count,
             regularity: clarityStore.reading.regularity,
-            clarity: clarityStore.reading.clarity?.level,
-            closedThreads: closed.map { thread in
+            clarityWord: clarityStore.reading.clarity?.level.word,
+            window: clarityStore.reading.window,
+            closed: closed.map { thread in
                 let summary = thread.summary()
-                return (thread.phrase, summary.resumptionCount, summary.nightsCrossed, summary.holdCount)
+                return ClosedThreadFact(
+                    phrase: thread.phrase,
+                    resumptions: summary.resumptionCount,
+                    nights: summary.nightsCrossed,
+                    held: summary.holdCount
+                )
             },
-            openPhrases: inScope.filter { $0.closedAt == nil }.map(\.phrase),
-            // **La memoire etait en ecriture seule.** Une ligne markdown
-            // s'ecrivait a chaque fil ferme depuis le premier jour, et rien ne
-            // la relisait jamais : le champ valait la chaine vide. C'est
-            // pourtant elle qui donne au cerveau sa continuite d'un mois sur
-            // l'autre.
-            memory: memory
+            open: inScope.filter { $0.closedAt == nil }.map(\.phrase),
+            tierWord: tier?.word,
+            tierShare: tier?.situation,
+            tierDays: TierHistory.daysAtCurrentTier(nights: nights.map(\.night), now: Date()),
+            memory: memory,
+            scope: scope?.title
         )
     }
+
 }

@@ -17,6 +17,11 @@ import UIKit
 /// Il n'est pas repris tel quel : il sert de masque a un degrade qui monte
 /// depuis le bas, de sorte que le palier se lise comme un niveau et non comme
 /// une icone allumee ou eteinte.
+///
+/// **La variante pleine, pas le trait.** `brain` n'allumait que des contours :
+/// le niveau se lisait comme des traits eclaires, pas comme un remplissage.
+/// `brain.fill` donne une silhouette continue, et le degrade y monte comme un
+/// liquide dans une forme — ce que le palier est cense representer.
 struct BrainMark: View {
     /// Niveau atteint, 0…1.
     let fill: Double
@@ -36,13 +41,17 @@ struct BrainMark: View {
     /// a 0,16 — tomberait sous le dessin et n'allumerait rien du tout.
     /// Contraindre le conteneur aux proportions du glyphe fait coincider les
     /// deux, et laisse les appelants poser le `frame` qu'ils veulent.
+    /// Verifie par `BrainMarkTests` : `Image(systemName:)` rend une vue vide
+    /// quand le nom est inconnu — ni erreur, ni avertissement, ni trace.
+    static let symbolName = "brain.fill"
+
     private static let aspect: CGFloat = {
-        guard let size = UIImage(systemName: "brain")?.size, size.height > 0 else { return 1 }
+        guard let size = UIImage(systemName: Self.symbolName)?.size, size.height > 0 else { return 1 }
         return size.width / size.height
     }()
 
     private var symbol: some View {
-        Image(systemName: "brain")
+        Image(systemName: Self.symbolName)
             .resizable()
             .scaledToFit()
     }

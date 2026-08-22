@@ -10,7 +10,11 @@ import Foundation
 /// **L'embleme de chaque palier est le cerveau lui-meme**, a un taux de
 /// remplissage croissant. Pas de medaille, pas de badge : le meme objet, plus
 /// plein.
-enum Tier: String, CaseIterable, Comparable {
+// `nonisolated` : un palier est une valeur pure, calculee a partir d'un
+// indice. L'isolation par defaut du projet le rattachait au fil principal, ce
+// qui empechait les outils de l'appel -- `Sendable`, consultes hors de ce
+// fil -- de le construire.
+nonisolated enum Tier: String, CaseIterable, Comparable {
     case murky, veiled, clear, limpid, crystalline
 
     /// Seuil bas de regularite, et part de la population au-dessus.
@@ -43,6 +47,21 @@ enum Tier: String, CaseIterable, Comparable {
         case .veiled: 22
         case .murky: 15
         }
+    }
+
+    /// Ou l'on se situe — en distribution, jamais par rapport a des personnes.
+    ///
+    /// Trois regles absolues : jamais de noms ni de profils, jamais le volume,
+    /// et seulement les mesures reellement comparables.
+    ///
+    /// Elle vit ici et non dans un ecran : le journal l'affiche, et l'appel la
+    /// lit par `TierTool`. Deux copies finiraient par dire deux choses.
+    var situation: String {
+        let above = Tier.allCases
+            .filter { $0 > self }
+            .reduce(0) { $0 + $1.populationShare }
+        if above == 0 { return "Le palier le plus régulier. \(populationShare) % des gens y sont." }
+        return "\(above) % des gens dorment plus régulièrement. \(populationShare) % sont à ton palier."
     }
 
     /// Remplissage de l'embleme, 0…1.

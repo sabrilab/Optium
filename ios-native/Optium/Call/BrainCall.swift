@@ -71,17 +71,12 @@ final class BrainCall {
         return false
     }
 
-    /// Ce que le cerveau sait, rassemble avant l'appel.
-    struct Context {
-        let nightCount: Int
-        let regularity: Double?
-        let clarity: ClarityLevel?
-        let closedThreads: [(phrase: String, resumptions: Int, nights: Int, held: Int)]
-        let openPhrases: [String]
-        let memory: String
-    }
-
-    func ask(_ question: String, context: Context) async {
+    /// Pose une question au cerveau.
+    ///
+    /// **Le prompt ne porte plus les faits.** Ils sont derriere quatre outils
+    /// que le modele consulte quand il en a besoin — voir `BrainTools.swift`.
+    /// Ce qui reste ici tient en trois lignes.
+    func ask(_ question: String, facts: CallFacts, stage: CallStage) async {
         switch SystemLanguageModel.default.availability {
         case .available:
             break
@@ -94,11 +89,33 @@ final class BrainCall {
         }
 
         state = .thinking
-        let session = LanguageModelSession(instructions: Self.instructions)
+        stage.clear()
+
+        // Les outils publient sur la scene depuis un contexte non isole ; on
+        // repasse par l'acteur principal, qui est le seul a pouvoir toucher a
+        // l'interface.
+        let show: @Sendable (CallExhibit) -> Void = { exhibit in
+            Task { @MainActor in stage.show(exhibit) }
+        }
+
+        let session = LanguageModelSession(
+            tools: [
+                ClarityTool(facts: facts, show: show),
+                ThreadHistoryTool(facts: facts, show: show),
+                OpenThreadsTool(facts: facts, show: show),
+                TierTool(facts: facts, show: show),
+            ],
+            instructions: Self.instructions
+        )
 
         do {
-            let response = try await session.respond(to: Self.prompt(question, context))
+            let response = try await session.respond(to: Self.prompt(question, facts))
             state = .answered(response.content)
+        } catch let error as LanguageModelSession.GenerationError {
+            // **Les erreurs ne se confondent plus.** Tout tombait auparavant
+            // dans « L'appel n'a pas abouti », ce qui n'apprend rien et laisse
+            // croire a une panne alors que la cause est souvent nommable.
+            state = .unavailable(Self.explain(error))
         } catch {
             state = .unavailable("L’appel n’a pas abouti.")
         }
@@ -106,43 +123,41 @@ final class BrainCall {
 
     func reset() { state = .idle }
 
-    static func prompt(_ question: String, _ context: Context) -> String {
-        // **Les faits sont ecrits a la premiere personne, et ce n'est pas
-        // cosmetique.** Formules en tiers neutre — « Regularite du sommeil :
-        // 81 sur 100 » — ils invitaient le modele a les rapporter, donc a
-        // parler de la personne a la deuxieme personne. Enonces comme les
-        // siens, ils se prolongent naturellement en « je ».
-        var facts = ["J’ai observé \(context.nightCount) nuits."]
-        if let regularity = context.regularity {
-            facts.append("Ma régularité de sommeil : \(Int(regularity.rounded())) sur 100.")
+    /// Ce qui reste du prompt : la question, et le perimetre.
+    static func prompt(_ question: String, _ facts: CallFacts) -> String {
+        var lines = [String]()
+        if let scope = facts.scope {
+            lines.append("On parle du projet « \(scope) ». Ne cite rien d’un autre projet.")
         }
-        facts.append(context.clarity.map { "Ma clarté en ce moment : \($0.word)." }
-            ?? "Ma clarté : pas encore mesurable, mon historique est trop court.")
-
-        if !context.closedThreads.isEmpty {
-            facts.append("Ce que j’ai fermé :")
-            for thread in context.closedThreads.suffix(12) {
-                facts.append("- « \(thread.phrase) » : j’y suis revenu \(thread.resumptions) fois, "
-                           + "j’ai traversé \(thread.nights) nuits dessus, je l’ai retenu \(thread.held) fois.")
-            }
+        if !facts.memory.isEmpty {
+            lines.append("Ma mémoire de ce projet :\n\(facts.memory)")
         }
-        if !context.openPhrases.isEmpty {
-            facts.append("Ce que je porte encore : " + context.openPhrases.joined(separator: " ; ") + ".")
+        lines.append("""
+            La personne te demande : \(question)
+
+            Consulte tes outils avant d’affirmer quoi que ce soit. N’invente \
+            aucun chiffre : si un outil ne te le donne pas, tu ne l’as pas.
+
+            Réponds à la première personne, en commençant par « je ». Le « je » \
+            de la question est le sien ; celui de ta réponse est le tien.
+            """)
+        return lines.joined(separator: "\n\n")
+    }
+
+    private static func explain(_ error: LanguageModelSession.GenerationError) -> String {
+        switch error {
+        case .exceededContextWindowSize:
+            // Ne devrait plus arriver depuis que les faits sont derriere des
+            // outils : si ca se produit, c'est la memoire du projet qui a
+            // grossi, et c'est elle qu'il faut borner davantage.
+            "L’appel portait trop de choses à la fois. Réessaie sur un seul projet."
+        case .guardrailViolation:
+            "Le modèle a refusé de répondre à ça."
+        case .rateLimited:
+            "Trop d’appels d’affilée. Laisse passer un moment."
+        default:
+            "L’appel n’a pas abouti."
         }
-        if !context.memory.isEmpty {
-            facts.append("Ma mémoire de ce projet :\n\(context.memory)")
-        }
-
-        return """
-        Voici ce que tu sais de toi. N'utilise rien d'autre.
-
-        \(facts.joined(separator: "\n"))
-
-        La personne te demande : \(question)
-
-        Reponds a la premiere personne, en commencant par « je ». Le « je » de
-        la question est le sien ; celui de ta reponse est le tien.
-        """
     }
 
     private static func explain(_ reason: SystemLanguageModel.Availability.UnavailableReason) -> String {

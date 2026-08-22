@@ -122,7 +122,9 @@ enum Ink {
 /// justification de la porte ecrit « 8 h 16 » : deux graphies cote a cote sur
 /// le meme ecran se remarquent immediatement.
 enum Clock {
-    static func hhmm(_ date: Date, calendar: Calendar = .current) -> String {
+    // `nonisolated` : un formatage de date n'a aucune raison d'exiger le fil
+    // principal, et les outils de l'appel le consultent hors de celui-ci.
+    nonisolated static func hhmm(_ date: Date, calendar: Calendar = .current) -> String {
         let parts = calendar.dateComponents([.hour, .minute], from: date)
         return String(format: "%d h %02d", parts.hour ?? 0, parts.minute ?? 0)
     }

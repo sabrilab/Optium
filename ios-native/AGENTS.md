@@ -444,6 +444,35 @@ au tiers neutre** : c'est le levier qui compte, pas la consigne.
 
 ---
 
+### L'appel : outils, scène, voix
+
+`BrainCall.prompt()` empilait tout — douze fils fermés, tous les fils ouverts,
+la régularité, la clarté. **Quatre outils l'ont remplacé** (`BrainTools.swift`)
+et le prompt tient désormais sous 700 caractères, ce qu'un test vérifie.
+
+Le gain qui compte n'est pas la fenêtre de contexte : c'est que **chaque
+affirmation du modèle correspond à une consultation datée**, et que l'outil
+publie ce qu'il a trouvé pour que l'écran le montre pendant que la voix en
+parle. La première règle des instructions dit qu'un modèle qui rappelle est
+vérifiable ; l'afficher transforme la promesse en démonstration.
+
+**Une seule chose à l'écran à la fois** (`CallStage`). Un empilement
+reconstituerait le fil de messages que l'appel s'interdit.
+
+`Voice.swift` tient la chaîne, entièrement locale : `SpeechTranscriber` avec
+modèle exigé en local — jamais de bascule silencieuse — puis
+`AVSpeechSynthesizer`. **Appui maintenu**, pas de détection de silence.
+
+`VoiceTests` interdit la régression sur la confidentialité : aucune entité
+SwiftData ni clé de réglages ne peut porter une transcription. **Ne pas
+affaiblir ces tests** — c'est la seule chose qui empêche « garder la dernière
+réponse » d'arriver un jour par inadvertance.
+
+`CallAura` déborde aux bords via `ConcentricRectangle`. **Ne pas imiter le halo
+de Siri** : confusion sur qui parle, et une revue App Store peut le relever.
+
+---
+
 ## 8. Le cerveau
 
 Deux représentations du **même objet**, et elles doivent le rester.

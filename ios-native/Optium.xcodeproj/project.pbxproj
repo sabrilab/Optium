@@ -400,6 +400,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				CODE_SIGN_ENTITLEMENTS = Optium.entitlements;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Optium lit vos nuits pour estimer votre clarte. Rien n'en sort de l'appareil.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Optium ecoute votre question pendant un appel. Votre voix est transcrite sur l'appareil et n'en sort jamais.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Optium ecoute votre question pendant un appel. Votre voix est transcrite sur l'appareil et n'en sort jamais.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "Optium deduit vos nuits du mouvement du telephone, quand aucun sommeil n'est enregistre.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -436,6 +438,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				CODE_SIGN_ENTITLEMENTS = Optium.entitlements;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Optium lit vos nuits pour estimer votre clarte. Rien n'en sort de l'appareil.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Optium ecoute votre question pendant un appel. Votre voix est transcrite sur l'appareil et n'en sort jamais.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Optium ecoute votre question pendant un appel. Votre voix est transcrite sur l'appareil et n'en sort jamais.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "Optium deduit vos nuits du mouvement du telephone, quand aucun sommeil n'est enregistre.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

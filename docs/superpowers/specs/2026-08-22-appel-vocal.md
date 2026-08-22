@@ -1,6 +1,7 @@
 # L'appel vocal
 
-Spec, 2026-08-22. À relire avant implémentation — rien n'a été codé.
+Spec, 2026-08-22. **Implémentée** — les trois questions ouvertes ont été
+tranchées, voir §7.
 
 ---
 
@@ -168,36 +169,56 @@ du mouvement — cf. la règle de `Design/Motion.swift`.
 
 ---
 
-## 7. Ce que je n'ai pas tranché, et qui te revient
+## 7. Les trois questions, tranchées
 
-Trois questions ouvertes. Elles ne bloquent pas l'écriture du plan, mais elles
-changent le résultat.
+1. **La voix de sortie — aucune condition.** Le texte de la réponse reste
+   affiché quoi qu'il arrive ; la voix s'ajoute. `Voice.bestFrenchVoice()` prend
+   la meilleure qualité installée — `premium`, puis `enhanced`, puis `default`.
+   Conditionner l'appel à la présence d'une voix premium en aurait privé des
+   gens qui n'ont rien demandé, pour un gain qui n'existe que si le
+   téléchargement a été fait.
 
-1. **La voix de sortie.** `AVSpeechSynthesizer` a des voix système très
-   inégales en français. Une voix médiocre abîmerait plus l'expérience que
-   l'absence de voix. Faut-il exiger une voix premium installée, et se rabattre
-   sur le texte affiché sinon ?
+2. **Appui maintenu.** Pas de seuil de silence à régler, pas de faux départ, et
+   la fin appartient à l'utilisateur. Ça épouse aussi la règle du §1 : un appel
+   qu'on tient est un appel qui se termine quand on lâche.
 
-2. **Qui déclenche l'écoute.** Bouton maintenu (on parle tant qu'on appuie,
-   sans détection de fin) ou appui-relâche avec détection de silence ? Le
-   maintien est plus prévisible et sans faux départ ; l'appui-relâche est plus
-   confortable et plus risqué.
-
-3. **Les trois questions restent-elles ?** En vocal on pourrait laisser parler
-   librement. Mais les trois questions sont ce qui borne le rôle du cerveau, et
-   ce bornage est explicitement revendiqué dans `CallScreen`. Mon avis : les
-   garder comme entrées de l'appel, et n'ouvrir la parole libre qu'à
-   l'intérieur du sujet choisi.
+3. **Les trois questions restent, comme entrées.** La parole libre n'ouvre qu'à
+   l'intérieur du sujet choisi — `CallScreen.prefixed(_:)` rattache chaque
+   relance à la question de départ. C'est le bornage du rôle, et il est
+   revendiqué dans `CallScreen`.
 
 ---
 
-## 8. Ce que ça coûte, honnêtement
+## 8. Ce qui a été construit
 
-C'est la plus grosse fonctionnalité depuis le pivot. Le tool calling seul
-réécrit `BrainCall` en entier, et la publication de ce que voit l'écran demande
-un chemin qui n'existe pas aujourd'hui entre un outil et une vue.
+| Fichier | Rôle |
+|---|---|
+| `Call/CallStage.swift` | la scène et l'instantané passé aux outils |
+| `Call/BrainTools.swift` | les quatre outils |
+| `Call/ExhibitCard.swift` | ce que l'outil vient de consulter |
+| `Call/Voice.swift` | transcription, synthèse, niveau sonore |
+| `Call/CallAura.swift` | l'aura aux bords, sans imiter Siri |
 
-Le risque principal n'est pas technique : c'est que l'appel vocal devienne le
-centre de l'application alors que **la porte est le produit**. La voix doit
-rester ce qu'est l'appel écrit — quelque chose qu'on ouvre, qu'on ferme, et
-qu'on ne consulte pas.
+`BrainCall.prompt()` ne porte plus aucun fait : `BrainVoiceTests` vérifie qu'il
+tient sous 700 caractères et ne contient ni chiffre ni phrase de fil.
+
+`VoiceTests` tient la promesse de confidentialité : aucune entité SwiftData,
+aucune clé de réglages ne peut porter une transcription, et `CallScreen`
+n'écrit dans aucune mémoire.
+
+---
+
+## 9. Ce qui reste ouvert
+
+- **Rien n'a été essayé sur un appareil.** Le simulateur n'a ni Apple
+  Intelligence, ni micro utile, ni modèle de transcription : tout ce qui est
+  ici compile et passe les tests, mais la chaîne complète n'a jamais tourné.
+  C'est la première chose à faire.
+- **`Tier(rawValue:)` dans `ExhibitCard`** reconstruit un palier depuis son mot
+  affiché. Ça marche parce que les mots sont distincts, mais c'est fragile :
+  mieux vaudrait faire porter le `Tier` par l'exhibit.
+- **L'installation du modèle de transcription** peut être longue au premier
+  appel et l'interface ne montre qu'« Un instant… ». Une progression serait
+  plus honnête.
+- Le risque du §8 initial n'a pas disparu : **la porte reste le produit.** Si
+  l'appel vocal devient ce qu'on ouvre en premier, quelque chose s'est perdu.

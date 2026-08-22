@@ -111,7 +111,7 @@ struct JournalScreen: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text(tier.word)
                             .font(.system(size: 30, weight: .light))
-                        Text(situation(tier))
+                        Text(tier.situation)
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                         if let days = tenure {
@@ -178,18 +178,6 @@ struct JournalScreen: View {
             }
         }
         .padding(.top, 6)
-    }
-
-    /// Où l'on se situe — en distribution, jamais par rapport à des personnes.
-    ///
-    /// Trois règles absolues du document : jamais de noms ni de profils,
-    /// jamais le volume, et seulement les mesures réellement comparables.
-    private func situation(_ tier: Tier) -> String {
-        let above = Tier.allCases
-            .filter { $0 > tier }
-            .reduce(0) { $0 + $1.populationShare }
-        if above == 0 { return "Le palier le plus régulier. \(tier.populationShare) % des gens y sont." }
-        return "\(above) % des gens dorment plus régulièrement. \(tier.populationShare) % sont à ton palier."
     }
 
     /// L'accès au corpus. Une entrée, pas une carte : ce n'est pas une
