@@ -712,6 +712,38 @@ nuits : rien ne permettait de la relancer après une correction dans Santé.
 
 ---
 
+## 11 ter. La barre d'onglets, et l'île
+
+**La barre est dessinée, pas celle du système.** Aucune API ne permet de
+l'aligner à gauche : `TabBarPlacement` ne propose que `topBar`, `bottomBar` et
+`sidebar` — cette dernière réservée aux dispositions adaptatives de l'iPad. La
+barre flottante d'iOS 26 est centrée, sans réglage.
+
+Le `TabView` est conservé pour ce qu'il fait bien : la sélection, l'état de
+chaque onglet, la pile de navigation propre à chacun. Seule sa barre est
+masquée. **Le masquage se pose sur le contenu de chaque `Tab`, jamais sur le
+`TabView`** — appliqué à celui-ci il est ignoré en silence, et la barre système
+reste visible derrière la nôtre.
+
+Ce qu'on perd : la réduction automatique au défilement d'iOS 26 et le rendu par
+défaut des badges. Le libellé ne s'affiche que sur l'onglet courant — deux
+libellés côte à côte reconstituent la largeur d'une barre centrée, et
+l'alignement à gauche ne se voit plus.
+
+### L'île dynamique
+
+**La forme repliée montre le temps écoulé, pas le mot de clarté.** C'est elle
+qui s'affiche quand on quitte l'application : y mettre un mot qu'on vient de
+lire dans l'app, au lieu de la seule chose qui bouge, la rendait inutile. La
+clarté reste présente — c'est le remplissage du cerveau, à gauche.
+
+**Les chiffres de l'app suivent ceux de l'île, jamais l'inverse.** Une activité
+en direct ne peut pas exécuter de code à chaque seconde : elle n'a que le style
+de minuterie du système, qui rend `7:42` puis `1:07:42`. L'app affichait
+`07:42`. C'est `ResumptionFlow.elapsed(at:)` qui s'est aligné.
+
+---
+
 ## 12. L'annulation
 
 `System/ActionLog.swift`, `Design/UndoBar.swift`, et une ligne dans

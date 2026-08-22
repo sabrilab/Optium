@@ -53,9 +53,20 @@ struct OptiumLiveActivity: Widget {
                 BrainMark(fill: context.state.fill, tint: Ink.focusGlow)
                     .frame(width: 22, height: 22)
             } compactTrailing: {
-                Text(context.state.landing ?? context.state.clarityWord)
-                    .font(.system(size: 12, weight: .medium))
+                // **Le temps ecoule, pas le mot de clarte.** C'est la forme
+                // repliee qui s'affiche quand on quitte l'application : y
+                // mettre un mot qu'on vient de lire dans l'app, au lieu de la
+                // seule chose qui bouge, la rendait inutile.
+                //
+                // La clarte reste presente : c'est le remplissage du cerveau,
+                // a gauche, exactement comme partout ailleurs.
+                Text(context.state.startedAt, style: .timer)
+                    .font(.system(size: 13, weight: .medium))
+                    .monospacedDigit()
                     .foregroundStyle(Ink.marker)
+                    // Sans largeur fixe, l'ile se redimensionne au passage de
+                    // 9:59 a 10:00 et le contenu sautille.
+                    .frame(width: 52)
             } minimal: {
                 // Le cerveau seul : a cette taille il n'y a de place pour rien
                 // d'autre, et c'est lui le signal.

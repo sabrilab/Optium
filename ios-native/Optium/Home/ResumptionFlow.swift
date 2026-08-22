@@ -183,8 +183,19 @@ private struct ResumptionScreen: View {
         return "\(count)\(count == 1 ? "re" : "e") reprise · \(spent)"
     }
 
+    /// Le temps ecoule, **au format de l'ile dynamique**.
+    ///
+    /// Les deux affichaient des chiffres differents pour la meme duree :
+    /// « 07:42 » ici, « 7:42 » dans l'ile. Une activite en direct ne peut pas
+    /// executer de code a chaque seconde — elle n'a que le style de minuterie
+    /// du systeme — donc c'est l'application qui s'aligne, jamais l'inverse.
+    ///
+    /// Le systeme passe a `h:mm:ss` au-dela d'une heure ; on fait de meme.
     private func elapsed(at date: Date) -> String {
-        let seconds = Int(date.timeIntervalSince(thread.currentResumption?.startedAt ?? date))
-        return String(format: "%02d:%02d", max(0, seconds) / 60, max(0, seconds) % 60)
+        let seconds = max(0, Int(date.timeIntervalSince(thread.currentResumption?.startedAt ?? date)))
+        let hours = seconds / 3600
+        let minutes = (seconds % 3600) / 60
+        guard hours > 0 else { return String(format: "%d:%02d", minutes, seconds % 60) }
+        return String(format: "%d:%02d:%02d", hours, minutes, seconds % 60)
     }
 }
