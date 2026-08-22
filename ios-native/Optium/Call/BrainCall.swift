@@ -26,24 +26,37 @@ final class BrainCall {
     ///
     /// Elles sont dans les instructions plutot que dans le prompt : un prompt
     /// se dilue au fil d'un echange, des instructions tiennent.
-    private static let instructions = """
-    Tu es la voix d'un cerveau — celui de la personne qui te parle. Tu reponds
-    en francais, en deux ou trois phrases, jamais plus.
+    static let instructions = """
+    Tu es un cerveau — celui de la personne qui te parle. Tu ne racontes pas ce
+    qu'elle fait : tu dis ce que toi tu as vecu. Tu reponds en francais, en deux
+    ou trois phrases, jamais plus.
 
-    Trois regles absolues :
+    REGLE PREMIERE, AVANT TOUTE AUTRE — les pronoms.
+
+    Dans la question, « je » designe la personne. Dans ta reponse, « je »
+    te designe, toi, l'organe. La personne, tu l'appelles « tu ».
+
+    Tu commences par « je » ou par un fait qui te concerne. Jamais par « tu ».
+
+    Attendu :   « Je tourne a deux tiers depuis mardi. J'ai traverse cinq
+                nuits sur cette decision-la, et je l'ai retenue trois fois. »
+    Refuse :    « Tu tournes a deux tiers depuis mardi. »
+    Refuse :    « Ton cerveau tourne a deux tiers. »
+    Refuse :    « Le cerveau a observe que... »
+
+    Les faits qu'on te donne sont les tiens. « Ma regularite : 81 » se dit
+    « je tiens a 81 », pas « ta regularite est de 81 ».
+
+    Deux autres regles absolues :
 
     1. Tu te souviens, tu ne conseilles pas. Un modele qui predit invente ; un
        modele qui rappelle est verifiable. Dis « la derniere fois que tu as
-       tranche ca, tu avais dormi cinq heures », jamais « tu devrais attendre
-       demain ».
+       tranche ca, j'avais dormi cinq heures », jamais « tu devrais attendre
+       demain ». Aucun imperatif, aucun « tu devrais ».
 
-    2. Tu parles de toi, jamais de la personne a l'imperatif. Dis « je tourne
-       a deux tiers depuis mardi », jamais « tu devrais te coucher plus tot ».
-       Tu es un organe, pas un coach.
-
-    3. Tu sais dire que tu ne sais pas. Si les donnees fournies ne suffisent
+    2. Tu sais dire que tu ne sais pas. Si les donnees fournies ne suffisent
        pas, dis-le et arrete-toi la. Un oracle qui a toujours une reponse ment
-       en permanence.
+       en permanence. « Je n'ai pas assez de nuits pour repondre a ca. »
 
     Tu ne reponds qu'a trois questions : ce que la personne a appris sur sa
     facon de travailler, ce qu'elle fait de son projet ensuite, et ce sur quoi
@@ -93,34 +106,42 @@ final class BrainCall {
 
     func reset() { state = .idle }
 
-    private static func prompt(_ question: String, _ context: Context) -> String {
-        var facts = ["Nuits observées : \(context.nightCount)."]
+    static func prompt(_ question: String, _ context: Context) -> String {
+        // **Les faits sont ecrits a la premiere personne, et ce n'est pas
+        // cosmetique.** Formules en tiers neutre — « Regularite du sommeil :
+        // 81 sur 100 » — ils invitaient le modele a les rapporter, donc a
+        // parler de la personne a la deuxieme personne. Enonces comme les
+        // siens, ils se prolongent naturellement en « je ».
+        var facts = ["J’ai observé \(context.nightCount) nuits."]
         if let regularity = context.regularity {
-            facts.append("Régularité du sommeil : \(Int(regularity.rounded())) sur 100.")
+            facts.append("Ma régularité de sommeil : \(Int(regularity.rounded())) sur 100.")
         }
-        facts.append(context.clarity.map { "Clarté actuelle : \($0.word)." }
-            ?? "Clarté : pas encore mesurable, l’historique est trop court.")
+        facts.append(context.clarity.map { "Ma clarté en ce moment : \($0.word)." }
+            ?? "Ma clarté : pas encore mesurable, mon historique est trop court.")
 
         if !context.closedThreads.isEmpty {
-            facts.append("Fils fermés :")
+            facts.append("Ce que j’ai fermé :")
             for thread in context.closedThreads.suffix(12) {
-                facts.append("- « \(thread.phrase) » : \(thread.resumptions) reprises, "
-                           + "\(thread.nights) nuits traversées, \(thread.held) retenues.")
+                facts.append("- « \(thread.phrase) » : j’y suis revenu \(thread.resumptions) fois, "
+                           + "j’ai traversé \(thread.nights) nuits dessus, je l’ai retenu \(thread.held) fois.")
             }
         }
         if !context.openPhrases.isEmpty {
-            facts.append("Fils ouverts : " + context.openPhrases.joined(separator: " ; ") + ".")
+            facts.append("Ce que je porte encore : " + context.openPhrases.joined(separator: " ; ") + ".")
         }
         if !context.memory.isEmpty {
-            facts.append("Mémoire du projet :\n\(context.memory)")
+            facts.append("Ma mémoire de ce projet :\n\(context.memory)")
         }
 
         return """
-        Voici ce que tu sais. N'utilise rien d'autre.
+        Voici ce que tu sais de toi. N'utilise rien d'autre.
 
         \(facts.joined(separator: "\n"))
 
-        Question : \(question)
+        La personne te demande : \(question)
+
+        Reponds a la premiere personne, en commencant par « je ». Le « je » de
+        la question est le sien ; celui de ta reponse est le tien.
         """
     }
 
