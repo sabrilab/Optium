@@ -259,6 +259,113 @@ l'incompréhension persiste en usage réel.
 
 ---
 
+## 5. Le cerveau des widgets — capture 3D plutôt que silhouette
+
+Les widgets affichent aujourd'hui `BrainSilhouette`, 59 points extraits du
+maillage. C'est correct, mais plat : l'objet perd le verre, la profondeur et le
+niveau de liquide qui font l'identité de l'application sur l'écran principal.
+
+Le remplacer par une **capture du rendu Metal** est possible, mais pas partout.
+
+### Ce qui empêche de le faire partout
+
+WidgetKit n'exécute pas Metal — déjà acté. La capture doit donc être produite
+par l'application, écrite dans le groupe d'applications, et seulement affichée
+par l'extension.
+
+S'y ajoute une contrainte moins connue : **les widgets de l'écran verrouillé
+sont rendus comme des masques teintés.** Une image en couleurs y est aplatie, et
+un cerveau photographique y deviendrait une tache. Depuis iOS 18, l'écran
+d'accueil connaît lui aussi un mode teinté qui désature les images.
+
+D'où la répartition, à respecter :
+
+| Emplacement | Rendu | Pourquoi |
+|---|---|---|
+| `systemSmall`, `systemMedium` | **capture 3D** | pleine couleur, place suffisante |
+| `accessoryCircular`, `accessoryRectangular` | silhouette vectorielle | rendus en masque teinté |
+| Live Activity, Dynamic Island | silhouette vectorielle | taille et teinte contraintes |
+
+`BrainSilhouette` **n'est donc pas supprimé.** Il reste le rendu de l'écran
+verrouillé, et le repli de l'écran d'accueil — voir plus bas.
+
+Sur l'écran d'accueil en mode teinté, appliquer
+`.widgetAccentedRenderingMode(.fullColor)` à l'image pour conserver les
+couleurs. À vérifier sur appareil : si le rendu reste désaturé, basculer sur la
+silhouette dans ce mode.
+
+### La production de la capture
+
+L'application rend le cerveau hors écran, dans une passe Metal identique à celle
+de l'accueil, avec **fond transparent** — le widget dessine son propre fond, et
+la transparence évite d'avoir à produire une variante claire et une variante
+sombre.
+
+Écriture dans le **conteneur du groupe d'applications**, via
+`FileManager.containerURL(forSecurityApplicationGroupIdentifier:)`. Pas dans
+`UserDefaults` : celui-ci n'est pas fait pour des binaires, et
+`WidgetSnapshot.save()` y écrit déjà du JSON qu'il ne faut pas alourdir.
+
+Deux tailles, rendues au même moment :
+
+| Fichier | Taille de rendu | Usage |
+|---|---|---|
+| `brain-small.png` | 158 × 158 pt × 3 | `systemSmall` |
+| `brain-medium.png` | 158 × 158 pt × 3 | `systemMedium` |
+
+Une seule taille de source suffit : le cerveau occupe un carré dans les deux
+familles. Rendre à 474 px de côté et laisser SwiftUI redimensionner.
+
+**Le budget mémoire des extensions widget est étroit** — de l'ordre de 30 Mo,
+dépassement égale terminaison. Une image de 474 px décodée pèse environ 900 Ko,
+ce qui laisse de la marge, mais interdit de monter en résolution « pour voir ».
+
+### Le moment du rendu
+
+La capture est produite **au même instant que `WidgetSnapshot`**, dans le même
+chemin de code, puis `WidgetCenter.shared.reloadTimelines` est appelé. Image et
+valeurs sont ainsi cohérentes par construction.
+
+### La péremption, et le repli
+
+Le remplissage évolue au fil de la journée par la composante circadienne, alors
+que l'image reste figée depuis la dernière exécution de l'application. Un cerveau
+en décalage avec le mot affiché juste à côté serait pire que pas de cerveau.
+
+`WidgetSnapshot` gagne donc deux champs :
+
+```swift
+/// Le remplissage grave dans la derniere capture.
+var brainImageFill: Double?
+/// L'instant du rendu.
+var brainImageRenderedAt: Date?
+```
+
+Règle d'affichage, dans la vue du widget :
+
+```
+si  brainImageFill existe
+et  |entree.fill − brainImageFill| < 0.03
+et  entree.date − brainImageRenderedAt < 6 h
+alors  afficher la capture
+sinon  afficher la silhouette vectorielle
+```
+
+Le repli est silencieux : aucune indication de péremption, l'utilisateur voit
+simplement l'autre représentation du même objet. C'est précisément pourquoi les
+deux doivent rester le même objet, comme le rappelle §8 d'AGENTS.md.
+
+### Vérification
+
+- Le fichier est écrit dans le conteneur du groupe, jamais dans `UserDefaults`.
+- Aucune capture n'est produite quand la clarté est absente : à l'arrivée, le
+  widget montre la silhouette vide.
+- La règle de repli renvoie bien la silhouette au-delà de 0,03 d'écart, et
+  au-delà de six heures.
+- Les familles `accessory*` n'ouvrent jamais le fichier image.
+
+---
+
 ## Vérification
 
 Tests à ajouter, dans l'esprit des 69 existants.
@@ -295,3 +402,6 @@ Tests à ajouter, dans l'esprit des 69 existants.
 - Toute modification de la condition d'ouverture de la porte.
 - Toute modification de la pondération du moteur.
 - L'apprentissage par la calibration, déjà noté comme non fait.
+- La suppression de `BrainSilhouette` : elle reste le rendu de l'écran
+  verrouillé et le repli de l'écran d'accueil.
+- Le rendu Metal dans une extension widget, que WidgetKit n'autorise pas.
