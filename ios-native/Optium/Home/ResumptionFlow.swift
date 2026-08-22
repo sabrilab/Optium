@@ -7,6 +7,7 @@ struct ResumptionFlow: View {
     let thread: WorkThread
 
     @Environment(AppSettings.self) private var settings
+    @Environment(ActionLog.self) private var actions
     @Environment(ClarityStore.self) private var clarityStore
     @Environment(\.dismiss) private var dismiss
 
@@ -71,6 +72,7 @@ struct ResumptionFlow: View {
             withAnimation(Motion.gate) { step = .gate }
         case .direct:
             thread.close(at: Date())
+            actions.record("Fil fermé")
             Feedback.play(.threadClosed)
             Chime.play(.closed)
             Task { await LiveActivityController.end() }

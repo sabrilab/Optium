@@ -7,8 +7,17 @@ import SwiftUI
 /// choisir** — c'est tout le point du produit : on ne s'engage pas sur un
 /// temps, on ouvre une intention.
 struct ThreadComposer: View {
+    /// Le fil a modifier, ou `nil` pour en ouvrir un nouveau.
+    ///
+    /// **Le meme ecran pour les deux.** Un formulaire d'edition separe finirait
+    /// par diverger de celui de creation — pas les memes champs, pas les memes
+    /// contraintes — et l'utilisateur aurait a apprendre deux fois la meme
+    /// chose.
+    var editing: WorkThread?
+
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @Environment(ActionLog.self) private var actions
 
     @Query(sort: \Project.openedAt, order: .reverse) private var projects: [Project]
 
@@ -20,6 +29,8 @@ struct ThreadComposer: View {
     @FocusState private var writing: Bool
 
     private var trimmed: String { phrase.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+    private var isEditing: Bool { editing != nil }
 
     var body: some View {
         NavigationStack {
@@ -66,7 +77,7 @@ struct ThreadComposer: View {
                 .padding(.bottom, 120)
             }
             .background(InkBackground())
-            .navigationTitle("Nouveau fil")
+            .navigationTitle(isEditing ? "Modifier le fil" : "Nouveau fil")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -77,7 +88,7 @@ struct ThreadComposer: View {
                 Button {
                     open()
                 } label: {
-                    Text("Ouvrir le fil")
+                    Text(isEditing ? "Enregistrer" : "Ouvrir le fil")
                         .font(.subheadline.weight(.medium))
                         .frame(maxWidth: .infinity, minHeight: 56)
                 }
@@ -87,7 +98,7 @@ struct ThreadComposer: View {
                 .padding(.horizontal, 22)
                 .padding(.bottom, 10)
             }
-            .onAppear { writing = true }
+            .onAppear { loadIfEditing(); writing = true }
         }
     }
 
@@ -168,9 +179,29 @@ struct ThreadComposer: View {
     private func open() {
         guard !trimmed.isEmpty else { return }
         Feedback.play(.threadOpened)
-        let thread = WorkThread(phrase: trimmed, nature: nature)
-        context.insert(thread)
-        project?.threads.append(thread)
+
+        if let editing {
+            // **La date de creation ne bouge pas.** Elle sert aux preuves et
+            // aux nuits traversees : la reecrire ferait mentir tout
+            // l'historique du fil pour un mot corrige.
+            editing.phrase = trimmed
+            editing.nature = nature
+            editing.project = project
+            actions.record("Fil modifié")
+        } else {
+            let thread = WorkThread(phrase: trimmed, nature: nature)
+            context.insert(thread)
+            project?.threads.append(thread)
+            actions.record("Fil ouvert")
+        }
         dismiss()
+    }
+
+    /// Reprend l'etat du fil en cours de modification.
+    private func loadIfEditing() {
+        guard let editing, phrase.isEmpty else { return }
+        phrase = editing.phrase
+        nature = editing.nature
+        project = editing.project
     }
 }

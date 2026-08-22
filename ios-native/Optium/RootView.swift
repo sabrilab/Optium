@@ -38,6 +38,7 @@ enum RootTab: Hashable {
 struct RootView: View {
     @Environment(ClarityStore.self) private var clarity
     @Environment(AppSettings.self) private var settings
+    @Environment(ActionLog.self) private var actions
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
 
@@ -63,6 +64,8 @@ struct RootView: View {
         // L'application ne suit pas l'apparence d'iOS : le noir est un choix de
         // direction artistique, et la scene comme les lavis n'existent que sur
         // lui.
+        .undoBar()
+        .animation(Motion.state, value: actions.pending)
         .preferredColorScheme(.dark)
         // Le tactile et le son sont lus ici, une fois : les vues appellent
         // `Feedback.play` sans avoir a connaitre les reglages.

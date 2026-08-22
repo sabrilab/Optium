@@ -64,15 +64,47 @@ final class ClarityStore {
         )
     }
 
-    /// Conserve les nuits inconnues. Une nuit deja enregistree n'est pas
-    /// reecrite : la premiere lecture fait foi, et une source qui se contredit
-    /// d'un jour a l'autre ne doit pas faire bouger l'historique.
+    /// Conserve ce qui est nouveau, **et corrige ce qui etait faux**.
+    ///
+    /// La regle etait « la premiere lecture fait foi » : une nuit deja
+    /// enregistree n'etait jamais reecrite. L'intention — qu'une source qui se
+    /// contredit ne fasse pas bouger l'historique — etait juste, mais l'effet
+    /// etait un piege. Une nuit lue de travers restait fausse pour toujours,
+    /// et aucune correction dans Sante ne pouvait la rattraper.
+    ///
+    /// Deux cas remplacent desormais l'enregistrement existant :
+    ///
+    /// 1. **Une nuit mesuree remplace une nuit deduite.** Sante fait autorite
+    ///    sur l'accelerometre, toujours, meme des jours plus tard — c'est le
+    ///    cas de quelqu'un qui met sa montre apres coup.
+    /// 2. **Une nuit mesuree en remplace une autre si elle differe.** Sante
+    ///    revise ses donnees, et les nuits de la veille sont souvent
+    ///    completees dans la journee.
+    ///
+    /// Une nuit deduite ne remplace jamais rien : le mouvement ne corrige pas
+    /// la mesure.
     private func record(_ nights: [Night], context: ModelContext) {
         let existing = (try? context.fetch(FetchDescriptor<RecordedNight>())) ?? []
-        let known = Set(existing.map { calendar.startOfDay(for: $0.wokeAt) })
+        var byDay: [Date: RecordedNight] = [:]
+        for stored in existing {
+            byDay[calendar.startOfDay(for: stored.wokeAt)] = stored
+        }
 
-        for night in nights where !known.contains(calendar.startOfDay(for: night.wokeAt)) {
-            context.insert(RecordedNight(night, measured: night.origin == .measured))
+        for night in nights {
+            let day = calendar.startOfDay(for: night.wokeAt)
+            guard let stored = byDay[day] else {
+                context.insert(RecordedNight(night, measured: night.origin == .measured))
+                continue
+            }
+            guard night.origin == .measured else { continue }
+            let unchanged = stored.measured
+                && abs(stored.asleepAt.timeIntervalSince(night.asleepAt)) < 60
+                && abs(stored.wokeAt.timeIntervalSince(night.wokeAt)) < 60
+            guard !unchanged else { continue }
+
+            stored.asleepAt = night.asleepAt
+            stored.wokeAt = night.wokeAt
+            stored.measured = true
         }
     }
 }

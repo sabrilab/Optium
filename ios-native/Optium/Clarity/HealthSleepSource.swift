@@ -65,23 +65,71 @@ struct HealthSleepSource: SleepSource {
         }
         guard !asleep.isEmpty else { return [] }
 
-        // Une nuit arrive en dizaines d'echantillons : on recolle ceux qui se
-        // suivent a moins d'une heure.
-        var nights: [Night] = []
-        var currentStart = asleep[0].startDate
-        var currentEnd = asleep[0].endDate
+        // **Union des intervalles, jamais somme.** Une montre et un iPhone qui
+        // enregistrent la meme nuit produisent deux jeux d'echantillons qui se
+        // recouvrent ; les additionner doublerait la nuit. Fusionner leurs
+        // intervalles donne le temps reellement endormi, quel que soit le
+        // nombre de sources.
+        let merged = Self.union(of: asleep.map { $0.startDate...$0.endDate })
 
-        for sample in asleep.dropFirst() {
-            if sample.startDate.timeIntervalSince(currentEnd) <= 3600 {
-                currentEnd = max(currentEnd, sample.endDate)
+        // **Une heure de trou separe deux episodes.** En deca, c'est un reveil
+        // au milieu de la nuit ; au-dela, c'est une sieste ou une autre nuit.
+        var episodes: [[ClosedRange<Date>]] = []
+        var current: [ClosedRange<Date>] = []
+        for interval in merged {
+            if let last = current.last,
+               interval.lowerBound.timeIntervalSince(last.upperBound) > 3600 {
+                episodes.append(current)
+                current = []
+            }
+            current.append(interval)
+        }
+        if !current.isEmpty { episodes.append(current) }
+
+        let nights = episodes.compactMap { parts -> Night? in
+            guard let first = parts.first, let last = parts.last else { return nil }
+            // Le temps endormi est la somme des morceaux, pas leur amplitude :
+            // les reveils intra-nuit ne comptent pas.
+            let slept = parts.reduce(0.0) { $0 + $1.upperBound.timeIntervalSince($1.lowerBound) }
+            guard slept >= SleepInference.minimumDuration else { return nil }
+            return Night(
+                asleepAt: first.lowerBound,
+                wokeAt: last.upperBound,
+                origin: .measured,
+                measuredSleep: slept
+            )
+        }
+
+        return Self.longestPerDay(nights)
+    }
+
+    /// Fusionne des intervalles qui se recouvrent ou se touchent.
+    static func union(of ranges: [ClosedRange<Date>]) -> [ClosedRange<Date>] {
+        let sorted = ranges.sorted { $0.lowerBound < $1.lowerBound }
+        var result: [ClosedRange<Date>] = []
+        for range in sorted {
+            if let last = result.last, range.lowerBound <= last.upperBound {
+                result[result.count - 1] = last.lowerBound...max(last.upperBound, range.upperBound)
             } else {
-                nights.append(Night(asleepAt: currentStart, wokeAt: currentEnd))
-                currentStart = sample.startDate
-                currentEnd = sample.endDate
+                result.append(range)
             }
         }
-        nights.append(Night(asleepAt: currentStart, wokeAt: currentEnd))
+        return result
+    }
 
-        return nights.filter { $0.duration >= SleepInference.minimumDuration }
+    /// Une nuit par jour de lever : **la plus longue**.
+    ///
+    /// Une sieste de l'apres-midi remonte de Sante comme un episode a part
+    /// entiere. Sans ce tri, elle devenait « la nuit » du jour ou elle tombait
+    /// — et c'est exactement ce qui faisait afficher des nuits qui n'en
+    /// etaient pas.
+    static func longestPerDay(_ nights: [Night], calendar: Calendar = .current) -> [Night] {
+        var best: [Date: Night] = [:]
+        for night in nights {
+            let day = calendar.startOfDay(for: night.wokeAt)
+            if let existing = best[day], existing.duration >= night.duration { continue }
+            best[day] = night
+        }
+        return best.values.sorted { $0.asleepAt < $1.asleepAt }
     }
 }

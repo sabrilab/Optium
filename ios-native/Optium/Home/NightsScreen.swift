@@ -232,7 +232,7 @@ struct NightsScreen: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(night.wokeAt.formatted(.dateTime.weekday(.abbreviated).day().month()))
                     .font(.subheadline.weight(.medium))
-                Text("\(Clock.hhmm(night.asleepAt)) → \(Clock.hhmm(night.wokeAt))")
+                Text(schedule(night))
                     .font(.caption)
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
@@ -260,6 +260,18 @@ struct NightsScreen: View {
             // faut se souvenir qu'elles sont des estimations.
             intensity: night.measured ? 0.26 : 0.44
         )
+    }
+
+    /// L'horaire, et le temps eveille quand il y en a.
+    ///
+    /// **Sans cette mention, la ligne se contredit** : « 23 h → 7 h » a cote
+    /// de « 7 h 20 » se lit comme une erreur de calcul, alors que les quarante
+    /// minutes manquantes sont un reveil au milieu de la nuit.
+    private func schedule(_ night: RecordedNight) -> String {
+        let base = "\(Clock.hhmm(night.asleepAt)) → \(Clock.hhmm(night.wokeAt))"
+        let awake = night.night.span - night.night.duration
+        guard awake >= 5 * 60 else { return base }
+        return base + " · \(Int((awake / 60).rounded())) min éveillé"
     }
 
     private func duration(_ night: RecordedNight) -> String {

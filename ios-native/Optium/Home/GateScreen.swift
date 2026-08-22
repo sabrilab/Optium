@@ -14,6 +14,7 @@ struct GateScreen: View {
     let onHeld: () -> Void
 
     @Environment(AppSettings.self) private var settings
+    @Environment(ActionLog.self) private var actions
     @Environment(ClarityStore.self) private var clarityStore
     @Environment(\.scenePhase) private var scenePhase
 
@@ -119,6 +120,7 @@ struct GateScreen: View {
                     if thread.closeThroughGate(acceptance: acceptance, at: Date()) {
                         // Plus appuye qu'une fermeture directe : il a fallu
                         // passer par quelque part, et la main doit le savoir.
+                        actions.record("Fil fermé")
                         Feedback.play(.threadClosedThroughGate)
                         Chime.play(.closed)
                         Task { await LiveActivityController.end() }
@@ -135,6 +137,7 @@ struct GateScreen: View {
 
                 Button {
                     thread.hold(until: nextWindow, at: Date())
+                    actions.record("Fil retenu")
                     Feedback.play(.held)
                     Task { await LiveActivityController.end() }
                     onHeld()

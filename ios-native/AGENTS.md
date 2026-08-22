@@ -315,6 +315,35 @@ Demi-vie de cinq heures, seuil à huit heures.
 `CompositeSleepSource`. Le mouvement ne comble que les nuits absentes du
 mesuré ; il ne le corrige jamais.
 
+### Reconstituer une nuit depuis Santé
+
+Quatre défauts corrigés ensemble, parce qu'ils se cumulaient et donnaient des
+nuits qui n'étaient pas les bonnes.
+
+1. **L'amplitude n'est pas la durée.** `Night.duration` valait `wokeAt −
+   asleepAt`. Une nuit arrive de Santé en dizaines de fragments ; se réveiller
+   quarante minutes à 3 h laisse un trou que le recollage franchit, et ce trou
+   était compté comme du sommeil. `Night` porte désormais `measuredSleep`
+   (le sommeil réel, qui alimente le score) à côté de `span` (du coucher au
+   lever, qui situe la nuit et alimente la régularité).
+2. **Deux sources doublaient la nuit.** Une montre et un iPhone enregistrent la
+   même nuit ; leurs échantillons se recouvrent. `HealthSleepSource.union(of:)`
+   fusionne les intervalles au lieu de les additionner — le résultat ne dépend
+   ni du nombre de sources ni de l'ordre.
+3. **Une sieste devenait une nuit.** Un épisode de l'après-midi remonte de
+   Santé comme les autres. `longestPerDay(_:)` ne garde que le plus long par
+   jour de lever.
+4. **Une nuit mal lue l'était pour toujours.** `ClarityStore.record` appliquait
+   « la première lecture fait foi ». L'intention était juste — une source qui se
+   contredit ne doit pas faire bouger l'historique — mais l'effet était un
+   piège. Une nuit mesurée remplace désormais une nuit déduite, et une nuit
+   mesurée en remplace une autre si elle diffère. **Une nuit déduite ne
+   remplace jamais rien** : le mouvement ne corrige pas la mesure.
+
+Réglages → **« Relire toutes mes nuits »** efface les enregistrements et
+redemande tout à Santé. Rien d'irrécupérable n'est détruit : la source est
+ailleurs.
+
 ### La provenance d'une nuit
 
 `Night.Origin` : `measured` (Santé) ou `inferred` (mouvement du téléphone).
@@ -622,6 +651,37 @@ la spécifie ; l'arbitrage sur le rendu réel l'emporte.
 
 **Les chiffres en matrice de points.** Un document de design prévoit des
 chiffres fins ; ils sont **conservés** comme signature.
+
+---
+
+## 12. L'annulation
+
+`System/ActionLog.swift`, `Design/UndoBar.swift`, et une ligne dans
+`OptiumContainer`.
+
+**Cette ligne est le mécanisme entier** : SwiftData enregistre insertions,
+suppressions et modifications pour l'annulation, mais seulement si le contexte
+porte un `UndoManager`, et il n'en a aucun par défaut.
+
+`ActionLog` ne conserve pas l'action — il conserve **la phrase qui la nomme**.
+Un mécanisme que rien n'annonce n'existe pas pour l'utilisateur, et « Annuler »
+seul oblige à se rappeler ce qu'on vient de faire, ce qui est exactement la
+faculté qui manque au moment où l'on se trompe.
+
+La bande s'efface après six secondes : une commande permanente en bas d'écran
+devient un élément de décor, donc invisible.
+
+**Aucune confirmation avant une suppression.** Un dialogue punit les mille fois
+où l'on ne se trompe pas ; l'annulation après coup ne coûte rien à personne.
+
+Les extensions — widgets, intentions — construisent leur propre `ModelContext`
+et n'héritent donc pas de l'annulation. C'est voulu : une action lancée depuis
+l'écran verrouillé n'a pas d'écran où offrir de la défaire.
+
+Un fil se modifie par appui long → **le même écran que la création**
+(`ThreadComposer(editing:)`). Un formulaire d'édition séparé finirait par
+diverger. La date de création ne bouge jamais : elle sert aux preuves et aux
+nuits traversées.
 
 ---
 

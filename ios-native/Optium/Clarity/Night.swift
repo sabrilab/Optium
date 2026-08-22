@@ -26,7 +26,33 @@ struct Night: Equatable, Hashable {
     let wokeAt: Date
     var origin: Origin = .measured
 
-    var duration: TimeInterval { wokeAt.timeIntervalSince(asleepAt) }
+    /// Le temps **reellement endormi**, reveils intra-nuit deduits.
+    ///
+    /// **L'amplitude n'est pas la duree, et les confondre gonflait toutes les
+    /// nuits.** Une nuit arrive de Sante en dizaines de fragments ; se
+    /// reveiller quarante minutes a 3 h laisse un trou que le recollage
+    /// franchit, et l'ecart coucher-lever comptait ce trou comme du sommeil.
+    ///
+    /// Vaut l'amplitude par defaut : les nuits deduites du mouvement n'ont
+    /// qu'un bloc, et les tests qui construisent une nuit a la main decrivent
+    /// un sommeil continu.
+    private var measuredSleep: TimeInterval?
+
+    /// Ce qui alimente le score de duree : le sommeil, pas le temps passe au
+    /// lit.
+    var duration: TimeInterval { measuredSleep ?? span }
+
+    /// Du coucher au lever, trous compris. C'est elle qui situe la nuit dans
+    /// la journee, donc elle qui alimente la regularite.
+    var span: TimeInterval { wokeAt.timeIntervalSince(asleepAt) }
+
+    init(asleepAt: Date, wokeAt: Date, origin: Origin = .measured,
+         measuredSleep: TimeInterval? = nil) {
+        self.asleepAt = asleepAt
+        self.wokeAt = wokeAt
+        self.origin = origin
+        self.measuredSleep = measuredSleep
+    }
 
     func contains(_ date: Date) -> Bool {
         date >= asleepAt && date < wokeAt

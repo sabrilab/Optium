@@ -10,6 +10,7 @@ struct HomeScreen: View {
     let isVisible: Bool
 
     @Environment(AppSettings.self) private var settings
+    @Environment(ActionLog.self) private var actions
     @Environment(ClarityStore.self) private var clarityStore
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
@@ -32,6 +33,8 @@ struct HomeScreen: View {
     @Query(sort: \RecordedNight.wokeAt) private var recordedNights: [RecordedNight]
 
     @State private var composing = false
+    /// Le fil en cours de modification. Ouvre le meme ecran que la creation.
+    @State private var editingThread: WorkThread?
     @State private var showSettings = false
     @State private var calling = false
     @State private var baseExplanation: String?
@@ -97,6 +100,7 @@ struct HomeScreen: View {
                 }
             }
             .sheet(isPresented: $composing) { ThreadComposer() }
+            .sheet(item: $editingThread) { ThreadComposer(editing: $0) }
             .sheet(isPresented: $showSettings) {
                 NavigationStack { SettingsScreen() }
             }
@@ -371,17 +375,36 @@ struct HomeScreen: View {
     /// qu'une punition.
     private var coffeeRow: some View {
         HStack(spacing: 8) {
-            Text("Café")
-                .font(.footnote)
+            // Le symbole d'Apple plutot que le mot : il est reconnu sans etre
+            // lu, et la ligne s'aligne avec le reste de la legende.
+            Image(systemName: "cup.and.saucer.fill")
+                .font(.system(size: 13))
                 .foregroundStyle(.secondary)
+                .accessibilityLabel("Café")
             Spacer()
             Text(coffeeSentence)
                 .font(.footnote)
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
+            // Le retrait n'apparait que s'il y a quelque chose a retirer :
+            // un bouton grise en permanence est un reproche muet.
+            if todayCoffees > 0 {
+                Button {
+                    removeLastCoffee()
+                } label: {
+                    Image(systemName: "minus")
+                        .font(.system(size: 12, weight: .semibold))
+                        .frame(width: 30, height: 30)
+                }
+                .buttonStyle(.glass)
+                .tint(Ink.control)
+                .accessibilityLabel("Retirer le dernier café")
+            }
+
             Button {
                 Feedback.play(.coffee)
                 context.insert(CoffeeIntake())
+                actions.record("Café noté")
                 Task { await clarityStore.refresh(context: context) }
             } label: {
                 Image(systemName: "plus")
@@ -508,6 +531,22 @@ struct HomeScreen: View {
                         }
                         .buttonStyle(Pressable())
                         .cardEntrance(index + rank)
+                        // **Un appui long, pas un balayage.** Les lignes ne
+                        // sont pas dans une `List` — un balayage n'y existe
+                        // pas — et surtout la suppression ne doit pas etre a
+                        // un geste de distance d'un defilement.
+                        .contextMenu {
+                            Button {
+                                editingThread = thread
+                            } label: {
+                                Label("Modifier", systemImage: "pencil")
+                            }
+                            Button(role: .destructive) {
+                                delete(thread)
+                            } label: {
+                                Label("Supprimer", systemImage: "trash")
+                            }
+                        }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -545,6 +584,30 @@ struct HomeScreen: View {
             .padding(.top, index == 0 ? 0 : 10)
             .padding(.horizontal, 4)
         }
+    }
+
+    /// **Sans confirmation, et c'est le point.** Un dialogue avant chaque
+    /// suppression punit les mille fois ou l'on ne se trompe pas ; la bande
+    /// d'annulation ne coute rien a personne et rattrape la seule fois ou l'on
+    /// se trompe.
+    private func delete(_ thread: WorkThread) {
+        Feedback.play(.held)
+        context.delete(thread)
+        actions.record("Fil supprimé")
+    }
+
+    /// Retire le dernier cafe note aujourd'hui.
+    ///
+    /// L'annulation le couvre deja pendant six secondes ; ce geste existe pour
+    /// la faute qu'on remarque une heure plus tard, quand la bande a disparu.
+    private func removeLastCoffee() {
+        guard let last = coffees
+            .filter({ Calendar.current.isDateInToday($0.takenAt) })
+            .max(by: { $0.takenAt < $1.takenAt }) else { return }
+        Feedback.play(.held)
+        context.delete(last)
+        actions.record("Café retiré")
+        Task { await clarityStore.refresh(context: context) }
     }
 
     private func releaseDueThreads() {

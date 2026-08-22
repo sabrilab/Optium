@@ -4,6 +4,7 @@ import SwiftUI
 struct SettingsScreen: View {
     @Environment(AppSettings.self) private var settings
     @Environment(ClarityStore.self) private var clarityStore
+    @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @Query private var nights: [RecordedNight]
 
@@ -12,6 +13,20 @@ struct SettingsScreen: View {
     private var nightCount: Int { nights.count }
 
     private var memoryCount: Int { ProjectMemory.all.count }
+
+    @Query private var storedNights: [RecordedNight]
+
+    /// Efface les nuits enregistrees et redemande tout a Sante.
+    ///
+    /// Aucune donnee n'est perdue : Sante reste la source, et ce que
+    /// l'accelerometre avait devine sera redevine. Ce qui disparait, ce sont
+    /// les lectures figees par l'ancienne regle du « premier arrive fait foi ».
+    private func rereadNights() {
+        Feedback.play(.held)
+        for night in storedNights { context.delete(night) }
+        try? context.save()
+        Task { await clarityStore.refresh(context: context) }
+    }
 
     private var regularityText: String {
         guard let regularity = clarityStore.reading.regularity else { return "—" }
@@ -25,6 +40,15 @@ struct SettingsScreen: View {
             Section {
                 Toggle("Vibrations", isOn: $settings.hapticsEnabled)
                 Toggle("Sons", isOn: $settings.soundsEnabled)
+
+                // **Le rattrapage.** Les nuits deja enregistrees ne sont
+                // relues que sur la fenetre courante, et celles qui ont ete
+                // mal lues avant une correction du moteur resteraient fausses
+                // indefiniment. Ce bouton les efface pour les relire depuis
+                // Sante — il ne detruit rien d'irrecuperable, la source est
+                // ailleurs.
+                Button("Relire toutes mes nuits") { rereadNights() }
+                    .tint(Ink.marker)
                     .listRowBackground(row)
                 Toggle("Visualisation 3D", isOn: $settings.brainEnabled)
                     .listRowBackground(row)
