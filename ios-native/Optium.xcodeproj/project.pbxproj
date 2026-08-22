@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A100000000000000000000F5 /* OptiumWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A100000000000000000000E3 /* OptiumWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		A100000000000000000000D2 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -22,10 +26,6 @@
 			remoteInfo = OptiumWidgets;
 		};
 /* End PBXContainerItemProxy section */
-
-/* Begin PBXBuildFile section */
-		A100000000000000000000F5 /* OptiumWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A100000000000000000000E3 /* OptiumWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-/* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		A100000000000000000000F2 /* Embed Foundation Extensions */ = {
@@ -180,8 +180,8 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				A100000000000000000000E4 /* OptiumWidgets */,
 				A100000000000000000000E1 /* Shared */,
+				A100000000000000000000E4 /* OptiumWidgets */,
 			);
 			name = OptiumWidgets;
 			packageProductDependencies = (
@@ -393,14 +393,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Optium.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 4L8JW7Q5R7;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4L8JW7Q5R7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				CODE_SIGN_ENTITLEMENTS = Optium.entitlements;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Optium lit vos nuits pour estimer votre clarte. Rien n'en sort de l'appareil.";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Optium ecoute votre question pendant un appel. Votre voix est transcrite sur l'appareil et n'en sort jamais.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Optium ecoute votre question pendant un appel. Votre voix est transcrite sur l'appareil et n'en sort jamais.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "Optium deduit vos nuits du mouvement du telephone, quand aucun sommeil n'est enregistre.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
@@ -431,14 +430,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Optium.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 4L8JW7Q5R7;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4L8JW7Q5R7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				CODE_SIGN_ENTITLEMENTS = Optium.entitlements;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Optium lit vos nuits pour estimer votre clarte. Rien n'en sort de l'appareil.";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Optium ecoute votre question pendant un appel. Votre voix est transcrite sur l'appareil et n'en sort jamais.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Optium ecoute votre question pendant un appel. Votre voix est transcrite sur l'appareil et n'en sort jamais.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "Optium deduit vos nuits du mouvement du telephone, quand aucun sommeil n'est enregistre.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
@@ -469,8 +467,8 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 4L8JW7Q5R7;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4L8JW7Q5R7;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.sabrilab.optium.native.tests;
@@ -490,8 +488,8 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 4L8JW7Q5R7;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4L8JW7Q5R7;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.sabrilab.optium.native.tests;
@@ -515,8 +513,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 4L8JW7Q5R7;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Optium;
 				INFOPLIST_FILE = "OptiumWidgets-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Optium;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -544,8 +542,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 4L8JW7Q5R7;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Optium;
 				INFOPLIST_FILE = "OptiumWidgets-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Optium;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

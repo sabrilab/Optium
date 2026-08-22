@@ -705,6 +705,42 @@ Même règle pour `BrainMark` : le remplissage montait d'un violet vers un jaune
 soit deux couleurs dans un objet de vingt-six points. C'est désormais le même
 ton, assombri en bas.
 
+### Les modules d'analyse
+
+`Clarity/NightInsights.swift` (le calcul, pur et testé) et
+`Home/NightModules.swift` (les vues). Assemblés dans `NightsScreen`, au-dessus
+de la liste.
+
+**L'application refuse d'être un tableau de bord**, et le garde-fou contre
+l'orthosomnie interdit de faire du sommeil une performance à optimiser. Ces
+modules existent quand même, parce qu'un verdict sans données consultables
+n'est pas une mesure. Trois règles les tiennent, à ne pas relâcher :
+
+1. **Aucune projection.** On ne montre que ce qui a eu lieu.
+2. **Aucune note, aucun score global, aucune série à ne pas briser.**
+3. **Chaque module dit ce qu'il ne peut pas dire**, et cette phrase est un
+   champ obligatoire du type `NightModule` — pas une convention.
+
+Cinq modules :
+
+| Module | Ce qu'il montre | Sa limite déclarée |
+|---|---|---|
+| L'empreinte | actogramme, une ligne par nuit | ne dit pas si c'est bien |
+| Tes levers | dispersion autour de la médiane | la médiane n'est pas une cible |
+| Les durées | 28 nuits et la bande 7–9 h | la relation est en U, pas un plancher |
+| Décalage social | milieu de nuit semaine / week-end | samedi-dimanche présumés libres |
+| Le café | deux médianes côte à côte | une différence n'est pas une cause |
+
+**L'axe de l'actogramme part de 18 h, pas de minuit.** Sur un axe de minuit,
+une nuit ordinaire se coupe en deux fragments aux extrémités et l'œil ne voit
+plus une nuit mais deux morceaux. Décalée, elle tient d'un seul tenant et c'est
+la dérive du bloc qu'on lit — c'est-à-dire exactement ce que le SRI mesure,
+rendu visible.
+
+Le module café est le seul qui relie deux choses, et il ne conclut rien : deux
+barres, **jamais une flèche**. Une flèche dirait une cause, or les jours à café
+tardif sont souvent les jours chargés.
+
 ### La bande des nuits
 
 `Home/NightsStrip.swift`, sous le mot de la clarté.

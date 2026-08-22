@@ -21,10 +21,29 @@ struct NightsScreen: View {
     @Query(sort: \RecordedNight.asleepAt, order: .reverse)
     private var nights: [RecordedNight]
 
+    @Query(sort: \CoffeeIntake.takenAt) private var coffees: [CoffeeIntake]
+
+    /// Les modules avant la liste : on veut voir la forme de ses nuits avant
+    /// de les lire une par une. La liste reste dessous, comme piece a
+    /// conviction.
+    private var chronological: [Night] {
+        nights.map(\.night).sorted { $0.asleepAt < $1.asleepAt }
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 header
+
+                if chronological.count >= 3 { modules }
+
+                if !nights.isEmpty {
+                    Text("CHAQUE NUIT")
+                        .font(.caption2.weight(.semibold))
+                        .tracking(1.6)
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 8)
+                }
 
                 ForEach(Array(nights.prefix(60).enumerated()), id: \.element.id) { index, night in
                     row(night)
@@ -83,6 +102,127 @@ struct NightsScreen: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
         .bentoSurface(Ink.indigo, corner: 28, intensity: 0.4)
+    }
+
+    // ── Les modules ──
+    //
+    // **Trois nuits au minimum, et chaque module a son propre seuil.** Un
+    // dessin construit sur deux points donne une impression de savoir a partir
+    // de rien, ce qui est pire que de ne rien montrer.
+
+    @ViewBuilder
+    private var modules: some View {
+        empreinte
+        levers
+        durees
+        decalage
+        cafe
+    }
+
+    private var empreinte: some View {
+        NightModule(
+            title: "L’empreinte",
+            fact: empreinteFact,
+            limit: "Chaque ligne est une nuit, la plus récente en bas. Un bloc qui reste aligné, c’est de la régularité ; un bloc qui glisse, c’est ce que l’indice mesure. Rien ici ne dit si c’est bien.",
+            hue: Ink.indigo
+        ) {
+            SleepRaster(rows: NightInsights.raster(nights: chronological))
+        }
+    }
+
+    private var empreinteFact: String {
+        let count = min(chronological.count, 28)
+        return "Tes \(count) dernières nuits, posées sur l’heure du jour."
+    }
+
+    private var levers: some View {
+        NightModule(
+            title: "Tes levers",
+            fact: leversFact,
+            limit: "Le trait est ta médiane, pas une cible. Rien ne dit qu’il faille s’y tenir — c’est seulement ce que tu fais le plus souvent.",
+            hue: Ink.violet
+        ) {
+            WakeScatter(points: NightInsights.wakePoints(nights: chronological))
+        }
+    }
+
+    private var leversFact: String {
+        let points = NightInsights.wakePoints(nights: chronological).map(\.hour)
+        guard let low = points.min(), let high = points.max() else { return "" }
+        let spread = high - low
+        return spread < 1
+            ? "Tes levers tiennent dans moins d’une heure."
+            : String(format: "Tes levers s’étalent sur %.0f h %02.0f.", spread.rounded(.down), (spread - spread.rounded(.down)) * 60)
+    }
+
+    @ViewBuilder
+    private var durees: some View {
+        if let summary = NightInsights.durations(nights: chronological) {
+            NightModule(
+                title: "Les durées",
+                fact: dureesFact(summary),
+                limit: "La bande claire va de 7 à 9 h. Ce n’est pas un plancher : la relation entre durée et santé est en U, et douze heures ne valent pas mieux que huit.",
+                hue: Ink.teal
+            ) {
+                DurationBars(nights: nights.sorted { $0.asleepAt < $1.asleepAt }.suffix(28))
+            }
+        }
+    }
+
+    private func dureesFact(_ summary: NightInsights.DurationSummary) -> String {
+        let share = Int((summary.inTargetShare * 100).rounded())
+        return "Médiane \(hours(summary.median)) — de \(hours(summary.shortest)) à \(hours(summary.longest)). \(share) % de tes nuits sont dans la bande."
+    }
+
+    @ViewBuilder
+    private var decalage: some View {
+        if let lag = NightInsights.socialJetLag(nights: chronological) {
+            NightModule(
+                title: "Décalage social",
+                fact: "Ton milieu de nuit se déplace de \(hours(lag)) entre semaine et week-end.",
+                limit: "L’application ne sait pas quels jours tu travailles : elle prend samedi et dimanche pour tes jours libres. Si tu travailles le week-end, ce chiffre ne veut rien dire.",
+                hue: Ink.amber
+            ) {
+                SocialLagDial(hours: lag / 3600)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var cafe: some View {
+        if let comparison = NightInsights.coffeeEffect(
+            nights: chronological, coffees: coffees.map(\.takenAt)
+        ) {
+            NightModule(
+                title: "Le café, et la nuit d’après",
+                fact: cafeFact(comparison),
+                limit: "Deux médianes côte à côte, pas une cause. Les jours à café tardif sont souvent les jours chargés — c’est peut-être la charge qui raccourcit la nuit.",
+                hue: Ink.coral
+            ) {
+                PairedBars(
+                    leftLabel: "après un café tardif\n(\(comparison.lateNights) nuits)",
+                    leftValue: comparison.afterLateCoffee,
+                    rightLabel: "sans\n(\(comparison.otherNights) nuits)",
+                    rightValue: comparison.afterNone
+                )
+            }
+        }
+    }
+
+    private func cafeFact(_ comparison: NightInsights.CoffeeComparison) -> String {
+        let gap = abs(comparison.gap)
+        if gap < 15 * 60 { return "Tes nuits durent à peu près pareil dans les deux cas." }
+        return comparison.gap > 0
+            ? "Tes nuits sont plus courtes de \(hours(gap)) après un café tardif."
+            : "Tes nuits sont plus longues de \(hours(gap)) après un café tardif."
+    }
+
+    private func hours(_ interval: TimeInterval) -> String {
+        let minutes = Int((interval / 60).rounded())
+        if minutes < 60 { return "\(minutes) min" }
+        return minutes % 60 == 0
+            ? "\(minutes / 60) h"
+            : String(format: "%d h %02d", minutes / 60, minutes % 60)
     }
 
     // ── Une nuit ──

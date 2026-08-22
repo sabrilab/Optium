@@ -31,18 +31,33 @@ enum DemoData {
         // rendre parfait.
         for offset in 1...40 {
             guard let day = calendar.date(byAdding: .day, value: -offset, to: now) else { continue }
-            let drift = Double((offset * 37) % 50 - 25) / 60.0
-            let asleep = calendar.startOfDay(for: day).addingTimeInterval((23.25 + drift) * 3600)
-            let hours = 7.5 + Double((offset * 17) % 40 - 20) / 60.0
+            // Une derive de coucher, un week-end plus tardif, et des durees
+            // variables : les modules n'ont d'interet que sur des nuits qui ne
+            // se ressemblent pas.
+            let weekday = calendar.component(.weekday, from: day)
+            let isFree = weekday == 1 || weekday == 7
+            let drift = Double((offset * 37) % 90 - 45) / 60.0
+            let bed = (isFree ? 0.9 : 23.15) + drift
+            let asleep = calendar.startOfDay(for: day)
+                .addingTimeInterval((bed >= 24 ? bed - 24 : bed) * 3600)
+            let hours = (isFree ? 8.4 : 7.2) + Double((offset * 23) % 70 - 35) / 60.0
+            // Une nuit sur cinq vient du mouvement : la provenance doit se voir.
             context.insert(RecordedNight(
-                Night(asleepAt: asleep, wokeAt: asleep.addingTimeInterval(hours * 3600)),
-                measured: true
+                Night(asleepAt: asleep, wokeAt: asleep.addingTimeInterval(hours * 3600),
+                      origin: offset % 5 == 0 ? .inferred : .measured),
+                measured: offset % 5 != 0
             ))
         }
 
-        for offset in [0, 1, 2, 4, 5] {
+        // Des cafes du matin, et des tardifs un jour sur trois : sans les deux
+        // groupes, le module de comparaison ne se declenche pas.
+        for offset in 0..<24 {
             guard let day = calendar.date(byAdding: .day, value: -offset, to: now) else { continue }
-            context.insert(CoffeeIntake(takenAt: calendar.startOfDay(for: day).addingTimeInterval(8.5 * 3600)))
+            let start = calendar.startOfDay(for: day)
+            context.insert(CoffeeIntake(takenAt: start.addingTimeInterval(8.5 * 3600)))
+            if offset % 3 == 0 {
+                context.insert(CoffeeIntake(takenAt: start.addingTimeInterval(17.5 * 3600)))
+            }
         }
 
         // Les deux sens de l'ecart, et des accords : la carte de calibration
