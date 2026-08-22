@@ -11,7 +11,17 @@ struct ClarityWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "ClarityWidget", provider: SnapshotProvider()) { entry in
             ClarityEntryView(snapshot: entry.snapshot)
-                .containerBackground(for: .widget) { Ink.canvas }
+                // **Le meme lavis que les cartes de l'application.** Le noir
+                // plat qui etait la ne ressemblait a rien de ce qu'on voit en
+                // ouvrant l'app, alors que c'est le meme objet pose ailleurs.
+                //
+                // Les familles `accessory*` ignorent ce fond : le systeme les
+                // rend en masque teinte sur l'ecran verrouille, et un degrade y
+                // serait aplati en tache.
+                .containerBackground(for: .widget) {
+                    BentoWash(tint: Ink.indigo.tint)
+                        .background(Ink.canvas)
+                }
         }
         .configurationDisplayName("Clarté")
         .description("Le cerveau, et un mot. Jamais un chiffre.")

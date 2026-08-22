@@ -842,6 +842,31 @@ même organe finissent par diverger.
 Le niveau se mesure sur les proportions du glyphe, jamais sur le cadre — dans un
 carré, `murky` à 0,16 tomberait sous le dessin et n'allumerait rien.
 
+### Le lavis va jusqu'aux widgets
+
+`Shared/BentoWash.swift`. Il vivait dans `BentoSurface`, côté application
+seulement, et les widgets se contentaient d'un noir plat : ils ne ressemblaient
+à rien de ce qu'on voit en ouvrant l'app, alors qu'ils montrent le même objet
+posé ailleurs.
+
+**Le verre ne peut pas les suivre.** `glassEffect` demande un rendu en temps
+réel ; un widget est une image calculée à l'avance par le système. Le lavis, lui,
+se calcule une fois et se transporte partout — et c'est de toute façon lui qui
+porte l'identité, le verre n'étant qu'une matière posée dessus.
+
+Deux teintes différentes pour les deux widgets : côte à côte sur l'écran
+d'accueil, deux lavis identiques se liraient comme un seul widget coupé en deux.
+
+**Le contenu porte l'accent, jamais la teinte du lavis.** Le cerveau du widget
+était en `focusGlow` sur un lavis indigo : il s'y effaçait. Il est passé à
+`marker`, comme dans l'application.
+
+Les familles `accessory*` ignorent ce fond — le système les rend en masque
+teinté, où un dégradé serait aplati en tache.
+
+`WidgetRenderTests` rend les cinq familles hors de l'écran d'accueil : un widget
+qui ne rend rien affiche un cadre vide sans qu'aucune erreur ne remonte.
+
 ### Une seule couleur par carte
 
 Une teinte, et rien d'autre : elle se diffuse, s'éteint vers le noir, se

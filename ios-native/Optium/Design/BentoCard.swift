@@ -101,62 +101,11 @@ private struct BentoSurface: ViewModifier {
     /// l'oeil : la carte se lit alors comme un remplissage. Un coeur sombre
     /// centre n'a pas de direction — la lumiere semble venir de derriere la
     /// surface.
+    ///
+    /// **Le dessin lui-meme vit dans `Shared/BentoWash.swift`**, pour que les
+    /// widgets et l'activite en direct portent exactement le meme, sans le
+    /// verre qu'ils ne peuvent pas rendre.
     private func wash(in size: CGSize) -> some View {
-        let radius = max(size.width, size.height)
-
-        return ZStack {
-            // Le remplissage monte en meme temps que le coeur s'assombrit :
-            // c'est l'ecart entre les deux qui fait la lecture, pas leurs
-            // valeurs absolues.
-            tint.opacity(0.94 * intensity)
-
-            // Le coeur sombre est decale sous le centre. Centre, il partage la
-            // carte en deux moities egales et la lumiere n'a plus d'origine ;
-            // pousse vers le bas, il laisse le bord haut s'allumer, et c'est de
-            // la que la lumiere parait venir.
-            RadialGradient(
-                stops: [
-                    .init(color: .black, location: 0),
-                    .init(color: .black.opacity(0.92), location: 0.24),
-                    .init(color: .black.opacity(0.58), location: 0.46),
-                    .init(color: .black.opacity(0.20), location: 0.70),
-                    .init(color: .clear, location: 1.0),
-                ],
-                center: UnitPoint(x: 0.50, y: 0.62),
-                startRadius: 0,
-                // Resserre : le coeur mangeait la moitie de la carte, et la
-                // teinte ne survivait que sur les bords. C'est ce qui rendait
-                // les cartes ternes malgre un remplissage fort.
-                endRadius: radius * 0.54
-            )
-
-            // Arete superieure rallumee, dans la seconde teinte.
-            LinearGradient(
-                stops: [
-                    .init(color: accent.opacity(0.60 * intensity), location: 0),
-                    .init(color: accent.opacity(0.22 * intensity), location: 0.22),
-                    .init(color: .clear, location: 0.52),
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .blendMode(.plusLighter)
-
-            // Un second foyer, decale : sans lui les deux moities de la carte
-            // sont symetriques et l'ensemble parait fabrique.
-            RadialGradient(
-                colors: [accent.opacity(0.40 * intensity), .clear],
-                center: UnitPoint(x: 0.82, y: 0.14),
-                startRadius: 0,
-                endRadius: radius * 0.50
-            )
-            .blendMode(.plusLighter)
-
-        }
-        // Le flou acheve la diffusion et efface les raccords entre les foyers.
-        .blur(radius: 22)
-        // Agrandir avant le clip : le flou attaquerait sinon les bords et
-        // laisserait un lisere sombre le long de l'arrondi.
-        .scaleEffect(1.3)
+        BentoWash(tint: tint, accent: accent, intensity: intensity)
     }
 }

@@ -12,7 +12,10 @@ import WidgetKit
 /// rendues en masque teinte, ou une image en couleurs serait aplatie en tache.
 struct WidgetBrain: View {
     let snapshot: WidgetSnapshot
-    var tint: Color = Ink.focusGlow
+    /// **La couleur d'accent, pas la teinte d'ambiance.** Le cerveau etait en
+    /// bleu sur un lavis bleu : il s'y effacait. La regle est la meme que dans
+    /// l'application — le lavis porte la teinte, le contenu porte l'accent.
+    var tint: Color = Ink.marker
     var allowsCapture = true
     var showsBase = true
 
@@ -118,7 +121,7 @@ struct ThreadWidgetView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
-                BrainMark(fill: snapshot.fill, tint: Ink.focusGlow)
+                BrainMark(fill: snapshot.fill, tint: Ink.marker)
                     .frame(width: 26, height: 26)
                 Text((snapshot.tierWord ?? "").uppercased())
                     .font(.system(size: 10, weight: .semibold))

@@ -17,6 +17,9 @@ struct OptiumLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: OptiumActivity.self) { context in
             lockScreen(context)
+                // Le lavis passe par le fond de la vue : `activityBackgroundTint`
+                // ne prend qu'une couleur unie, pas un degrade.
+                .background { BentoWash(tint: Ink.indigo.tint, intensity: 0.85) }
                 .activityBackgroundTint(Ink.canvas)
                 .activitySystemActionForegroundColor(.white)
         } dynamicIsland: { context in
