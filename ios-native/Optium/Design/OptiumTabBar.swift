@@ -32,22 +32,29 @@ struct OptiumTabBar: View {
     @Binding var selection: RootTab
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 6) {
             ForEach(RootTab.allCases, id: \.self) { tab in
                 item(tab)
             }
         }
-        .padding(5)
-        .glassEffect(.regular, in: .capsule)
+        .padding(6)
+        .glassEffect(.regular, in: .rect(cornerRadius: 26))
         // Alignee a gauche, avec la meme marge que les cartes : la barre
         // appartient a la colonne de contenu, elle ne flotte pas au milieu.
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16)
-        // Au-dessus de l'indicateur d'accueil : colle au bord, la barre est
+        // Au-dessus de l'indicateur d'accueil : collee au bord, la barre est
         // difficile a viser et entre en conflit avec le geste de fermeture.
         .padding(.bottom, 6)
     }
 
+    /// **L'icone au-dessus du libelle, comme la barre du systeme.**
+    ///
+    /// Une premiere version les mettait cote a cote pour tenir en une capsule
+    /// etroite. C'etait deux fois faux : l'element devenait petit — donc moins
+    /// facile a viser — et il ne ressemblait plus a ce qu'est une barre
+    /// d'onglets sur iOS. L'alignement a gauche etait la seule demande ; la
+    /// forme de l'element, elle, n'avait aucune raison de changer.
     private func item(_ tab: RootTab) -> some View {
         let isCurrent = tab == selection
 
@@ -56,24 +63,27 @@ struct OptiumTabBar: View {
             Feedback.play(.answered)
             selection = tab
         } label: {
-            HStack(spacing: 7) {
+            VStack(spacing: 5) {
                 Image(systemName: tab.symbol)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.system(size: 22, weight: .medium))
+                    .frame(height: 24)
                 Text(tab.title)
-                    .font(.system(size: 14, weight: isCurrent ? .semibold : .regular))
+                    .font(.system(size: 11, weight: isCurrent ? .semibold : .regular))
                     .fixedSize()
             }
             // L'inactif reste franchement lisible. A 0,45 il fallait le
             // chercher ; le contraste porte la selection, pas la disparition.
             .foregroundStyle(isCurrent ? Ink.control : Color.white.opacity(0.72))
-            .padding(.horizontal, 14)
-            .frame(minWidth: 44, minHeight: 44)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 9)
+            .frame(minWidth: 76)
             .background {
                 if isCurrent {
-                    Capsule().fill(Color.white.opacity(0.14))
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color.white.opacity(0.14))
                 }
             }
-            .contentShape(.capsule)
+            .contentShape(.rect(cornerRadius: 20))
         }
         .buttonStyle(.plain)
         .animation(Motion.state, value: isCurrent)
