@@ -14,6 +14,8 @@ struct Uniforms {
     float3 colorA;
     float3 colorB;
     float fillLevel;
+    float baseLevel;
+    float agitation;
     float time;
     float wobble;
 };
@@ -59,12 +61,14 @@ fragment float4 fluid_fragment(FluidOut in [[stage_in]],
                                constant Uniforms &u [[buffer(1)]]) {
     float3 p = in.localPosition;
 
-    // Surface du liquide : trois ondes de periodes differentes, un bruit
-    // organique, et une secousse quand l'utilisateur fait tourner le modele.
-    float wave = sin(p.x * 4.0 + u.time * 1.2) * 0.025
-               + sin(p.z * 3.5 + u.time * 0.9) * 0.02
-               + sin((p.x + p.z) * 2.5 + u.time * 0.6) * 0.015
-               + noise(p.xz * 2.0 + u.time * 0.5) * 0.03
+    // Surface du liquide : deux sinusoides de periodes differentes — 4,1 s et
+    // 6,7 s — dont l'amplitude suit l'agitation, c'est-a-dire le nombre de
+    // fils ouverts. Elle ne s'arrete jamais, meme au repos : une surface
+    // immobile lit comme une image, pas comme un fluide.
+    float breath = 0.35 + u.agitation * 0.65;
+    float wave = sin(p.x * 4.0 + u.time * (6.2831 / 4.1)) * 0.026 * breath
+               + sin(p.z * 3.5 + u.time * (6.2831 / 6.7)) * 0.021 * breath
+               + noise(p.xz * 2.0 + u.time * 0.5) * 0.024 * breath
                + u.wobble * sin(p.x * 5.0 + u.time * 4.0) * 0.04;
 
     float fillEdge = u.fillLevel + wave;
@@ -83,7 +87,20 @@ fragment float4 fluid_fragment(FluidOut in [[stage_in]],
     float rim = pow(1.0 - abs(dot(in.normal, float3(0.0, 0.0, 1.0))), 2.5);
     color += rim * u.colorA * 0.3;
 
-    return float4(color, fill * (0.78 + rim * 0.18));
+    float alpha = fill * (0.78 + rim * 0.18);
+
+    // La ligne de base : le plafond permis par la nuit. Le fluide ne monte
+    // jamais au-dessus, et la voir au-dessus de lui est ce qui rend le
+    // plafond intelligible plutot qu'arbitraire.
+    //
+    // Pointillee le long de la silhouette : un trait plein se lirait comme une
+    // limite du modele, un pointille comme une indication.
+    float dash = step(0.45, fract((p.x + p.z) * 7.0));
+    float onBase = smoothstep(0.010, 0.0, abs(in.normalizedY - u.baseLevel)) * dash;
+    color += onBase * float3(0.84, 0.87, 1.0) * 0.9;
+    alpha = max(alpha, onBase * 0.55);
+
+    return float4(color, alpha);
 }
 
 struct ShellOut {

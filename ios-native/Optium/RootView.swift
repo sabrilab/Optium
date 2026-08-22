@@ -1,30 +1,25 @@
 import SwiftUI
 
 enum RootTab: Hashable {
-    case session, projects, stats
+    case home, journal
 }
 
 struct RootView: View {
-    /// Suivi de l'onglet actif : la scene 3D s'en sert pour suspendre son rendu
-    /// des qu'elle n'est plus visible.
-    @State private var selection: RootTab = .session
+    @State private var selection: RootTab = .home
 
     var body: some View {
         TabView(selection: $selection) {
-            Tab("Session", systemImage: "brain", value: RootTab.session) {
-                SessionScreen(selectedTab: selection)
+            Tab("Aujourd’hui", systemImage: "brain", value: RootTab.home) {
+                HomeScreen(isVisible: selection == .home)
             }
-            Tab("Projets", systemImage: "folder", value: RootTab.projects) {
-                ProjectsScreen()
-            }
-            Tab("Statistiques", systemImage: "chart.bar", value: RootTab.stats) {
-                StatsScreen()
+            Tab("Journal", systemImage: "text.line.first.and.arrowtriangle.forward", value: RootTab.journal) {
+                JournalScreen()
             }
         }
-        // L'application ne suit plus l'apparence d'iOS : le noir est un choix
-        // de direction artistique, et la scene comme les auras n'existent que
-        // sur lui. Les couleurs de texte restent semantiques et s'y adaptent.
+        // L'application ne suit pas l'apparence d'iOS : le noir est un choix de
+        // direction artistique, et la scene comme les lavis n'existent que sur
+        // lui.
         .preferredColorScheme(.dark)
-        .tint(Ink.focusGlow)
+        .tint(Ink.control)
     }
 }

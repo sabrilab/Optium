@@ -1,0 +1,162 @@
+import SwiftData
+import SwiftUI
+
+/// Le parcours d'une reprise : on travaille, puis on ferme — directement, ou
+/// par la porte.
+struct ResumptionFlow: View {
+    let thread: WorkThread
+
+    @Environment(AppSettings.self) private var settings
+    @Environment(\.dismiss) private var dismiss
+
+    private enum Step { case working, gate, held, closed }
+    @State private var step: Step = .working
+
+    var body: some View {
+        ZStack {
+            InkBackground()
+
+            switch step {
+            case .working:
+                ResumptionScreen(thread: thread, onPause: pause, onClose: attemptClose)
+            case .gate:
+                GateScreen(thread: thread, onClosed: { step = .closed }, onHeld: { step = .held })
+            case .held:
+                HeldScreen(thread: thread, onDone: { dismiss() })
+            case .closed:
+                ClosedScreen(thread: thread, onDone: { dismiss() })
+            }
+        }
+        .animation(.easeInOut(duration: 0.35), value: step)
+        .onAppear(perform: start)
+    }
+
+    private func start() {
+        let now = Date()
+        thread.startResumption(
+            clarity: settings.claritySource.current().level,
+            inWindow: settings.claritySource.window(on: now).contains(now),
+            at: now
+        )
+    }
+
+    private func pause() {
+        thread.pause(at: Date())
+        dismiss()
+    }
+
+    /// **Le seul refus de l'application.**
+    ///
+    /// Une décision prise à clarté basse ne se ferme pas d'une tape. Tout le
+    /// reste se ferme directement — et c'est cette rareté qui rend le refus
+    /// acceptable plutôt qu'agaçant.
+    private func attemptClose() {
+        switch thread.closingOutcome(clarity: settings.claritySource.current().level) {
+        case .gate:
+            step = .gate
+        case .direct:
+            thread.close(at: Date())
+            step = .closed
+        }
+    }
+}
+
+// ── Reprise en cours ──
+
+/// « L'app est muette. Elle renseigne, elle ne demande rien. »
+private struct ResumptionScreen: View {
+    let thread: WorkThread
+    let onPause: () -> Void
+    let onClose: () -> Void
+
+    @Environment(AppSettings.self) private var settings
+    @Environment(\.scenePhase) private var scenePhase
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button(action: onPause) {
+                    Label("Mettre en pause", systemImage: "pause.fill")
+                        .labelStyle(.iconOnly)
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.glass)
+                .tint(Ink.control)
+                Spacer()
+                Text(openedSince)
+                    .font(.caption2.weight(.semibold))
+                    .tracking(1.4)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 14)
+
+            if settings.brainEnabled {
+                BrainView(
+                    fill: Double(settings.claritySource.current().value) / 100,
+                    base: min(1, Double(settings.claritySource.current().value) / 100 + 0.12),
+                    agitation: 0.35,
+                    isDay: true,
+                    isVisible: scenePhase == .active
+                )
+                .frame(maxHeight: .infinity)
+            } else {
+                Spacer()
+            }
+
+            VStack(alignment: .leading, spacing: 22) {
+                Text(thread.phrase)
+                    .font(.system(size: 21, weight: .light))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Le temps s'affiche mais rien ne le décompte : ce n'est pas
+                // un minuteur, c'est une observation.
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    DotMatrixText(
+                        text: elapsed(at: context.date),
+                        dot: 6,
+                        gap: 3.5,
+                        glow: Ink.focusGlow
+                    )
+                }
+
+                Text(rank)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Button(action: onClose) {
+                    Text("Fermer le fil")
+                        .font(.subheadline.weight(.medium))
+                        .frame(maxWidth: .infinity, minHeight: 56)
+                }
+                .buttonStyle(.glass)
+                .tint(Ink.control)
+            }
+            .padding(20)
+            .bentoSurface(Ink.indigo, corner: 36)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
+        }
+    }
+
+    private var openedSince: String {
+        let days = Calendar.current.dateComponents([.day], from: thread.createdAt, to: Date()).day ?? 0
+        if days <= 0 { return "FIL OUVERT AUJOURD’HUI" }
+        if days == 1 { return "FIL OUVERT DEPUIS HIER" }
+        return "FIL OUVERT DEPUIS \(days) JOURS"
+    }
+
+    private var rank: String {
+        let count = thread.resumptions.count
+        let total = thread.summary().totalDuration
+        let hours = Int(total) / 3600
+        let minutes = (Int(total) % 3600) / 60
+        let spent = hours > 0 ? "\(hours) h \(minutes) min en tout" : "\(minutes) min en tout"
+        return "\(count)\(count == 1 ? "re" : "e") reprise · \(spent)"
+    }
+
+    private func elapsed(at date: Date) -> String {
+        let seconds = Int(date.timeIntervalSince(thread.currentResumption?.startedAt ?? date))
+        return String(format: "%02d:%02d", max(0, seconds) / 60, max(0, seconds) % 60)
+    }
+}

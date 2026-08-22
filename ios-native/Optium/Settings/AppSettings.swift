@@ -3,51 +3,40 @@ import Observation
 
 /// Reglages de l'application.
 ///
-/// `@AppStorage` n'est pas utilisable en dehors d'une vue SwiftUI : c'est un
-/// `DynamicProperty`. On ecrit donc dans `UserDefaults` depuis un `didSet`, ce
-/// qui a l'avantage de rendre la source injectable — les tests utilisent un
-/// domaine jetable plutot que les reglages reels de l'appareil.
+/// Ils tiennent en une poignee de scalaires : un `@Model` SwiftData serait
+/// demesure. `@AppStorage` n'est pas utilisable hors d'une vue SwiftUI, on
+/// ecrit donc dans `UserDefaults` depuis un `didSet` — ce qui a l'avantage de
+/// rendre la source injectable en test.
 @Observable
 final class AppSettings {
     @ObservationIgnored private let defaults: UserDefaults
 
-    var focusMinutes: Int { didSet { defaults.set(focusMinutes, forKey: Key.focusMinutes) } }
-    var restMinutes: Int { didSet { defaults.set(restMinutes, forKey: Key.restMinutes) } }
-    var longRestMinutes: Int { didSet { defaults.set(longRestMinutes, forKey: Key.longRestMinutes) } }
-    var soundEnabled: Bool { didSet { defaults.set(soundEnabled, forKey: Key.soundEnabled) } }
-    var hapticsEnabled: Bool { didSet { defaults.set(hapticsEnabled, forKey: Key.hapticsEnabled) } }
-    var locationEnabled: Bool { didSet { defaults.set(locationEnabled, forKey: Key.locationEnabled) } }
+    var hapticsEnabled: Bool { didSet { defaults.set(hapticsEnabled, forKey: Key.haptics) } }
     /// Coupe la 3D : economise la batterie et debloque les appareils lents.
-    var brainEnabled: Bool { didSet { defaults.set(brainEnabled, forKey: Key.brainEnabled) } }
-    /// Nombre de sessions de concentration menees, pour savoir quand offrir une
-    /// pause longue. Persiste, sinon fermer l'application reinitialiserait le cycle.
-    var sessionCount: Int { didSet { defaults.set(sessionCount, forKey: Key.sessionCount) } }
+    var brainEnabled: Bool { didSet { defaults.set(brainEnabled, forKey: Key.brain) } }
 
-    /// Une pause longue toutes les quatre sessions. Non reglable, comme dans la
-    /// version Expo, ou `longBreakInterval` n'a pas d'accesseur.
-    let longRestInterval = 4
+    /// Clarte forcee, le temps que le moteur reel existe.
+    ///
+    /// Ce reglage est temporaire et assume : la porte doit pouvoir etre
+    /// eprouvee aujourd'hui, alors que sa mesure demande vingt-huit nuits de
+    /// donnees. Il disparaitra avec l'arrivee de HealthKit et CoreMotion.
+    var simulatedClarity: ClarityLevel {
+        didSet { defaults.set(simulatedClarity.rawValue, forKey: Key.clarity) }
+    }
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        // `object(forKey:)` distingue « absent » de « zero », ce que `integer(forKey:)` ne fait pas.
-        focusMinutes = defaults.object(forKey: Key.focusMinutes) as? Int ?? 25
-        restMinutes = defaults.object(forKey: Key.restMinutes) as? Int ?? 5
-        longRestMinutes = defaults.object(forKey: Key.longRestMinutes) as? Int ?? 15
-        soundEnabled = defaults.object(forKey: Key.soundEnabled) as? Bool ?? true
-        hapticsEnabled = defaults.object(forKey: Key.hapticsEnabled) as? Bool ?? true
-        locationEnabled = defaults.object(forKey: Key.locationEnabled) as? Bool ?? false
-        brainEnabled = defaults.object(forKey: Key.brainEnabled) as? Bool ?? true
-        sessionCount = defaults.object(forKey: Key.sessionCount) as? Int ?? 0
+        hapticsEnabled = defaults.object(forKey: Key.haptics) as? Bool ?? true
+        brainEnabled = defaults.object(forKey: Key.brain) as? Bool ?? true
+        simulatedClarity = (defaults.object(forKey: Key.clarity) as? String)
+            .flatMap(ClarityLevel.init(rawValue:)) ?? .high
     }
 
+    var claritySource: ClaritySource { SimulatedClaritySource(level: simulatedClarity) }
+
     private enum Key {
-        static let focusMinutes = "focusMinutes"
-        static let restMinutes = "restMinutes"
-        static let longRestMinutes = "longRestMinutes"
-        static let soundEnabled = "soundEnabled"
-        static let hapticsEnabled = "hapticsEnabled"
-        static let locationEnabled = "locationEnabled"
-        static let brainEnabled = "brainEnabled"
-        static let sessionCount = "sessionCount"
+        static let haptics = "hapticsEnabled"
+        static let brain = "brainEnabled"
+        static let clarity = "simulatedClarity"
     }
 }

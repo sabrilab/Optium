@@ -20,6 +20,8 @@ final class BrainRenderer: NSObject, MTKViewDelegate {
         var colorA: SIMD3<Float>
         var colorB: SIMD3<Float>
         var fillLevel: Float
+        var baseLevel: Float
+        var agitation: Float
         var time: Float
         var wobble: Float
     }
@@ -28,10 +30,11 @@ final class BrainRenderer: NSObject, MTKViewDelegate {
     /// bord se lit moins bien qu'un niveau qui laisse voir le verre.
     private static let maxFill: Float = 0.8
 
-    private static let focusColorA = SIMD3<Float>(0.290, 0.565, 0.851)  // #4A90D9
-    private static let focusColorB = SIMD3<Float>(0.424, 0.361, 0.906)  // #6C5CE7
-    private static let restColorA  = SIMD3<Float>(0.180, 0.800, 0.443)  // #2ECC71
-    private static let restColorB  = SIMD3<Float>(0.153, 0.682, 0.376)  // #27AE60
+    // Deux familles seulement : le jour et la nuit. Jamais trois.
+    private static let dayColorA   = SIMD3<Float>(0.322, 0.325, 0.941)
+    private static let dayColorB   = SIMD3<Float>(0.510, 0.455, 1.000)
+    private static let nightColorA = SIMD3<Float>(0.149, 0.255, 0.561)
+    private static let nightColorB = SIMD3<Float>(0.306, 0.353, 0.745)
 
     private let queue: MTLCommandQueue
     private let fluidPipeline: MTLRenderPipelineState
@@ -44,9 +47,10 @@ final class BrainRenderer: NSObject, MTKViewDelegate {
     private let boundsMax: SIMD3<Float>
 
     /// Etat anime, entretenu image par image.
-    private var fillLevel: Float = BrainRenderer.maxFill
-    private var colorA = BrainRenderer.focusColorA
-    private var colorB = BrainRenderer.focusColorB
+    private var fillLevel: Float = 0
+    private var baseLevel: Float = BrainRenderer.maxFill
+    private var colorA = BrainRenderer.dayColorA
+    private var colorB = BrainRenderer.dayColorB
     private var rotation: Float = 0
     private var elapsed: Float = 0
     private var wobble: Float = 0
@@ -54,10 +58,14 @@ final class BrainRenderer: NSObject, MTKViewDelegate {
 
     /// Vitesse imprimee par le geste de rotation, decroissante.
     var dragVelocity: Float = 0
-    /// Progression restante de la session, 0…1, poussee par la vue.
-    var progress: Float = 1
-    /// Vrai en concentration, faux en repos.
-    var isFocus = true
+    /// Niveau vise du fluide, 0…1 : la clarte.
+    var fill: Float = 0.8
+    /// Plafond permis par la nuit, 0…1. Le fluide ne monte jamais au-dessus.
+    var base: Float = 1
+    /// Nombre de fils ouverts, normalise 0…1. Deforme la surface.
+    var agitation: Float = 0
+    /// Vrai le jour, faux la nuit. Deux familles de teintes, jamais trois.
+    var isDay = true
 
     init?(view: MTKView, mesh: BrainMesh) {
         guard let device = view.device ?? MTLCreateSystemDefaultDevice(),
@@ -131,16 +139,19 @@ final class BrainRenderer: NSObject, MTKViewDelegate {
         let delta: Float = 1.0 / Float(max(1, view.preferredFramesPerSecond))
         elapsed += delta
 
-        // En concentration, le fluide se vide au fil de la session ; en repos,
-        // il se remplit. Le niveau glisse vers sa cible plutot que d'y sauter.
-        let target = (isFocus ? progress : 1 - progress) * Self.maxFill
-        fillLevel += (target - fillLevel) * 0.05
+        // Le niveau ne saute jamais : toute variation s'interpole. A 60 images
+        // par seconde, 0.037 par image donne environ 900 ms pour couvrir
+        // l'ecart — la duree prescrite par la specification de mouvement.
+        let target = min(fill, base) * Self.maxFill
+        fillLevel += (target - fillLevel) * 0.037
+        baseLevel += (base * Self.maxFill - baseLevel) * 0.09
 
         wobble = min(1, wobble * 0.95 + abs(dragVelocity) * 0.6)
         dragVelocity *= 0.9
 
-        colorA = lerp(colorA, isFocus ? Self.focusColorA : Self.restColorA, t: 0.02)
-        colorB = lerp(colorB, isFocus ? Self.focusColorB : Self.restColorB, t: 0.02)
+        // La teinte croise a l'extinction, une seule fois par jour : 2,4 s.
+        colorA = lerp(colorA, isDay ? Self.dayColorA : Self.nightColorA, t: 0.007)
+        colorB = lerp(colorB, isDay ? Self.dayColorB : Self.nightColorB, t: 0.007)
 
         rotation += delta * 0.3 + dragVelocity
         // Leger flottement vertical et roulis, pour que la scene ne paraisse
@@ -199,6 +210,8 @@ final class BrainRenderer: NSObject, MTKViewDelegate {
             colorA: colorA,
             colorB: colorB,
             fillLevel: fillLevel,
+            baseLevel: baseLevel,
+            agitation: agitation,
             time: elapsed,
             wobble: wobble
         )

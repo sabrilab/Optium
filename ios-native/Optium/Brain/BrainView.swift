@@ -2,9 +2,13 @@ import MetalKit
 import SwiftUI
 
 struct BrainView: UIViewRepresentable {
-    /// Progression restante de la session, 0…1.
-    let progress: Double
-    let isFocus: Bool
+    /// Niveau vise du fluide, 0…1 : la clarte.
+    let fill: Double
+    /// Plafond permis par la nuit, 0…1.
+    var base: Double = 1
+    /// Nombre de fils ouverts, normalise 0…1.
+    var agitation: Double = 0
+    var isDay: Bool = true
     /// Le rendu est totalement suspendu quand la scene n'est pas visible :
     /// sans cela, la boucle continuerait a 60 images par seconde et viderait
     /// la batterie pendant qu'on consulte ses statistiques.
@@ -49,8 +53,10 @@ struct BrainView: UIViewRepresentable {
     }
 
     func updateUIView(_ view: MTKView, context: Context) {
-        context.coordinator.renderer?.progress = Float(progress)
-        context.coordinator.renderer?.isFocus = isFocus
+        context.coordinator.renderer?.fill = Float(fill)
+        context.coordinator.renderer?.base = Float(base)
+        context.coordinator.renderer?.agitation = Float(agitation)
+        context.coordinator.renderer?.isDay = isDay
         view.isPaused = !isVisible
     }
 
