@@ -13,9 +13,21 @@ import SwiftUI
 /// vues restent des `Tab`, et revenir au systeme se fait en supprimant deux
 /// lignes.
 ///
-/// Ce qu'on perd, et qu'il faut savoir : la reduction automatique au
-/// defilement d'iOS 26, et le rendu par defaut des badges. Ce qu'on garde : le
-/// verre d'Apple, les cibles de 44 points, et le comportement de selection.
+/// **Ce n'est pas une pratique recommandee.** Les Human Interface Guidelines
+/// demandent une barre d'onglets standard, et celle d'iOS 26 est une
+/// affordance systeme. C'est un ecart assume, a la demande explicite du
+/// proprietaire du produit — pas un choix a reproduire ailleurs sans raison.
+///
+/// Ce qu'on perd : la reduction automatique au defilement d'iOS 26 et le rendu
+/// par defaut des badges. Ce qu'on garde : le verre d'Apple, les cibles de
+/// 44 points, le comportement de selection, et **les deux libelles**.
+///
+/// Une premiere version ne montrait le libelle que sur l'onglet courant, au
+/// motif que deux libelles cote a cote reconstituent la largeur d'une barre
+/// centree et que l'alignement ne se voit plus. C'etait payer la lisibilite
+/// pour un effet : l'onglet inactif devenait une icone seule a 45 %
+/// d'opacite, moins identifiable que dans la barre du systeme. L'alignement ne
+/// vaut pas ca.
 struct OptiumTabBar: View {
     @Binding var selection: RootTab
 
@@ -47,17 +59,14 @@ struct OptiumTabBar: View {
             HStack(spacing: 7) {
                 Image(systemName: tab.symbol)
                     .font(.system(size: 15, weight: .medium))
-                // **Le libelle ne s'affiche que sur l'onglet courant.** Deux
-                // libelles cote a cote reconstituent la largeur d'une barre
-                // centree, et l'alignement a gauche ne se voit plus.
-                if isCurrent {
-                    Text(tab.title)
-                        .font(.system(size: 14, weight: .medium))
-                        .fixedSize()
-                }
+                Text(tab.title)
+                    .font(.system(size: 14, weight: isCurrent ? .semibold : .regular))
+                    .fixedSize()
             }
-            .foregroundStyle(isCurrent ? Ink.control : Color.white.opacity(0.45))
-            .padding(.horizontal, isCurrent ? 14 : 12)
+            // L'inactif reste franchement lisible. A 0,45 il fallait le
+            // chercher ; le contraste porte la selection, pas la disparition.
+            .foregroundStyle(isCurrent ? Ink.control : Color.white.opacity(0.72))
+            .padding(.horizontal, 14)
             .frame(minWidth: 44, minHeight: 44)
             .background {
                 if isCurrent {

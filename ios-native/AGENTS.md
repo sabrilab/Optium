@@ -725,10 +725,19 @@ masquée. **Le masquage se pose sur le contenu de chaque `Tab`, jamais sur le
 `TabView`** — appliqué à celui-ci il est ignoré en silence, et la barre système
 reste visible derrière la nôtre.
 
+**Ce n'est pas une pratique recommandée.** Les HIG demandent une barre
+standard. C'est un écart assumé, à la demande explicite du propriétaire du
+produit — pas un choix à reproduire ailleurs sans raison.
+
 Ce qu'on perd : la réduction automatique au défilement d'iOS 26 et le rendu par
-défaut des badges. Le libellé ne s'affiche que sur l'onglet courant — deux
-libellés côte à côte reconstituent la largeur d'une barre centrée, et
-l'alignement à gauche ne se voit plus.
+défaut des badges.
+
+Une première version ne montrait le libellé que sur l'onglet courant, au motif
+que deux libellés reconstituent la largeur d'une barre centrée. **C'était payer
+la lisibilité pour un effet** : l'onglet inactif devenait une icône seule à
+45 % d'opacité, moins identifiable que dans la barre du système. Les deux
+libellés sont revenus, et l'inactif est à 72 %. L'alignement ne vaut pas une
+régression d'usage.
 
 ### L'île dynamique
 
