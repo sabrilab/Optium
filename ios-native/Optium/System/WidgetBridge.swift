@@ -14,17 +14,25 @@ enum WidgetBridge {
         tier: Tier?,
         landing: Landing?
     ) {
+        // La capture est produite dans le meme chemin de code que
+        // l'instantane : image et valeurs sont ainsi coherentes par
+        // construction, et ne peuvent pas se desynchroniser.
+        let fill = reading.brainFill
+        let graved = BrainSnapshot.render(fill: fill, base: reading.brainBase, isDay: true)
+
         WidgetSnapshot(
-            clarityWord: reading.clarity.level.word,
-            isConfident: reading.isConfident,
-            fill: Double(reading.clarity.value) / 100,
+            clarityWord: reading.clarity?.level.word,
+            observedNights: reading.observedNights,
+            fill: reading.clarity.map { Double($0.value) / 100 } ?? 0,
             base: reading.regularity.map { min(1, 0.45 + $0 / 100 * 0.55) } ?? 1,
             windowStart: reading.window.start,
             windowEnd: reading.window.end,
             threadPhrase: threadPhrase,
             tierWord: tier?.word,
             landingEarliest: landing?.earliest,
-            landingLatest: landing?.latest
+            landingLatest: landing?.latest,
+            brainImageFill: graved,
+            brainImageRenderedAt: graved == nil ? nil : Date()
         ).save()
 
         WidgetCenter.shared.reloadAllTimelines()

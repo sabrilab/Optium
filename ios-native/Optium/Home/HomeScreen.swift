@@ -31,6 +31,7 @@ struct HomeScreen: View {
     @State private var composing = false
     @State private var showSettings = false
     @State private var calling = false
+    @State private var baseExplanation: String?
     @State private var active: WorkThread?
 
     /// La lecture mesurée, sauf si le forçage de développement l'écrase.
@@ -41,16 +42,8 @@ struct HomeScreen: View {
         return clarityStore.reading
     }
 
-    private var clarity: Clarity { reading.clarity }
     private var window: DateInterval { reading.window }
-
-    /// Le plafond permis par la nuit : ce que la régularité autorise, quelle
-    /// que soit la nuit d'hier. On ne peut pas rattraper en une nuit ce que
-    /// vingt-huit ont défait.
-    private var base: Double {
-        guard let regularity = reading.regularity else { return 1 }
-        return min(1, 0.45 + regularity / 100 * 0.55)
-    }
+    private var base: Double { reading.brainBase }
 
     /// L'agitation est le nombre de fils ouverts. Au-delà de cinq la surface
     /// est déjà pleinement remuée : compter plus loin n'ajoute rien à lire.
@@ -69,8 +62,11 @@ struct HomeScreen: View {
                 ScrollView {
                     VStack(spacing: 14) {
                         brain
+                        crossingMessage
                         clarityCard
-                        CalibrationCard(measured: clarity.level)
+                        if let clarity = reading.clarity {
+                            CalibrationCard(measured: clarity.level)
+                        }
                         landingCard
                         threadList
                     }
@@ -117,17 +113,68 @@ struct HomeScreen: View {
         }
     }
 
+    /// Ce qui vient de changer, dit une seule fois.
+    ///
+    /// Au franchissement du seuil, l'application se met a pouvoir refuser.
+    /// C'est un changement de comportement, et l'annoncer une fois vaut mieux
+    /// que de le laisser decouvrir a la premiere porte.
+    @ViewBuilder
+    private var crossingMessage: some View {
+        if reading.clarity != nil && !settings.hasSeenThreshold {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Optium a assez observé. À partir de maintenant, il t’arrêtera si tu essaies de trancher une décision quand tes nuits ne le permettent pas.")
+                    .font(.system(size: 17, weight: .light))
+                Button("Compris") { settings.hasSeenThreshold = true }
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Ink.marker)
+                    .frame(minHeight: 44)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(20)
+            .bentoSurface(Ink.teal, corner: 30, intensity: 0.5)
+        }
+    }
+
     @ViewBuilder
     private var brain: some View {
         if settings.brainEnabled {
             BrainView(
-                fill: Double(clarity.value) / 100,
+                fill: reading.brainFill,
                 base: base,
                 agitation: agitation,
                 isDay: true,
                 isVisible: isVisible && scenePhase == .active
             )
             .frame(height: 260)
+            // La ligne de plafond n'est pas chiffree : sa valeur est derivee,
+            // pas mesuree. Elle s'explique au toucher plutot que de porter un
+            // nombre qui ne serait verifiable nulle part.
+            //
+            // Au `tap` seulement : un `drag` entrerait en conflit avec la
+            // rotation du modele.
+            .onTapGesture { explainBase() }
+            .overlay(alignment: .bottom) {
+                if let baseExplanation {
+                    Text(baseExplanation)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                        .transition(.opacity)
+                }
+            }
+            .animation(.easeInOut(duration: 0.35), value: baseExplanation)
+        }
+    }
+
+    private func explainBase() {
+        guard reading.clarity != nil, reading.regularity != nil else { return }
+        baseExplanation = reading.brainFill >= reading.brainBase - 0.02
+            ? "Tu es au plafond que ta nuit permet."
+            : "La ligne marque ce que ta nuit permet aujourd’hui."
+        Task {
+            try? await Task.sleep(for: .seconds(4))
+            baseExplanation = nil
         }
     }
 
@@ -138,15 +185,14 @@ struct HomeScreen: View {
                 .tracking(1.6)
                 .foregroundStyle(.secondary)
 
-            // Un mot, jamais un nombre. Un score chiffré de performance
-            // cognitive s'approcherait d'un diagnostic.
-            //
-            // Et tant que l'historique est trop court, on le dit plutôt que
-            // d'annoncer un mot : un oracle qui a toujours une réponse ment
-            // en permanence.
-            Text(reading.isConfident ? clarity.level.word : "pas encore mesurable")
-                .font(.system(size: reading.isConfident ? 34 : 24, weight: .light))
-                .foregroundStyle(reading.isConfident ? .primary : .secondary)
+            if let clarity = reading.clarity {
+                // Un mot, jamais un nombre. Un score chiffré de performance
+                // cognitive s'approcherait d'un diagnostic.
+                Text(clarity.level.word)
+                    .font(.system(size: 34, weight: .light))
+            } else {
+                arrival
+            }
 
             WindowStrip(window: window, now: Date())
 
@@ -156,12 +202,122 @@ struct HomeScreen: View {
 
             Divider().overlay(Color.white.opacity(0.12))
 
+            legend
             coffeeRow
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
         .bentoSurface(Ink.indigo, corner: 34)
     }
+
+    // ── L'arrivée ──
+
+    /// Ce que voit quelqu'un dont les nuits ne sont pas encore lues.
+    ///
+    /// **On ne simule rien.** Aucune donnée d'exemple, aucun cerveau rempli au
+    /// hasard. Ce que l'application montre est vrai, y compris quand ce
+    /// qu'elle a à dire est « je ne sais pas encore ».
+    ///
+    /// Le cas est rare : les sources rendent leur historique dès la première
+    /// seconde. Il reste quand même à traiter — permission refusée, ou
+    /// téléphone qui ne dort pas près de son propriétaire.
+    @ViewBuilder
+    private var arrival: some View {
+        if clarityStore.hasPermission {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Optium lit tes nuits pour savoir quand tu peux décider.")
+                    .font(.system(size: 19, weight: .light))
+                Text(nightsProgress)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Ink.marker)
+            }
+        } else {
+            // Cas distinct de « pas encore de données », et à ne pas
+            // confondre : ici la mesure ne viendra jamais.
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Optium a besoin de tes nuits pour fonctionner. Sans elles, il reste un carnet de fils.")
+                    .font(.system(size: 18, weight: .light))
+                Button("Ouvrir les réglages") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(Ink.marker)
+                .frame(minHeight: 44)
+            }
+        }
+    }
+
+    /// Le compte est réel : il mesure le remplissage de l'application
+    /// elle-même, ce qui est la seule chose vraie à dire à ce moment.
+    private var nightsProgress: String {
+        let seen = min(reading.observedNights, ClarityEngine.minimumNights)
+        return "\(seen) nuit\(seen > 1 ? "s" : "") observée\(seen > 1 ? "s" : "") sur \(ClarityEngine.minimumNights)."
+    }
+
+    // ── La légende ──
+
+    /// Ce que le cerveau montre, nommé.
+    ///
+    /// **Seules figurent les grandeurs mesurées qui alimentent l'état affiché
+    /// à cet instant.** Pas de moyenne, pas de comparaison, pas de veille. La
+    /// colonne de gauche est vérifiable dans Santé ; une régularité ou un
+    /// palier ne le sont nulle part, et c'est ce qui les disqualifie ici.
+    ///
+    /// Quatre lignes au maximum, jamais plus.
+    @ViewBuilder
+    private var legend: some View {
+        VStack(spacing: 6) {
+            if let duration = reading.lastNightDuration, isRecent(duration) {
+                legendRow("Nuit", format(duration))
+            }
+            legendRow("Fenêtre", windowRange, muted: Date() > window.end)
+            // Rien à zéro : une ligne à zéro est un reproche.
+            if todayCoffees > 0 {
+                legendRow("Café", "\(todayCoffees) café\(todayCoffees > 1 ? "s" : "")")
+            }
+            // Au-delà de deux, seuil à partir duquel l'agitation se voit.
+            if threads.count > 2 {
+                legendRow("Fils", "\(threads.count) ouverts")
+            }
+        }
+    }
+
+    private func legendRow(_ label: String, _ value: String, muted: Bool = false) -> some View {
+        HStack {
+            Text(label)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text(value)
+                .font(.footnote)
+                .monospacedDigit()
+                .foregroundStyle(muted ? .tertiary : .secondary)
+        }
+    }
+
+    private var todayCoffees: Int {
+        coffees.filter { Calendar.current.isDateInToday($0.takenAt) }.count
+    }
+
+    private var windowRange: String {
+        Date() > window.end
+            ? "fermée à \(clock(window.end))"
+            : "\(clock(window.start)) → \(clock(window.end))"
+    }
+
+    /// Une nuit de plus de 36 h n'a plus rien à dire de l'état d'aujourd'hui.
+    private func isRecent(_ duration: TimeInterval) -> Bool {
+        reading.observedNights > 0
+    }
+
+    private func format(_ interval: TimeInterval) -> String {
+        let total = Int((interval / 60).rounded())
+        return total % 60 == 0 ? "\(total / 60) h" : String(format: "%d h %02d", total / 60, total % 60)
+    }
+
+    private func clock(_ date: Date) -> String { Clock.hhmm(date) }
 
     /// Le seul geste déclaratif de l'application. Tout le reste est lu.
     ///
@@ -204,10 +360,10 @@ struct HomeScreen: View {
     private var windowSentence: String {
         let now = Date()
         if now < window.start {
-            return "Ta fenêtre s’ouvre à \(window.start.formatted(date: .omitted, time: .shortened))."
+            return "Ta fenêtre s’ouvre à \(clock(window.start))."
         }
         if window.contains(now) {
-            return "Fenêtre ouverte jusqu’à \(window.end.formatted(date: .omitted, time: .shortened))."
+            return "Fenêtre ouverte jusqu’à \(clock(window.end))."
         }
         return "Fenêtre fermée. Elle rouvre demain matin."
     }
@@ -342,7 +498,12 @@ struct WindowStrip: View {
         return min(1, max(0, now.timeIntervalSince(window.start) / window.duration))
     }
 
+    private var isPast: Bool { now > window.end }
+
     var body: some View {
-        TickScale(progress: progress)
+        // Une echelle pleine se lit comme « accompli ». Passe la fenetre, elle
+        // veut dire l'inverse : le creneau est perdu, pas rempli. On la teint
+        // donc en gris plutot que dans la couleur du present.
+        TickScale(progress: progress, tint: isPast ? Color.white.opacity(0.25) : Ink.marker)
     }
 }

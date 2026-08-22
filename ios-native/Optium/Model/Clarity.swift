@@ -33,7 +33,18 @@ struct Clarity {
 }
 
 extension ClarityReading {
+    /// Remplissage du cerveau, 0 sans mesure : la forme est presente, elle
+    /// n'est pas encore renseignee.
+    var brainFill: Double { clarity.map { Double($0.value) / 100 } ?? 0 }
+
+    /// Plafond permis par la nuit. Sans regularite mesuree il n'y a pas de
+    /// plafond a montrer — la ligne disparait plutot que d'etre inventee.
+    var brainBase: Double { regularity.map { min(1, 0.45 + $0 / 100 * 0.55) } ?? 0 }
+
     /// Une lecture forcee, pour l'outil de developpement.
+    ///
+    /// Ses manques sont fabriques pour que la porte ait quelque chose a citer :
+    /// sans eux, forcer la clarte basse ouvrirait une porte muette.
     static func forced(_ level: ClarityLevel, window: DateInterval) -> ClarityReading {
         let value = switch level {
         case .low: 28
@@ -42,10 +53,17 @@ extension ClarityReading {
         }
         return ClarityReading(
             clarity: Clarity(value: value),
-            isConfident: true,
-            regularity: nil,
+            observedNights: 28,
+            regularity: Double(value),
             window: window,
-            projectedNightPenalty: 0
+            projectedNightPenalty: 0,
+            lastNightDuration: 5.2 * 3600,
+            wakeSpread: 2.1 * 3600,
+            shortfalls: [
+                ClarityShortfall(component: .duration, amount: Double(100 - value) * 0.30),
+                ClarityShortfall(component: .regularity, amount: Double(100 - value) * 0.20),
+                ClarityShortfall(component: .circadian, amount: Double(100 - value) * 0.10),
+            ]
         )
     }
 }

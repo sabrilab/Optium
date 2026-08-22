@@ -11,7 +11,7 @@ final class BrainRenderer: NSObject, MTKViewDelegate {
     /// Attention : cette structure est declaree deux fois, ici et dans
     /// Shaders.metal. Rien ne verifie a la compilation qu'elles concordent.
     /// Ne pas reordonner les champs d'un cote sans l'autre.
-    private struct Uniforms {
+    struct Uniforms {
         var modelViewProjection: float4x4
         var modelView: float4x4
         var normalMatrix: float3x3

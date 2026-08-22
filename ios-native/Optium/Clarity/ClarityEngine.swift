@@ -1,16 +1,60 @@
 import Foundation
 
+/// Une composante du calcul, et ce qui lui manque.
+enum ClarityComponent: String, CaseIterable {
+    case regularity, duration, circadian
+}
+
+/// Ce qu'une composante a coute a la lecture.
+///
+/// `amount = poids × (1 − valeur normalisee)` : la contribution qu'elle
+/// aurait apportee en plus si elle avait ete au maximum. C'est ce qui permet
+/// de citer, a la porte, le fait qui pese le plus — et non le plus bas en
+/// valeur absolue, qui pourrait etre la composante la moins ponderee.
+struct ClarityShortfall {
+    let component: ClarityComponent
+    let amount: Double
+}
+
 /// Ce que le moteur a lu, et ce qu'il sait de sa propre fiabilite.
 struct ClarityReading {
-    let clarity: Clarity
-    /// Faux tant que l'historique est trop court pour affirmer quoi que ce
-    /// soit. L'interface doit alors le dire plutot que d'annoncer un mot :
-    /// un oracle qui a toujours une reponse ment en permanence.
-    let isConfident: Bool
+    /// **Absente** tant que trop peu de nuits ont ete observees.
+    ///
+    /// Optionnelle et non pas « moyenne par defaut » : une valeur inventee se
+    /// propagerait dans le cerveau, dans les widgets et jusqu'a la porte, ou
+    /// elle produirait un refus injustifiable.
+    let clarity: Clarity?
+    let observedNights: Int
     let regularity: Double?
     let window: DateInterval
     /// 0…1 : ce que la cafeine encore active retirera a la nuit **prochaine**.
     let projectedNightPenalty: Double
+
+    // ── Faits mesures ──
+    //
+    // Des entrees, jamais des sorties. « Tu as dormi 5 h 10 » est verifiable
+    // par l'utilisateur dans Sante ; « ta regularite est de 71 » ne l'est
+    // nulle part, et c'est ce qui le disqualifie a l'affichage.
+
+    /// Duree du dernier sommeil observe.
+    let lastNightDuration: TimeInterval?
+    /// Amplitude des trois derniers levers. Un fait, la ou le SRI est un score.
+    let wakeSpread: TimeInterval?
+
+    /// Les manques, du plus grand au plus petit.
+    let shortfalls: [ClarityShortfall]
+
+    /// Les manques que la porte a le droit de citer.
+    ///
+    /// Un seul, sauf si le deuxieme est a moins de 15 % du premier. Jamais
+    /// trois : au-dela de deux faits, la phrase cesse d'expliquer et se met a
+    /// accabler.
+    var citedShortfalls: [ClarityShortfall] {
+        guard let first = shortfalls.first else { return [] }
+        guard let second = shortfalls.dropFirst().first,
+              first.amount - second.amount <= first.amount * 0.15 else { return [first] }
+        return [first, second]
+    }
 }
 
 /// Le calcul de la clarte.
@@ -36,8 +80,14 @@ enum ClarityEngine {
     static let durationWeight = 0.30
     static let circadianWeight = 0.25
 
-    /// En deca, l'historique ne permet pas d'affirmer.
-    static let confidenceThreshold = 14
+    /// En deca, la clarte n'existe pas.
+    ///
+    /// Trois nuits est le minimum pour qu'une amplitude de levers ait un sens.
+    /// Le seuil est bas a dessein : les sources rendent leur historique des la
+    /// premiere seconde — HealthKit sur des mois, CoreMotion sur sept jours —
+    /// donc quelqu'un qui installe l'application a deja des nuits. Un seuil
+    /// haut le rendrait muet alors que la mesure existe.
+    static let minimumNights = 3
 
     /// Bornes de la cible de duree.
     ///
@@ -73,15 +123,19 @@ enum ClarityEngine {
         let window = circadian.window(on: now)
         let penalty = caffeinePenalty(coffees: coffees, bedtime: projectedBedtime(habitualWake, calendar), now: now)
 
-        guard let last = recent.last, recent.count >= 2 else {
-            // Sans historique, on n'invente pas : on annonce la valeur mediane
-            // et on dit qu'on ne sait pas.
+        let lastNight = recent.last?.duration
+        let spread = wakeSpread(of: recent.suffix(3), calendar: calendar)
+
+        guard recent.count >= minimumNights, let last = recent.last else {
             return ClarityReading(
-                clarity: Clarity(value: 55),
-                isConfident: false,
+                clarity: nil,
+                observedNights: recent.count,
                 regularity: nil,
                 window: window,
-                projectedNightPenalty: penalty
+                projectedNightPenalty: penalty,
+                lastNightDuration: lastNight,
+                wakeSpread: spread,
+                shortfalls: []
             )
         }
 
@@ -95,13 +149,37 @@ enum ClarityEngine {
                   + durationWeight * duration
                   + circadianWeight * phase
 
+        let shortfalls = [
+            ClarityShortfall(component: .regularity, amount: regularityWeight * (100 - regularity)),
+            ClarityShortfall(component: .duration, amount: durationWeight * (100 - duration)),
+            ClarityShortfall(component: .circadian, amount: circadianWeight * (100 - phase)),
+        ].sorted { $0.amount > $1.amount }
+
         return ClarityReading(
             clarity: Clarity(value: Int(min(100, max(0, value.rounded())))),
-            isConfident: recent.count >= confidenceThreshold,
+            observedNights: recent.count,
             regularity: regularity,
             window: window,
-            projectedNightPenalty: penalty
+            projectedNightPenalty: penalty,
+            lastNightDuration: lastNight,
+            wakeSpread: spread,
+            shortfalls: shortfalls
         )
+    }
+
+    /// Amplitude des levers : l'ecart entre le plus tot et le plus tard.
+    ///
+    /// Un fait mesure, la ou le SRI est un score. C'est lui qu'on affiche.
+    static func wakeSpread(of nights: some Collection<Night>, calendar: Calendar) -> TimeInterval? {
+        guard nights.count >= 2 else { return nil }
+        let minutes = nights.map { night -> Double in
+            let parts = calendar.dateComponents([.hour, .minute], from: night.wokeAt)
+            return Double(parts.hour ?? 0) * 60 + Double(parts.minute ?? 0)
+        }
+        guard let low = minutes.min(), let high = minutes.max() else { return nil }
+        // Ecart circulaire : entre 23 h et 1 h il y a deux heures, pas vingt-deux.
+        let direct = high - low
+        return min(direct, 1440 - direct) * 60
     }
 
     // ── Details ──

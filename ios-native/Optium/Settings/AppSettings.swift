@@ -15,6 +15,12 @@ final class AppSettings {
     /// Coupe la 3D : economise la batterie et debloque les appareils lents.
     var brainEnabled: Bool { didSet { defaults.set(brainEnabled, forKey: Key.brain) } }
 
+    /// Vrai une fois que le message de franchissement a ete montre.
+    ///
+    /// Une seule fois : le repeter le transformerait en rappel, et
+    /// l'application n'en a que deux, toutes deux programmees.
+    var hasSeenThreshold: Bool { didSet { defaults.set(hasSeenThreshold, forKey: Key.threshold) } }
+
     /// Clarte forcee, ou `nil` pour la mesure reelle.
     ///
     /// Outil de developpement, et il le restera : la porte ne se declenche
@@ -28,6 +34,7 @@ final class AppSettings {
         self.defaults = defaults
         hapticsEnabled = defaults.object(forKey: Key.haptics) as? Bool ?? true
         brainEnabled = defaults.object(forKey: Key.brain) as? Bool ?? true
+        hasSeenThreshold = defaults.object(forKey: Key.threshold) as? Bool ?? false
         clarityOverride = (defaults.object(forKey: Key.clarity) as? String)
             .flatMap(ClarityLevel.init(rawValue:))
     }
@@ -35,6 +42,7 @@ final class AppSettings {
     private enum Key {
         static let haptics = "hapticsEnabled"
         static let brain = "brainEnabled"
+        static let threshold = "hasSeenThreshold"
         static let clarity = "simulatedClarity"
     }
 }

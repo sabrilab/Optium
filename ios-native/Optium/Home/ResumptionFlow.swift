@@ -43,7 +43,7 @@ struct ResumptionFlow: View {
     private func start() {
         let now = Date()
         thread.startResumption(
-            clarity: reading.clarity.level,
+            clarity: reading.clarity?.level ?? .medium,
             inWindow: reading.window.contains(now),
             at: now
         )
@@ -62,7 +62,7 @@ struct ResumptionFlow: View {
     /// reste se ferme directement — et c'est cette rareté qui rend le refus
     /// acceptable plutôt qu'agaçant.
     private func attemptClose() {
-        switch thread.closingOutcome(clarity: reading.clarity.level) {
+        switch thread.closingOutcome(clarity: reading.clarity?.level) {
         case .gate:
             step = .gate
         case .direct:
@@ -113,8 +113,8 @@ private struct ResumptionScreen: View {
 
             if settings.brainEnabled {
                 BrainView(
-                    fill: Double(reading.clarity.value) / 100,
-                    base: min(1, Double(reading.clarity.value) / 100 + 0.12),
+                    fill: reading.brainFill,
+                    base: reading.brainBase,
                     agitation: 0.35,
                     isDay: true,
                     isVisible: scenePhase == .active

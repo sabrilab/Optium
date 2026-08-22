@@ -53,8 +53,8 @@ struct GateScreen: View {
 
                 if settings.brainEnabled {
                     BrainView(
-                        fill: Double(reading.clarity.value) / 100,
-                        base: min(1, Double(reading.clarity.value) / 100 + 0.12),
+                        fill: reading.brainFill,
+                        base: reading.brainBase,
                         agitation: 0.75,
                         isDay: true,
                         isVisible: scenePhase == .active
@@ -94,7 +94,15 @@ struct GateScreen: View {
                     }
                     .padding(.bottom, 26)
 
-                Text("Ta clarté est \(reading.clarity.level.word). C’est le seul moment où Optium t’arrête.")
+                // Le fait mesuré qui pèse le plus. Sans lui, le refus est une
+                // affirmation sans preuve.
+                if let justification = GateJustification.sentence(for: reading, now: Date()) {
+                    Text(justification)
+                        .font(.system(size: 17, weight: .light))
+                        .padding(.bottom, 10)
+                }
+
+                Text("C’est le seul moment où Optium t’arrête.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -126,7 +134,7 @@ struct GateScreen: View {
                     Task { await LiveActivityController.end() }
                     onHeld()
                 } label: {
-                    Text("Retenir jusqu’à \(nextWindow.formatted(date: .omitted, time: .shortened))")
+                    Text("Retenir jusqu’à \(Clock.hhmm(nextWindow))")
                         .font(.subheadline)
                         .frame(maxWidth: .infinity, minHeight: 52)
                 }

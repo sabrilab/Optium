@@ -132,23 +132,14 @@ private func regularNights() -> [Night] {
     let reading = ClarityEngine.reading(nights: [], now: day0, calendar: calendar)
 
     // Un oracle qui a toujours une reponse ment en permanence.
-    #expect(reading.isConfident == false)
+    #expect(reading.clarity == nil)
 }
 
-@Test func onzeNuitsNeSuffisentPasAAffirmer() {
-    let nights = (0..<11).map { night(dayOffset: $0, bedHour: 23, hours: 8) }
-    let reading = ClarityEngine.reading(nights: nights, now: day0, calendar: calendar)
-
-    #expect(reading.isConfident == false)
-}
-
-@Test func quatorzeNuitsSuffisent() {
-    let nights = (0..<14).map { night(dayOffset: $0, bedHour: 23, hours: 8) }
-    let last = nights.last!.wokeAt.addingTimeInterval(3 * 3600)
-    let reading = ClarityEngine.reading(nights: nights, now: last, calendar: calendar)
-
-    #expect(reading.isConfident == true)
-}
+// Le seuil est passe de quatorze nuits a trois. Les sources rendent leur
+// historique des la premiere seconde — HealthKit sur des mois, CoreMotion sur
+// sept jours — donc attendre deux semaines rendait l'application muette alors
+// que la mesure existait deja. Le detail du seuil est couvert par
+// ClarityAbsenceTests.
 
 @Test func unSommeilRegulierEtSuffisantDonneUneClarteHaute() {
     let nights = regularNights()
@@ -157,7 +148,7 @@ private func regularNights() -> [Night] {
 
     let reading = ClarityEngine.reading(nights: nights, now: morning, calendar: calendar)
 
-    #expect(reading.clarity.level == .high)
+    #expect(reading.clarity?.level == .high)
 }
 
 @Test func uneNuitCourteApresUnSommeilChaotiqueDonneUneClarteBasse() {
@@ -169,7 +160,7 @@ private func regularNights() -> [Night] {
 
     let reading = ClarityEngine.reading(nights: nights, now: now, calendar: calendar)
 
-    #expect(reading.clarity.level == .low)
+    #expect(reading.clarity?.level == .low)
 }
 
 @Test func laClarteResteDansSonIntervalle() {
@@ -177,8 +168,9 @@ private func regularNights() -> [Night] {
         let nights = (0..<28).map { night(dayOffset: $0, bedHour: 23, hours: hours) }
         let reading = ClarityEngine.reading(nights: nights, now: day0.addingTimeInterval(28 * 86_400),
                                             calendar: calendar)
-        #expect(reading.clarity.value >= 0)
-        #expect(reading.clarity.value <= 100)
+        let value = try! #require(reading.clarity).value
+        #expect(value >= 0)
+        #expect(value <= 100)
     }
 }
 
@@ -194,7 +186,7 @@ private func regularNights() -> [Night] {
     let after = ClarityEngine.reading(nights: nights, now: now, coffees: [late], calendar: calendar)
 
     // La clarte d'aujourd'hui ne bouge pas — le cafe agit sur demain.
-    #expect(after.clarity.value == before.clarity.value)
+    #expect(after.clarity?.value == before.clarity?.value)
     #expect(after.projectedNightPenalty > 0)
 }
 

@@ -62,8 +62,7 @@ final class BrainCall {
     struct Context {
         let nightCount: Int
         let regularity: Double?
-        let clarity: ClarityLevel
-        let isConfident: Bool
+        let clarity: ClarityLevel?
         let closedThreads: [(phrase: String, resumptions: Int, nights: Int, held: Int)]
         let openPhrases: [String]
         let memory: String
@@ -99,9 +98,8 @@ final class BrainCall {
         if let regularity = context.regularity {
             facts.append("Régularité du sommeil : \(Int(regularity.rounded())) sur 100.")
         }
-        facts.append(context.isConfident
-            ? "Clarté actuelle : \(context.clarity.word)."
-            : "Clarté : pas encore mesurable, l’historique est trop court.")
+        facts.append(context.clarity.map { "Clarté actuelle : \($0.word)." }
+            ?? "Clarté : pas encore mesurable, l’historique est trop court.")
 
         if !context.closedThreads.isEmpty {
             facts.append("Fils fermés :")

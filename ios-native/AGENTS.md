@@ -153,6 +153,13 @@ func closingOutcome(clarity: ClarityLevel) -> ClosingOutcome {
 ```
 
 **Elle s'ouvre pour une décision à clarté basse, et pour rien d'autre.**
+`clarity` est optionnelle : sans mesure, la porte reste fermée — un refus sans
+preuve est pire qu'une absence de refus.
+
+Quand elle s'ouvre, `GateJustification` cite le fait mesuré dont le manque pèse
+le plus : `poids × (1 − valeur normalisée)`. Un fait vérifiable dans Santé, pas
+un score. Un seul, sauf si le deuxième est à moins de 15 % du premier ; jamais
+trois.
 
 Sa rareté est ce qui la rend acceptable. Élargir cette condition la
 transformerait en friction ordinaire, et l'application perdrait la seule chose
@@ -181,6 +188,14 @@ clarte = 0.45 * regularite     // SRI sur 28 jours
 
 Seuils : `basse < 42 ≤ moyenne < 70 ≤ haute`.
 **La valeur numérique n'est jamais affichée.**
+
+**`ClarityReading.clarity` est optionnelle.** Sous `minimumNights` — trois —
+elle vaut `nil`, et non pas « moyenne par défaut » : une valeur inventée se
+propagerait dans le cerveau, dans les widgets et jusqu'à la porte, où elle
+produirait un refus injustifiable. Le seuil est bas parce que les sources
+rendent leur historique dès la première seconde : HealthKit sur des mois,
+CoreMotion sur sept jours. Attendre deux semaines rendait l'application muette
+alors que la mesure existait.
 
 ### Ce qui fonde la pondération
 
@@ -338,6 +353,13 @@ base.
 ---
 
 ## 9. Les surfaces système
+
+Les widgets d'accueil affichent une **capture du rendu Metal**, produite hors
+écran par l'application (`Brain/BrainSnapshot.swift`) et déposée dans le
+conteneur du groupe. Les familles `accessory*` gardent la silhouette
+vectorielle : elles sont rendues en masque teinté, où une image en couleurs
+serait aplatie. La capture se périme au-delà de 0,03 d'écart de remplissage ou
+de six heures, et le repli vers la silhouette est silencieux.
 
 **Deux widgets** (`OptiumWidgets/`) — clarté en quatre familles (verrouillé
 circulaire et rectangulaire, accueil petit et moyen) et fil en cours.

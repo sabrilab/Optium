@@ -90,7 +90,11 @@ final class WorkThread {
     /// d'autre. Sa rarete est ce qui la rend acceptable : elargir cette
     /// condition la transformerait en friction ordinaire, et l'application
     /// perdrait la seule chose qu'elle sait faire.
-    func closingOutcome(clarity: ClarityLevel) -> ClosingOutcome {
+    /// - Parameter clarity: `nil` quand aucune mesure n'existe. La porte reste
+    ///   alors fermee : un refus sans mesure affirmerait une clarte basse sans
+    ///   rien pour l'etayer, et un refus injustifie est pire qu'une absence de
+    ///   refus.
+    func closingOutcome(clarity: ClarityLevel?) -> ClosingOutcome {
         nature == .decision && clarity == .low ? .gate : .direct
     }
 

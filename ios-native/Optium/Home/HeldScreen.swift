@@ -48,6 +48,6 @@ struct HeldScreen: View {
 
     private var heldUntilText: String {
         guard let until = thread.heldUntil else { return "DEMAIN" }
-        return until.formatted(date: .omitted, time: .shortened).uppercased()
+        return Clock.hhmm(until)
     }
 }

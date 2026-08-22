@@ -51,9 +51,9 @@ enum LiveActivityController {
     ) -> OptiumActivity.ContentState {
         let format = Date.FormatStyle.dateTime.weekday(.abbreviated).day()
         return OptiumActivity.ContentState(
-            fill: Double(reading.clarity.value) / 100,
+            fill: reading.clarity.map { Double($0.value) / 100 } ?? 0,
             base: reading.regularity.map { min(1, 0.45 + $0 / 100 * 0.55) } ?? 1,
-            clarityWord: reading.clarity.level.word,
+            clarityWord: reading.clarity?.level.word ?? "en observation",
             resumptionNumber: thread.resumptions.count,
             startedAt: thread.currentResumption?.startedAt ?? Date(),
             windowEnd: reading.window.end,

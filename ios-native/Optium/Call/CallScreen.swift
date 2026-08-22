@@ -29,7 +29,7 @@ struct CallScreen: View {
                 VStack(alignment: .leading, spacing: 22) {
                     if settings.brainEnabled {
                         BrainView(
-                            fill: Double(clarityStore.reading.clarity.value) / 100,
+                            fill: clarityStore.reading.brainFill,
                             base: 1,
                             agitation: thinking ? 0.9 : 0.2,
                             isDay: true,
@@ -105,8 +105,7 @@ struct CallScreen: View {
         return BrainCall.Context(
             nightCount: nights.count,
             regularity: clarityStore.reading.regularity,
-            clarity: clarityStore.reading.clarity.level,
-            isConfident: clarityStore.reading.isConfident,
+            clarity: clarityStore.reading.clarity?.level,
             closedThreads: closed.map { thread in
                 let summary = thread.summary()
                 return (thread.phrase, summary.resumptionCount, summary.nightsCrossed, summary.holdCount)

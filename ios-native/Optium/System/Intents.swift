@@ -83,16 +83,21 @@ struct ClarityIntent: AppIntent {
 
         let reading = ClarityEngine.reading(nights: nights.map(\.night), now: Date())
 
-        guard reading.isConfident else {
-            return .result(dialog: "Je n’ai que \(nights.count) nuits. Ça ne suffit pas pour l’affirmer.")
+        // Il sait dire qu'il ne sait pas : un oracle qui a toujours une
+        // reponse ment en permanence.
+        guard let clarity = reading.clarity else {
+            let count = reading.observedNights
+            return .result(dialog: count == 0
+                ? "Je n’ai encore rien observé. Je ne peux pas te répondre."
+                : "Je n’ai que \(count) nuit\(count > 1 ? "s" : ""). Ça ne suffit pas pour l’affirmer.")
         }
 
         let inWindow = reading.window.contains(Date())
-        switch (reading.clarity.level, inWindow) {
+        switch (clarity.level, inWindow) {
         case (.high, true):
             return .result(dialog: "Je tourne haut, et la fenêtre est ouverte.")
         case (.high, false), (.medium, true):
-            return .result(dialog: "Je tourne \(reading.clarity.level.word), hors de la fenêtre.")
+            return .result(dialog: "Je tourne \(clarity.level.word), hors de la fenêtre.")
         case (.medium, false):
             return .result(dialog: "Je tourne moyen. La fenêtre est passée.")
         case (.low, _):

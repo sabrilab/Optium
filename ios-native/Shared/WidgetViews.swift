@@ -1,6 +1,44 @@
 import SwiftUI
 import WidgetKit
 
+/// Le cerveau d'un widget : la capture Metal quand elle est fraiche, la
+/// silhouette sinon.
+///
+/// Le repli est silencieux — aucune indication de peremption. L'utilisateur
+/// voit simplement l'autre representation du meme objet, ce qui est
+/// precisement pourquoi les deux doivent rester le meme objet.
+///
+/// **Les familles `accessory*` n'ouvrent jamais le fichier** : elles sont
+/// rendues en masque teinte, ou une image en couleurs serait aplatie en tache.
+struct WidgetBrain: View {
+    let snapshot: WidgetSnapshot
+    var tint: Color = Ink.focusGlow
+    var allowsCapture = true
+    var showsBase = true
+
+    var body: some View {
+        if allowsCapture,
+           snapshot.brainImageIsFresh(at: Date(), fill: snapshot.fill),
+           let url = WidgetSnapshot.brainImageURL,
+           let data = try? Data(contentsOf: url),
+           let image = UIImage(data: data) {
+            // L'ordre est impose : `resizable` rend une `Image`,
+            // `widgetAccentedRenderingMode` la consomme et rend une vue, et
+            // `scaledToFit` s'applique ensuite. Sans ce modificateur, iOS
+            // desature l'image sur l'ecran d'accueil en mode teinte.
+            Image(uiImage: image)
+                .resizable()
+                .widgetAccentedRenderingMode(.fullColor)
+                .scaledToFit()
+        } else {
+            BrainSilhouetteView(
+                fill: snapshot.fill, base: snapshot.base,
+                tint: tint, showsBase: showsBase
+            )
+        }
+    }
+}
+
 // Les vues des widgets vivent avec le code partage et non dans l'extension :
 // l'application doit pouvoir les rendre pour les verifier. Seules les
 // declarations `Widget` et leur fournisseur de chronologie restent cote
@@ -25,7 +63,7 @@ struct ClarityWidgetView: View {
                 BrainSilhouetteView(fill: snapshot.fill, tint: .white, showsBase: false)
                     .frame(width: 30, height: 30)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(snapshot.isConfident ? "Clarté \(snapshot.clarityWord)" : "Pas mesurable")
+                    Text(snapshot.clarityWord.map { "Clarté \($0)" } ?? "\(snapshot.observedNights) nuits observées")
                         .font(.system(size: 13, weight: .medium))
                     Text("FENÊTRE \(hhmm(snapshot.windowStart))")
                         .font(.system(size: 11).monospaced())
@@ -36,10 +74,10 @@ struct ClarityWidgetView: View {
 
         case .systemMedium:
             HStack(spacing: 18) {
-                BrainSilhouetteView(fill: snapshot.fill, base: snapshot.base, tint: Ink.focusGlow)
+                WidgetBrain(snapshot: snapshot)
                     .frame(width: 88, height: 88)
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(snapshot.isConfident ? snapshot.clarityWord : "pas encore mesurable")
+                    Text(snapshot.clarityWord ?? "en cours d’observation")
                         .font(.system(size: 24, weight: .light))
                         .foregroundStyle(.white)
                     if let phrase = snapshot.threadPhrase {
@@ -58,11 +96,11 @@ struct ClarityWidgetView: View {
 
         default:
             VStack(spacing: 12) {
-                BrainSilhouetteView(fill: snapshot.fill, base: snapshot.base, tint: Ink.focusGlow)
+                WidgetBrain(snapshot: snapshot)
                     .frame(width: 82, height: 82)
                 // Un mot, pas un chiffre — la meme regle que dans
                 // l'application, pour la meme raison.
-                Text(snapshot.isConfident ? snapshot.clarityWord.capitalized : "—")
+                Text(snapshot.clarityWord?.capitalized ?? "—")
                     .font(.system(size: 17, weight: .light))
                     .foregroundStyle(.white)
             }

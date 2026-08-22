@@ -84,6 +84,8 @@ struct JournalScreen: View {
                     }
                     Spacer(minLength: 0)
                 }
+
+                scale(tier)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(20)
@@ -105,6 +107,35 @@ struct JournalScreen: View {
             .padding(20)
             .bentoSurface(Ink.indigo, corner: 34, intensity: 0.4)
         }
+    }
+
+    /// L'échelle, rendue visible.
+    ///
+    /// Cristallin, Limpide, Net, Voilé, Trouble n'ont aucun ordre intuitif :
+    /// sans le tableau sous les yeux, personne ne sait si *Net* est au-dessus
+    /// ou en dessous de *Limpide*. C'est un lexique, pas une échelle.
+    ///
+    /// La montrer coûte cinq silhouettes et supprime le problème sans toucher
+    /// au vocabulaire.
+    private func scale(_ current: Tier) -> some View {
+        HStack(spacing: 10) {
+            ForEach(Tier.allCases.sorted(), id: \.self) { tier in
+                VStack(spacing: 5) {
+                    BrainSilhouetteView(
+                        fill: tier.fill,
+                        tint: tier == current ? Ink.marker : .white,
+                        showsBase: false
+                    )
+                    .frame(width: 26, height: 26)
+                    .opacity(tier == current ? 1 : 0.34)
+                    Text(tier.word)
+                        .font(.system(size: 9, weight: tier == current ? .semibold : .regular))
+                        .foregroundStyle(tier == current ? Ink.marker : Color.white.opacity(0.42))
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.top, 6)
     }
 
     /// Où l'on se situe — en distribution, jamais par rapport à des personnes.

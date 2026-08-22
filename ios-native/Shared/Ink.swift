@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 /// Vocabulaire chromatique de l'application.
@@ -95,4 +96,16 @@ enum Ink {
 
     static func glow(isFocus: Bool) -> Color { isFocus ? focusGlow : restGlow }
     static func glowFar(isFocus: Bool) -> Color { isFocus ? focusGlowFar : restGlowFar }
+}
+
+/// Le format d'heure de l'application.
+///
+/// Un seul, partout. Le format court du systeme rend « 5:36 » quand la
+/// justification de la porte ecrit « 8 h 16 » : deux graphies cote a cote sur
+/// le meme ecran se remarquent immediatement.
+enum Clock {
+    static func hhmm(_ date: Date, calendar: Calendar = .current) -> String {
+        let parts = calendar.dateComponents([.hour, .minute], from: date)
+        return String(format: "%d h %02d", parts.hour ?? 0, parts.minute ?? 0)
+    }
 }
