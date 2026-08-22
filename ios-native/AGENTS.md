@@ -680,6 +680,49 @@ même organe finissent par diverger.
 Le niveau se mesure sur les proportions du glyphe, jamais sur le cadre — dans un
 carré, `murky` à 0,16 tomberait sous le dessin et n'allumerait rien.
 
+### Une seule couleur par carte
+
+Une teinte, et rien d'autre : elle se diffuse, s'éteint vers le noir, se
+rallume sur une arête — **elle ne rencontre jamais une autre couleur.** C'est
+ce fondu d'un ton unique qui laisse le texte lisible ; deux tons qui se
+croisent produisent au milieu une valeur qu'on ne contrôle plus, et là où passe
+une ligne de texte, ça se paye.
+
+Une contre-teinte a été essayée — un ton étranger posé en bas de carte — pour
+rendre les cartes plus vives. Elle les rendait surtout multicolores et changeait
+la direction artistique. **Retirée.**
+
+**La règle est tenue par construction, pas par discipline** : `CardHue.accent`
+n'est pas une seconde couleur qu'on choisit, c'est `tint` éclaircie en
+teinte-saturation-luminosité. `HueTests` vérifie que teinte et accent ont la
+même teinte à 0,02 près, et que `lightened(by:)` ne dérive jamais.
+
+Une seule couleur *par carte* ne veut pas dire une seule couleur dans
+l'application : les six teintes restent sans parenté, et un test le vérifie
+aussi.
+
+Même règle pour `BrainMark` : le remplissage montait d'un violet vers un jaune,
+soit deux couleurs dans un objet de vingt-six points. C'est désormais le même
+ton, assombri en bas.
+
+### La bande des nuits
+
+`Home/NightsStrip.swift`, sous le mot de la clarté.
+
+**Le lien entre la clarté et ses nuits était dans le calcul, jamais à
+l'écran.** Un mot — « haute », « basse » — apparaissait seul. Un verdict dont
+la cause se trouve ailleurs se subit ; posé à côté de sa cause, il s'examine.
+
+Des barres, pas des chiffres : sept durées alignées se comparent d'un coup
+d'œil. Ce n'est pas un graphique de statistiques — ni axe, ni échelle chiffrée,
+ni moyenne. Les barres sont **étroites et à largeur fixe** : étalées sur toute
+la largeur, elles se lisaient comme des pastilles alignées et les différences
+de durée disparaissaient.
+
+Ce qui distingue une nuit déduite est son **opacité**, jamais sa teinte : un
+second ton casserait la règle ci-dessus et ferait passer la déduction pour une
+catégorie de sommeil.
+
 ### Les cartes
 
 Détail complet dans `docs/brief-design.md`. L'essentiel :

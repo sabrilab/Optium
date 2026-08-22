@@ -28,9 +28,11 @@ struct BrainMark: View {
     /// Plafond permis par la nuit, 0…1.
     var base: Double = 1
     var tint: Color = Ink.marker
-    /// Le second ton du degrade. C'est lui qui empeche le remplissage de se
-    /// lire comme un aplat.
-    var far: Color = Ink.focusGlowFar
+    /// Le bas du degrade : **la meme couleur, assombrie**. Le remplissage
+    /// montait auparavant d'un violet vers un jaune, soit deux couleurs dans
+    /// un objet de vingt-six points. Un seul ton qui s'eclaircit en montant
+    /// suffit a ne pas se lire comme un aplat.
+    var far: Color { tint.lightened(by: -0.30) }
     /// Montre le plafond. Faux la ou la place manque pour deux informations.
     var showsBase = false
 

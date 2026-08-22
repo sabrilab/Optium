@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UIKit
 
 /// Vocabulaire chromatique de l'application.
 ///
@@ -51,54 +52,40 @@ enum Ink {
     // font les references qui ont nourri cette direction, qui melangent
     // librement rose, bleu, vert et ambre sur un meme ecran.
     //
-    // Chaque entree porte sa teinte, son second foyer un cran plus clair, et
-    // une **contre-teinte**.
+    // **Chaque carte est d'une seule couleur.**
     //
-    // La contre-teinte est ce qui manquait pour que les cartes soient vives.
-    // Une seule couleur qui s'eteint vers le noir produit un fondu, jamais un
-    // degrade : l'oeil n'y voit qu'une valeur qui baisse. Les references de
-    // cette direction posent toujours un second ton *etranger* dans la carte —
-    // un bleu franc dans une carte orange — et c'est la rencontre des deux qui
-    // fait la couleur, pas leur intensite.
+    // Une teinte, et rien d'autre : elle se diffuse, elle s'eteint vers le
+    // noir, elle se rallume sur une arete — mais elle ne rencontre jamais une
+    // autre couleur. C'est ce fondu d'un ton unique qui laisse le texte
+    // lisible ; deux tons qui se croisent produisent au milieu une valeur
+    // qu'on ne controle plus, et la ou passe une ligne de texte, ca se paye.
     //
-    // Elle est franche et minoritaire : posee en un seul foyer bas, elle
-    // colore sans disputer la teinte principale.
+    // Une contre-teinte a ete essayee — un ton etranger pose en bas de carte —
+    // pour rendre les cartes plus vives. Elle les rendait surtout multicolores,
+    // et changeait la direction artistique. Retiree.
+    //
+    // **La regle est tenue par construction, pas par discipline.** `accent`
+    // n'est pas une seconde couleur qu'on choisit : c'est `tint` eclaircie,
+    // calculee. On ne peut donc pas en glisser une autre sans reecrire le
+    // type, ce qui est exactement l'intention.
 
     struct CardHue {
         let tint: Color
-        let accent: Color
-        let counter: Color
+
+        /// Le meme ton, eclairci. **Jamais une autre couleur.**
+        ///
+        /// Sert a rallumer l'arete haute et le second foyer : sans ecart de
+        /// valeur, la carte serait un aplat. L'ecart est de clarte, pas de
+        /// teinte.
+        var accent: Color { tint.lightened(by: 0.26) }
     }
 
-    static let indigo = CardHue(
-        tint: Color(red: 0.322, green: 0.325, blue: 0.941),
-        accent: Color(red: 0.541, green: 0.290, blue: 0.867),
-        counter: Color(red: 0.976, green: 0.404, blue: 0.502))
-
-    static let violet = CardHue(
-        tint: Color(red: 0.541, green: 0.290, blue: 0.867),
-        accent: Color(red: 0.753, green: 0.361, blue: 0.910),
-        counter: Color(red: 0.204, green: 0.678, blue: 0.949))
-
-    static let rose = CardHue(
-        tint: Color(red: 0.820, green: 0.278, blue: 0.561),
-        accent: Color(red: 0.941, green: 0.420, blue: 0.659),
-        counter: Color(red: 0.259, green: 0.353, blue: 0.949))
-
-    static let teal = CardHue(
-        tint: Color(red: 0.086, green: 0.647, blue: 0.588),
-        accent: Color(red: 0.247, green: 0.839, blue: 0.690),
-        counter: Color(red: 0.616, green: 0.353, blue: 0.949))
-
-    static let amber = CardHue(
-        tint: Color(red: 0.851, green: 0.565, blue: 0.235),
-        accent: Color(red: 0.941, green: 0.722, blue: 0.369),
-        counter: Color(red: 0.259, green: 0.404, blue: 0.949))
-
-    static let coral = CardHue(
-        tint: Color(red: 0.878, green: 0.341, blue: 0.310),
-        accent: Color(red: 0.961, green: 0.502, blue: 0.439),
-        counter: Color(red: 0.180, green: 0.573, blue: 0.910))
+    static let indigo = CardHue(tint: Color(red: 0.322, green: 0.325, blue: 0.941))
+    static let violet = CardHue(tint: Color(red: 0.541, green: 0.290, blue: 0.867))
+    static let rose = CardHue(tint: Color(red: 0.820, green: 0.278, blue: 0.561))
+    static let teal = CardHue(tint: Color(red: 0.086, green: 0.647, blue: 0.588))
+    static let amber = CardHue(tint: Color(red: 0.851, green: 0.565, blue: 0.235))
+    static let coral = CardHue(tint: Color(red: 0.878, green: 0.341, blue: 0.310))
 
     /// Les six, dans l'ordre ou elles se suivent le mieux.
     static let cardHues = [indigo, violet, rose, teal, amber, coral]
@@ -127,5 +114,27 @@ enum Clock {
     nonisolated static func hhmm(_ date: Date, calendar: Calendar = .current) -> String {
         let parts = calendar.dateComponents([.hour, .minute], from: date)
         return String(format: "%d h %02d", parts.hour ?? 0, parts.minute ?? 0)
+    }
+}
+
+
+extension Color {
+    /// Le meme ton, plus clair.
+    ///
+    /// On passe par la teinte-saturation-luminosite pour ne toucher qu'a la
+    /// luminosite : eclaircir en poussant les composantes rouge, verte et
+    /// bleue vers le blanc derive la teinte, et c'est precisement ce que la
+    /// regle d'une seule couleur par carte interdit.
+    func lightened(by amount: Double) -> Color {
+        var hue: CGFloat = 0, saturation: CGFloat = 0, brightness: CGFloat = 0, alpha: CGFloat = 0
+        guard UIColor(self).getHue(&hue, saturation: &saturation,
+                                   brightness: &brightness, alpha: &alpha) else { return self }
+        return Color(
+            hue: Double(hue),
+            // La saturation baisse un peu avec la montee en luminosite : une
+            // couleur claire et pleinement saturee se lit comme fluorescente.
+            saturation: Double(saturation) * (1 - amount * 0.35),
+            brightness: min(1, Double(brightness) + amount)
+        )
     }
 }

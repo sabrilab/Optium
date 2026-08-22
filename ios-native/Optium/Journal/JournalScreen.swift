@@ -165,8 +165,7 @@ struct JournalScreen: View {
                 VStack(spacing: 5) {
                     BrainMark(
                         fill: tier.fill,
-                        tint: tier == current ? Ink.marker : .white,
-                        far: tier == current ? Ink.focusGlowFar : .white
+                        tint: tier == current ? Ink.marker : .white
                     )
                     .frame(width: 26, height: 26)
                     .opacity(tier == current ? 1 : 0.34)

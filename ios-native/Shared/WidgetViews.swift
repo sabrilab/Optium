@@ -33,7 +33,7 @@ struct WidgetBrain: View {
         } else {
             BrainMark(
                 fill: snapshot.fill, base: snapshot.base,
-                tint: tint, far: tint, showsBase: showsBase
+                tint: tint, showsBase: showsBase
             )
         }
     }
@@ -56,11 +56,11 @@ struct ClarityWidgetView: View {
         case .accessoryCircular:
             // Le cerveau seul, aucun texte : a cette taille un mot serait
             // illisible et volerait la place du seul signal utile.
-            BrainMark(fill: snapshot.fill, tint: .white, far: .white)
+            BrainMark(fill: snapshot.fill, tint: .white)
 
         case .accessoryRectangular:
             HStack(spacing: 8) {
-                BrainMark(fill: snapshot.fill, tint: .white, far: .white)
+                BrainMark(fill: snapshot.fill, tint: .white)
                     .frame(width: 30, height: 30)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(snapshot.clarityWord.map { "Clarté \($0)" } ?? "\(snapshot.observedNights) nuits observées")

@@ -18,7 +18,7 @@ struct BentoCard<Content: View>: View {
         content
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
-            .bentoSurface(tint: tint, accent: accent, counter: hue.counter, corner: corner, intensity: intensity)
+            .bentoSurface(tint: tint, accent: accent, corner: corner, intensity: intensity)
     }
 }
 
@@ -50,9 +50,7 @@ struct BentoStat: View {
 extension View {
     /// Variante prenant une teinte de carte complete.
     func bentoSurface(_ hue: Ink.CardHue, corner: CGFloat = 28, intensity: Double = 1) -> some View {
-        bentoSurface(
-            tint: hue.tint, accent: hue.accent, counter: hue.counter,
-            corner: corner, intensity: intensity)
+        bentoSurface(tint: hue.tint, accent: hue.accent, corner: corner, intensity: intensity)
     }
 
     /// Surface d'une carte : maillage colore diffus, puis verre d'Apple.
@@ -63,14 +61,14 @@ extension View {
     func bentoSurface(
         tint: Color,
         accent: Color? = nil,
-        counter: Color? = nil,
         corner: CGFloat = 28,
         intensity: Double = 1
     ) -> some View {
         modifier(BentoSurface(
             tint: tint,
-            accent: accent ?? tint,
-            counter: counter ?? accent ?? tint,
+            // Par defaut, la meme teinte eclaircie. Passer une couleur
+            // etrangere ici casserait la regle d'une seule couleur par carte.
+            accent: accent ?? tint.lightened(by: 0.26),
             corner: corner,
             intensity: intensity
         ))
@@ -80,7 +78,6 @@ extension View {
 private struct BentoSurface: ViewModifier {
     let tint: Color
     let accent: Color
-    let counter: Color
     let corner: CGFloat
     let intensity: Double
 
@@ -155,17 +152,6 @@ private struct BentoSurface: ViewModifier {
             )
             .blendMode(.plusLighter)
 
-            // La contre-teinte, en bas a gauche. Un ton etranger a la carte :
-            // c'est sa rencontre avec la teinte principale qui fait le
-            // degrade, la ou un fondu vers le noir ne donne qu'une valeur qui
-            // baisse.
-            RadialGradient(
-                colors: [counter.opacity(0.62 * intensity), .clear],
-                center: UnitPoint(x: 0.20, y: 0.88),
-                startRadius: 0,
-                endRadius: radius * 0.44
-            )
-            .blendMode(.plusLighter)
         }
         // Le flou acheve la diffusion et efface les raccords entre les foyers.
         .blur(radius: 22)

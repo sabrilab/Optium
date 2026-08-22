@@ -28,6 +28,9 @@ struct HomeScreen: View {
 
     @Query private var allResumptions: [Resumption]
 
+    /// Les nuits enregistrees, pour la bande sous la clarte.
+    @Query(sort: \RecordedNight.wokeAt) private var recordedNights: [RecordedNight]
+
     @State private var composing = false
     @State private var showSettings = false
     @State private var calling = false
@@ -191,6 +194,22 @@ struct HomeScreen: View {
                 // cognitive s'approcherait d'un diagnostic.
                 Text(clarity.level.word)
                     .font(.system(size: 34, weight: .light))
+
+                // **Sa cause, juste en dessous.** Le mot apparaissait seul, et
+                // il fallait ouvrir un autre écran pour savoir sur quoi il
+                // reposait. Un verdict dont la cause est ailleurs se subit ;
+                // posé à côté d'elle, il s'examine.
+                NavigationLink { NightsScreen() } label: {
+                    HStack(alignment: .top, spacing: 12) {
+                        NightsStrip(nights: recordedNights)
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.right")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .padding(.top, 16)
+                    }
+                }
+                .buttonStyle(.plain)
             } else {
                 arrival
             }
@@ -205,21 +224,21 @@ struct HomeScreen: View {
 
             legend
 
-            // Le recours : voir sur quoi tout cela se fonde. Discret, mais
-            // toujours la — une affirmation sans recours n'est pas une mesure.
-            NavigationLink { NightsScreen() } label: {
-                HStack(spacing: 6) {
-                    Text(reading.observedNights > 0
-                         ? "Voir mes \(reading.observedNights) nuits"
-                         : "Voir mes nuits")
-                    Image(systemName: "chevron.right").font(.caption2)
+            // Sans clarté, la bande n'a rien à montrer : le recours reste
+            // accessible, mais discret.
+            if reading.clarity == nil {
+                NavigationLink { NightsScreen() } label: {
+                    HStack(spacing: 6) {
+                        Text("Voir mes nuits")
+                        Image(systemName: "chevron.right").font(.caption2)
+                    }
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(minHeight: 44)
                 }
-                .font(.footnote)
-                .foregroundStyle(reading.restsOnInference ? Ink.marker : .secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(minHeight: 44)
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
