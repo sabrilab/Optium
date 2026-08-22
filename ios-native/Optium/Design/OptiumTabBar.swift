@@ -31,14 +31,35 @@ import SwiftUI
 struct OptiumTabBar: View {
     @Binding var selection: RootTab
 
+    /// L'espace de nom qui permet au verre de **passer** d'un onglet a
+    /// l'autre au lieu de disparaitre ici et reapparaitre la.
+    @Namespace private var glass
+
     var body: some View {
-        HStack(spacing: 6) {
-            ForEach(RootTab.allCases, id: \.self) { tab in
-                item(tab)
+        // **Le vrai verre d'Apple, et pas une imitation.**
+        //
+        // La premiere version posait un `glassEffect` statique sur le fond de
+        // la barre. C'est bien l'API du systeme, mais c'en est la forme la plus
+        // pauvre : une plaque qui ne repond a rien. Trois choses manquaient, et
+        // ce sont elles qui font le Liquid Glass :
+        //
+        // 1. `GlassEffectContainer` — sans lui, deux surfaces de verre voisines
+        //    s'ignorent. Dedans, elles se fondent et se separent comme du
+        //    liquide, ce qui est le comportement caracteristique.
+        // 2. `.interactive()` — le verre se deforme et s'illumine sous le
+        //    doigt. C'est ce que fait la barre du systeme au toucher, et son
+        //    absence se sent immediatement.
+        // 3. `glassEffectID` — l'indicateur de selection **passe** d'un onglet
+        //    a l'autre au lieu de disparaitre et reapparaitre.
+        GlassEffectContainer(spacing: 10) {
+            HStack(spacing: 6) {
+                ForEach(RootTab.allCases, id: \.self) { tab in
+                    item(tab)
+                }
             }
+            .padding(6)
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 28))
         }
-        .padding(6)
-        .glassEffect(.regular, in: .rect(cornerRadius: 26))
         // Alignee a gauche, avec la meme marge que les cartes : la barre
         // appartient a la colonne de contenu, elle ne flotte pas au milieu.
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -77,16 +98,18 @@ struct OptiumTabBar: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 9)
             .frame(minWidth: 76)
-            .background {
-                if isCurrent {
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(Color.white.opacity(0.14))
-                }
-            }
-            .contentShape(.rect(cornerRadius: 20))
+            .contentShape(.rect(cornerRadius: 22))
         }
         .buttonStyle(.plain)
-        .animation(Motion.state, value: isCurrent)
+        // Le verre de la selection vit dans le meme conteneur que celui de la
+        // barre : les deux se fondent, et l'identite partagee le fait glisser
+        // d'un onglet a l'autre.
+        .glassEffect(
+            isCurrent ? .regular.tint(Ink.control.opacity(0.16)).interactive() : .identity,
+            in: .rect(cornerRadius: 22)
+        )
+        .glassEffectID(isCurrent ? "selection" : nil, in: glass)
+        .animation(Motion.state, value: selection)
         .accessibilityLabel(tab.title)
         .accessibilityAddTraits(isCurrent ? [.isSelected, .isButton] : .isButton)
     }

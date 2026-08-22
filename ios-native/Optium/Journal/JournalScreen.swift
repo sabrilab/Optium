@@ -76,6 +76,19 @@ struct JournalScreen: View {
     @ViewBuilder
     private var tierCard: some View {
         if let tier {
+            // **La carte ouvre les cinq paliers.** Le mot seul — « Cristallin »
+            // — n'apprend rien de ce qu'il mesure, et l'echelle en dessous ne
+            // fait que situer. Ce qui manquait, c'est ce que chaque etat
+            // decrit.
+            NavigationLink { TierScreen(current: tier) } label: { tierBody(tier) }
+                .buttonStyle(Pressable())
+        } else {
+            emptyTierCard
+        }
+    }
+
+    private func tierBody(_ tier: Tier) -> some View {
+        Group {
             VStack(alignment: .leading, spacing: 16) {
                 Text("TON PALIER")
                     .font(.caption2.weight(.semibold))
@@ -114,6 +127,11 @@ struct JournalScreen: View {
                         Text(tier.situation)
                             .font(.footnote)
                             .foregroundStyle(.secondary)
+                            // Le lien contraint la hauteur de son libelle : sans
+                            // ca, la phrase se tronque au premier retour a la
+                            // ligne.
+                            .fixedSize(horizontal: false, vertical: true)
+                            .multilineTextAlignment(.leading)
                         if let days = tenure {
                             // Retrospectif, jamais predictif : annoncer « tu
                             // passes Net dans six jours » serait un compte a
@@ -128,11 +146,29 @@ struct JournalScreen: View {
                 }
 
                 scale(tier)
+
+                // Le chevron dit que la carte mene quelque part : sans lui,
+                // rien ne distingue une carte qui informe d'une carte qui
+                // ouvre.
+                HStack(spacing: 6) {
+                    Text("Ce que chaque palier décrit")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Image(systemName: "chevron.right")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    Spacer()
+                }
+                .padding(.top, 4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(20)
             .bentoSurface(Ink.indigo, corner: 34)
-        } else {
+        }
+    }
+
+    private var emptyTierCard: some View {
+        Group {
             VStack(alignment: .leading, spacing: 10) {
                 Text("TON PALIER")
                     .font(.caption2.weight(.semibold))

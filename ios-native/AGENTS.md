@@ -725,6 +725,17 @@ masquée. **Le masquage se pose sur le contenu de chaque `Tab`, jamais sur le
 `TabView`** — appliqué à celui-ci il est ignoré en silence, et la barre système
 reste visible derrière la nôtre.
 
+**Le verre est celui d'Apple, dans sa forme complète.** Une première version
+posait un `glassEffect` statique sur le fond : c'est bien l'API du système,
+mais c'en est la forme la plus pauvre — une plaque qui ne répond à rien. Trois
+choses manquaient, et ce sont elles qui font le Liquid Glass :
+
+1. `GlassEffectContainer` — sans lui, deux surfaces de verre voisines
+   s'ignorent. Dedans, elles se fondent et se séparent comme du liquide.
+2. `.interactive()` — le verre se déforme et s'illumine sous le doigt.
+3. `glassEffectID` dans un `Namespace` — l'indicateur de sélection **passe**
+   d'un onglet à l'autre au lieu de disparaître et réapparaître.
+
 **Ce n'est pas une pratique recommandée.** Les HIG demandent une barre
 standard. C'est un écart assumé, à la demande explicite du propriétaire du
 produit — pas un choix à reproduire ailleurs sans raison.
@@ -903,6 +914,26 @@ rendu visible.
 Le module café est le seul qui relie deux choses, et il ne conclut rien : deux
 barres, **jamais une flèche**. Une flèche dirait une cause, or les jours à café
 tardif sont souvent les jours chargés.
+
+### Les paliers, parcourables
+
+`Journal/TierScreen.swift`, ouvert depuis la carte « Ton palier ».
+
+**Expliquer, jamais faire monter.** La frontière est mince et elle est tenue
+dans le code : chaque palier dit ce que l'indice mesure à ce niveau-là, et
+aucun ne dit comment passer au suivant. Une progression expliquée devient une
+progression à obtenir, et le sommeil devient un score — c'est le mécanisme même
+de l'orthosomnie.
+
+Trois absences délibérées : pas de flèche vers le haut, pas de « prochain
+palier », pas de distance à parcourir. Les teintes suivent l'ordre de la
+palette et **aucune n'est plus « bonne » qu'une autre** — pas de vert en haut,
+pas de rouge en bas, ce serait noter.
+
+`Tier.agreementShare` traduit l'indice dans sa définition littérale : la
+probabilité d'être dans le même état à la même heure d'un jour sur l'autre,
+soit `(indice + 100) / 2`. C'est bien plus parlant qu'un score, et
+`TierEducationTests` vérifie qu'aucune explication ne conseille ni ne juge.
 
 ### La bande des nuits
 

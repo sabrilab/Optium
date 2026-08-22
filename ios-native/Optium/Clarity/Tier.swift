@@ -64,6 +64,44 @@ nonisolated enum Tier: String, CaseIterable, Comparable {
         return "\(above) % des gens dorment plus régulièrement. \(populationShare) % sont à ton palier."
     }
 
+    /// Ce que le palier **decrit**, jamais comment y arriver.
+    ///
+    /// **La frontiere est ici, et elle est mince.** Expliquer ce qu'un palier
+    /// mesure informe ; expliquer comment monter d'un cran transforme le
+    /// sommeil en score a optimiser, ce qui est exactement le mecanisme de
+    /// l'orthosomnie. Aucune de ces phrases ne contient de conseil, de verbe a
+    /// l'imperatif, ni de comparaison entre paliers en termes de merite.
+    var explanation: String {
+        switch self {
+        case .crystalline:
+            "Tes heures de sommeil se répètent presque à l’identique d’un jour sur l’autre. C’est la régularité la plus élevée que l’indice sache décrire — pas un objectif, un constat."
+        case .limpid:
+            "Tes horaires tiennent d’un jour sur l’autre, avec des écarts qui restent courts. Les décalages existent mais ne s’installent pas."
+        case .clear:
+            "Tes horaires se ressemblent la plupart du temps, avec des journées qui sortent du rang. C’est le palier le plus habité : un quart des gens s’y trouve."
+        case .veiled:
+            "Tes heures de coucher et de lever se déplacent nettement d’un jour sur l’autre. L’indice le voit sans pouvoir en dire la cause — un travail posté et des nuits blanches se ressemblent, vus d’ici."
+        case .murky:
+            "Tes horaires varient assez pour que deux journées consécutives se ressemblent peu. C’est ce que mesure l’indice, et rien de plus : il ne dit ni pourquoi, ni si c’est un problème pour toi."
+        }
+    }
+
+    /// La probabilite d'etre dans le meme etat — endormi ou eveille — a la meme
+    /// heure d'un jour sur l'autre, en pourcentage.
+    ///
+    /// C'est la definition litterale de l'indice, et elle est bien plus
+    /// parlante que le score : l'echelle publiee va de -100 a 100, ramenee a
+    /// 0-100, donc `part = (indice + 100) / 2`.
+    var agreementShare: Int {
+        Int(((threshold + 100) / 2).rounded())
+    }
+
+    /// L'etendue de l'indice couverte par ce palier.
+    var range: ClosedRange<Double> {
+        let above = Tier.allCases.filter { $0.threshold > threshold }.map(\.threshold).min()
+        return threshold...(above ?? 100)
+    }
+
     /// Remplissage de l'embleme, 0…1.
     var fill: Double {
         switch self {
