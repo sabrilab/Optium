@@ -123,3 +123,26 @@ private func night(_ day: Int, hours: Double = 8, bed: Double = 23) -> Night {
 
     #expect(days <= 40)
 }
+
+// ── Aucune direction n'est presumee ──
+//
+// Le recit courant — le fatigue se croit performant — n'est pas soutenu :
+// Bermudez et coll. (2021) trouvent des estimations plutot plus
+// conservatrices. Les phrases affichees ne doivent donc pas expliquer
+// l'ecart, seulement le compter.
+
+@Test func aucunePhraseNeDesigneUnSensCommeLePlusTrompeur() throws {
+    let cas: [[CalibrationRecord]] = [
+        (0..<6).map { answer($0, felt: true, measured: .low) },
+        (0..<6).map { answer($0, felt: false, measured: .high) },
+        (0..<3).map { answer($0, felt: true, measured: .low) }
+            + (0..<3).map { answer($0 + 3, felt: false, measured: .high) },
+        (0..<4).map { answer($0, felt: true, measured: .high) },
+    ]
+    for records in cas {
+        let phrase = try #require(CalibrationInsight.summary(of: records, calendar: cal)).sentence.lowercased()
+        for interdit in ["trompe", "se voit le moins", "de l’intérieur", "souvent", "aveugle"] {
+            #expect(!phrase.contains(interdit), "« \(interdit) » dans : \(phrase)")
+        }
+    }
+}

@@ -42,6 +42,21 @@ struct HealthSleepSource: SleepSource {
 
         // Seul le sommeil compte. « Au lit » n'est pas dormir, et le retenir
         // gonflerait toutes les durees.
+        //
+        // **Les quatre stades sont lus pour une seule chose : etablir que la
+        // personne dort. Leur identite n'est jamais exploitee, et ne doit
+        // jamais l'etre.**
+        //
+        // Les validations 2024 contre polysomnographie donnent, pour les
+        // montres grand public : sommeil contre eveil au-dessus de 95 % de
+        // sensibilite, duree totale a plus ou moins douze minutes — mais
+        // sommeil profond entre 50 et 64 % seulement. Calculer une « duree de
+        // sommeil profond » reviendrait a batir sur la seule partie non
+        // fiable de la mesure.
+        //
+        // Optium ne lit donc que `asleepAt` et `wokeAt` : la duree et les
+        // horaires, c'est-a-dire precisement ce que ces appareils mesurent
+        // bien.
         let asleep = samples.filter { sample in
             switch HKCategoryValueSleepAnalysis(rawValue: sample.value) {
             case .asleepCore, .asleepDeep, .asleepREM, .asleepUnspecified: true

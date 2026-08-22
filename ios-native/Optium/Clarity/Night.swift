@@ -66,4 +66,35 @@ enum SleepRegularity {
         let raw = -100.0 + 200.0 * Double(agreements) / Double(comparisons)
         return min(100, max(0, raw))
     }
+
+    /// Le rang de population d'un indice, 0…100.
+    ///
+    /// **Un SRI n'est pas un pourcentage, et le lire comme tel fausse tout.**
+    /// Son echelle utile est etroite : la moitie de la UK Biobank tient entre
+    /// 73,8 et 86,3. Un indice de 68 designe donc le cinquieme le moins
+    /// regulier de la population — mais entre brut dans une somme ponderee, il
+    /// vaut « 68 sur 100 », c'est-a-dire une mention honorable. Toute la
+    /// distribution de clarte s'en trouvait tassee vers le haut : un profil se
+    /// couchant entre 19 h et 3 h obtenait une clarte haute.
+    ///
+    /// Cette fonction rend a l'indice son rang. Les points d'appui sont les
+    /// quartiles publies — 73,8 / 81 / 86,3 — places a 25, 50 et 75, et non
+    /// des seuils choisis. Les extremites, 60 et 95, bornent la plage
+    /// observable ; elles sont les deux seules valeurs decidees ici.
+    ///
+    /// L'interpolation est lineaire par morceaux : la vraie courbe cumulative
+    /// n'est pas publiee, et lui substituer une sigmoide inventee ajouterait
+    /// une precision que la source ne porte pas.
+    static func populationScore(_ index: Double) -> Double {
+        let anchors: [(sri: Double, rank: Double)] = [
+            (60, 0), (73.8, 25), (81, 50), (86.3, 75), (95, 100),
+        ]
+        if index <= anchors[0].sri { return 0 }
+        if index >= anchors[anchors.count - 1].sri { return 100 }
+        for (low, high) in zip(anchors, anchors.dropFirst()) where index <= high.sri {
+            let share = (index - low.sri) / (high.sri - low.sri)
+            return low.rank + share * (high.rank - low.rank)
+        }
+        return 100
+    }
 }

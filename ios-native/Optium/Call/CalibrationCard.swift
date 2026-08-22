@@ -90,10 +90,17 @@ struct CalibrationCard: View {
         .bentoSurface(Ink.teal, corner: 30, intensity: calibration.disagrees ? 0.55 : 0.25)
     }
 
+    /// Elle constate l'ecart, elle ne dit pas ce qu'il signifie.
+    ///
+    /// « C'est le cas qui trompe le plus » figurait ici. C'etait le recit
+    /// courant — le fatigue se croit performant — et il n'est pas soutenu :
+    /// les estimations de performance apres privation sont plutot **plus
+    /// conservatrices** (Bermudez et coll., *Sleep Medicine Reviews*, 2021).
+    /// Voir `CalibrationSummary`.
     private func sentence(_ calibration: Calibration) -> String {
         guard calibration.disagrees else { return "Ton ressenti et ma mesure disent la même chose." }
         return calibration.feltClear
-            ? "Tu te sens clair, je te mesure bas. C’est le cas qui trompe le plus."
-            : "Tu te sens émoussé, je te mesure haut. Ça arrive après une nuit courte isolée."
+            ? "Tu te sens clair, je te mesure bas."
+            : "Tu te sens émoussé, je te mesure haut."
     }
 }

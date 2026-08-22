@@ -202,10 +202,10 @@ struct JournalScreen: View {
 
     /// L'écart entre le ressenti et la mesure, accumulé.
     ///
-    /// C'est l'élément le plus métacognitif du produit : en restriction
-    /// chronique, la somnolence ressentie plafonne alors que la performance
-    /// continue de décliner. Voir l'écart s'accumuler est la seule façon
-    /// d'apprendre qu'on ne se juge pas bien.
+    /// C'est l'élément le plus métacognitif du produit. Les deux sens sont
+    /// comptés côte à côte sans qu'aucun soit désigné comme le plus trompeur :
+    /// voir `CalibrationSummary` pour ce que la littérature soutient, et ce
+    /// qu'elle contredit.
     @ViewBuilder
     private var calibrationCard: some View {
         if let insight = CalibrationInsight.summary(of: calibrations.map {
@@ -226,6 +226,13 @@ struct JournalScreen: View {
                     tally("\(insight.underestimates)", "émoussé, mesuré haut")
                     tally("\(insight.agreements)", "d’accord")
                 }
+
+                // La seule affirmation que la litterature soutient, dite une
+                // fois, et jamais accrochee a l'un des deux sens.
+                Text("On ne devient pas aveugle à sa fatigue. On devient moins capable d’attraper ses propres erreurs.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(20)

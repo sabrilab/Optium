@@ -76,9 +76,20 @@ struct ClarityReading {
 /// d'Apple, et son rapport tourne dans une extension muree qui ne peut pas le
 /// renvoyer a l'application. Il a donc ete abandonne, et son poids reparti.
 enum ClarityEngine {
-    static let regularityWeight = 0.45
-    static let durationWeight = 0.30
-    static let circadianWeight = 0.25
+    // Des poids ronds, et c'est deliberé.
+    //
+    // Ils etaient a 0,45 / 0,30 / 0,25 : ces decimales annoncaient une
+    // calibration qui n'existe pas. La fausse precision est ce qui
+    // decredibilise une heuristique aupres de quiconque connait le domaine —
+    // autant assumer l'ordre de grandeur.
+    //
+    // La regularite domine parce qu'elle est la mieux etablie : Windred et
+    // coll. (2023) montrent qu'elle predit mieux la mortalite que la duree.
+    // Le circadien est descendu a 0,2 parce qu'il est le plus conteste des
+    // trois — voir le commentaire de `CircadianModel`.
+    static let regularityWeight = 0.5
+    static let durationWeight = 0.3
+    static let circadianWeight = 0.2
 
     /// En deca, la clarte n'existe pas.
     ///
@@ -139,18 +150,22 @@ enum ClarityEngine {
             )
         }
 
-        let regularity = SleepRegularity.index(nights: recent, calendar: calendar) ?? 50
+        // Le SRI brut est conserve pour l'affichage et les faits ; c'est son
+        // rang de population qui entre dans la ponderation. Voir
+        // `SleepRegularity.populationScore`.
+        let regularity = SleepRegularity.index(nights: recent, calendar: calendar) ?? 81
+        let regularityScore = SleepRegularity.populationScore(regularity)
         let durations = recent.map(\.duration).sorted()
         let median = durations[durations.count / 2]
         let duration = durationScore(lastNight: last.duration, median: median)
         let phase = circadian.score(at: now)
 
-        let value = regularityWeight * regularity
+        let value = regularityWeight * regularityScore
                   + durationWeight * duration
                   + circadianWeight * phase
 
         let shortfalls = [
-            ClarityShortfall(component: .regularity, amount: regularityWeight * (100 - regularity)),
+            ClarityShortfall(component: .regularity, amount: regularityWeight * (100 - regularityScore)),
             ClarityShortfall(component: .duration, amount: durationWeight * (100 - duration)),
             ClarityShortfall(component: .circadian, amount: circadianWeight * (100 - phase)),
         ].sorted { $0.amount > $1.amount }

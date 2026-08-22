@@ -161,6 +161,33 @@ le plus : `poids × (1 − valeur normalisée)`. Un fait vérifiable dans Santé
 un score. Un seul, sauf si le deuxième est à moins de 15 % du premier ; jamais
 trois.
 
+### Ce qu'elle défend
+
+Le récit courant veut que le fatigué se croie performant. **Il est faux, et
+c'est vérifié** : la revue systématique et méta-analyse de Bermudez et coll.
+(*Sleep Medicine Reviews*, 2021 — 28 études retenues, 11 exploitables) trouve
+que les participants privés de sommeil donnent typiquement des estimations
+**plus conservatrices** de leur performance. Une revue distincte
+(*Metacognition and Learning*, 2017) ne trouve pas d'effet sur les jugements de
+confiance.
+
+Ce qui se dégrade de façon constante, c'est la **détection de ses propres
+erreurs**. La formulation à retenir, et la seule qui soit soutenue :
+
+> **On ne devient pas aveugle à sa fatigue. On devient moins capable
+> d'attraper ses propres erreurs.**
+
+**C'est un argument plus fort pour la porte, pas plus faible.** Si l'utilisateur
+ignorait simplement qu'il est fatigué, une notification suffirait. Le problème
+est qu'il peut parfaitement le savoir et rater l'erreur quand même — savoir ne
+suffit pas, il faut une interruption au moment de conclure.
+
+Conséquence à tenir dans tout le texte affiché : aucune formulation du type
+« tu ne remarques plus que tu te trompes ». La première est contredite, la
+seconde — « tu attrapes moins tes propres erreurs » — est soutenue. Les phrases
+de calibration ne désignent d'ailleurs plus aucun des deux sens de l'écart
+comme le plus trompeur ; voir `CalibrationSummary`.
+
 Sa rareté est ce qui la rend acceptable. Élargir cette condition la
 transformerait en friction ordinaire, et l'application perdrait la seule chose
 qu'elle sait faire. Six tests couvrent les trois natures × les trois niveaux —
@@ -181,12 +208,17 @@ arrête.
 `Clarity/ClarityEngine.swift`.
 
 ```
-clarte = 0.45 * regularite     // SRI sur 28 jours
-       + 0.30 * duree          // ecart a la cible, penalise DANS LES DEUX SENS
-       + 0.25 * circadien      // deux processus, phase apprise des levers reels
+clarte = 0.5 * rang_de_regularite  // rang de population du SRI sur 28 jours
+       + 0.3 * duree               // ecart a la cible, penalise DANS LES DEUX SENS
+       + 0.2 * circadien           // deux processus, phase apprise des levers reels
 ```
 
 Seuils : `basse < 42 ≤ moyenne < 70 ≤ haute`.
+
+**Les poids sont ronds, et c'est délibéré.** Ils valaient 0,45 / 0,30 / 0,25 :
+ces décimales annonçaient une calibration qui n'existe pas, et la fausse
+précision est ce qui décrédibilise une heuristique. Ne pas les « affiner » sans
+données pour le justifier.
 **La valeur numérique n'est jamais affichée.**
 
 **`ClarityReading.clarity` est optionnelle.** Sous `minimumNights` — trois —
@@ -224,6 +256,23 @@ prédit mieux la mortalité que la durée.
 heures non observées comptaient comme des désaccords, et une personne
 parfaitement régulière ne pouvait pas atteindre 100.
 
+**Piège corrigé, et il faussait toute la distribution** : le SRI brut entrait
+dans la somme pondérée comme s'il s'agissait d'un pourcentage. Son échelle
+utile est bien plus étroite — la moitié de la UK Biobank tient entre 73,8 et
+86,3. Un indice de 68, qui désigne le cinquième le moins régulier de la
+population, valait donc « 68 sur 100 ». Résultat : un profil se couchant entre
+19 h et 3 h avec des nuits de 4 à 7 h ressortait en **clarté haute**.
+
+`SleepRegularity.populationScore` rend à l'indice son rang, en s'appuyant sur
+les quartiles publiés — 73,8 / 81 / 86,3 placés à 25, 50 et 75. Seules les
+bornes, 60 et 95, sont décidées. `ClarityReading.regularity` continue d'exposer
+le SRI brut : c'est la grandeur de la littérature, et l'affichage doit rester
+vérifiable.
+
+`OptiumTests/DistributionTests.swift` épingle cette distribution — que les trois
+niveaux restent atteignables, et qu'un couchage errant ne ressorte jamais haut.
+**C'est le test à lancer avant de toucher à un poids ou à un seuil.**
+
 ### La durée
 
 **Pénalisée dans les deux sens** — la relation durée/mortalité est en U.
@@ -244,6 +293,15 @@ circulaire — additionner 23 h et 1 h donnerait midi. Jamais supposé.
 
 La fenêtre s'ouvre deux heures après le lever habituel et dure 2 h 40.
 
+**C'est la composante la moins établie des trois, et son poids le dit.** L'effet
+de synchronie — mieux performer à l'heure qui correspond à son chronotype — est
+largement admis et soutenu par plusieurs travaux sur la fonction exécutive,
+**mais il est contesté** : un article de *Collabra: Psychology* (2023) conclut à
+l'absence de gain cognitif général et robuste issu du croisement heure du jour ×
+chronotype, et évoque la possibilité d'un artéfact méthodologique. C'est la
+raison pour laquelle son poids est descendu de 0,25 à 0,2, au profit de la
+régularité, qui est la mieux tenue.
+
 ### Le café
 
 **Modificateur, pas composante.** Une prise à moins de huit heures du coucher
@@ -256,6 +314,23 @@ Demi-vie de cinq heures, seuil à huit heures.
 `HealthSleepSource` (principale) et `MotionSleepSource` (repli), combinées par
 `CompositeSleepSource`. Le mouvement ne comble que les nuits absentes du
 mesuré ; il ne le corrige jamais.
+
+**Aucune composante du moteur ne doit jamais reposer sur les STADES de
+sommeil.** Les validations 2024 contre polysomnographie donnent, pour les
+montres grand public : sommeil contre éveil au-dessus de 95 % de sensibilité,
+durée totale à ± 12 minutes environ, sommeil paradoxal ≈ 82 % — mais **sommeil
+profond entre 50 et 64 % seulement**.
+
+Optium ne lit que `asleepAt` et `wokeAt`, c'est-à-dire précisément ce que ces
+appareils mesurent bien. `HealthSleepSource` inspecte bien les quatre valeurs de
+stade, mais pour une seule chose : établir que la personne dort. **Leur identité
+n'est jamais exploitée.** Introduire une « durée de sommeil profond » ou un
+score de qualité fondé sur les stades reviendrait à bâtir sur la seule partie
+non fiable de la mesure. Ne pas le faire.
+
+L'erreur de ± 12 minutes sur la durée se propage en revanche dans l'indice de
+régularité ; la médiane glissante sur 28 jours l'amortit, et c'est une des
+raisons de la conserver.
 
 **Aucune ne tourne en arrière-plan.** iOS suspend l'application, et « observer
 l'usage du téléphone » n'est pas un mode autorisé. On interroge l'**historique**
@@ -570,6 +645,22 @@ avant toute publication.
   risk than sleep duration.* SLEEP. doi 10.1093/sleep/zsad253
 - Lim & Dinges (2010). *A meta-analysis of the impact of short-term sleep
   deprivation on cognitive variables.* Psychological Bulletin, 136, 375-389.
+- Bermudez et al. (2021). *Sleep deprivation and metacognition.* Sleep Medicine
+  Reviews — revue systématique et méta-analyse, 28 études. PubMed 33894599.
+  **La détection d'erreur est dégradée ; l'estimation de sa propre performance
+  est plutôt plus conservatrice.** C'est ce qui fonde §4.
+- *Metacognition and Learning* (2017), revue systématique — la privation aiguë
+  de courte durée n'affecte pas les jugements de confiance.
+- *Collabra: Psychology* (2023) — absence de gain cognitif général et robuste
+  issu du croisement heure du jour × chronotype. Fonde le poids réduit du
+  circadien.
+- Smits, Wenzel & de Bruin (2025). *Behavioral Sciences*, 15(7), 861.
+  doi 10.3390/bs15070861 — 94 étudiants, trois conditions de pause. Aucune
+  différence significative sur l'achèvement (p = 0,854) ni sur le flow
+  (p = 0,774) ; fatigue et perte de motivation montent **plus vite** sous
+  Pomodoro que sous pauses auto-régulées. Réserve à énoncer systématiquement :
+  ces différences de pente n'ont pas produit d'écart sur les moyennes globales.
+  C'est un signal, pas une réfutation.
 - Borbély (1982). Modèle à deux processus de la régulation du sommeil.
 - Dehaene (2018). *Apprendre !* — attention, engagement actif, retour sur
   erreur, consolidation.
@@ -580,3 +671,11 @@ rétrospectives d'une trentaine d'étudiants. Macnamara & Maitra (2019, *Royal
 Society Open Science* 6:190327) trouvent que la pratique délibérée n'explique
 que 26 % de la variance au lieu de 48 %. À traiter comme un repère de
 conception, jamais comme un plafond physiologique.
+
+**Non vérifié, à ne pas inscrire avant contrôle** : les travaux de Walker sur la
+déconnexion préfrontal-amygdale, et la référence d'orthosomnie (Baron et coll.,
+2017) — le garde-fou reste pertinent, la citation doit être confirmée.
+
+**L'hypothèse centrale n'est testée nulle part.** Aucune donnée ne permet de
+dire qu'interrompre une décision à faible clarté améliore la qualité de cette
+décision. Voir `docs/etudes-fondements.md` pour la vérification complète.

@@ -8,6 +8,13 @@ import Foundation
 /// heures. Leur difference donne la vigilance disponible — d'ou le creux du
 /// milieu d'apres-midi, que ni l'un ni l'autre n'explique seul.
 ///
+/// **C'est la composante la moins etablie des trois, et son poids le dit** :
+/// 0,2 contre 0,5 pour la regularite. L'effet de synchronie — mieux performer
+/// a l'heure qui correspond a son chronotype — est largement admis, mais
+/// dispute : *Collabra: Psychology* (2023) conclut a l'absence de gain
+/// cognitif general et robuste issu du croisement heure du jour x chronotype,
+/// et evoque un possible artefact methodologique.
+///
 /// **Le chronotype est appris de l'heure de lever reelle, jamais suppose.**
 /// Il decale la courbe d'une a trois heures, et supposer un lever a sept
 /// heures pour quelqu'un qui se leve a dix rendrait toute la mesure fausse.
