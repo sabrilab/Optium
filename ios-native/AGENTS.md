@@ -494,15 +494,43 @@ Bundle : `com.sabrilab.optium.native`.
 
 ---
 
+## 14 bis. Ce que l'application apprend à son utilisateur
+
+Trois surfaces, ajoutées après l'analyse *Hooked*. Elles récompensent toutes un
+**résultat**, jamais l'usage — c'est la ligne qui sépare le facilitateur de
+l'amuseur, et la charte l'exige déjà.
+
+**Le corpus** (`Corpus/CorpusScreen.swift`) — les lignes écrites à la porte et
+les restitutions, relisibles et exportables. **C'est le seul véritable
+investissement du produit** : tout le reste est lu. Les enregistrer sans jamais
+les remontrer revenait à jeter la seule chose qu'on demande.
+
+**L'écart appris** (`Clarity/CalibrationInsight.swift`) — combien de fois le
+ressenti a contredit la mesure, et dans quel sens. C'est l'élément le plus
+métacognitif du produit : en restriction chronique, la somnolence ressentie
+plafonne alors que la performance décline, et voir l'écart s'accumuler est la
+seule façon d'apprendre qu'on ne se juge pas bien. La phrase énonce, elle ne
+juge ni ne félicite — une félicitation fausserait les réponses suivantes.
+
+**La tenue au palier** (`Clarity/TierHistory.swift`) — « depuis 27 jours ».
+**Rétrospectif, jamais prédictif.** Un « tu passes Net dans six jours » serait
+un compte à rebours vers un score de sommeil, c'est-à-dire le levier même de
+l'orthosomnie (Baron et coll., *J. Clin. Sleep Med.*, 2017). Cette distinction
+n'est pas négociable.
+
+Refusés explicitement, et à ne pas réintroduire : les séries de jours, toute
+notification conçue pour ramener, le cadrage par la perte, et toute récompense
+déclenchée par l'ouverture de l'application.
+
 ## 15. Ce qui n'est pas fait
 
-- **La calibration n'apprend rien encore.** Elle enregistre l'écart entre
-  ressenti et mesure, et l'affiche. Rien ne s'ajuste.
+- **La calibration n'ajuste rien.** Elle enregistre l'écart, l'accumule et le
+  restitue — mais le moteur ne s'en sert pas pour se corriger.
 - **Le désaccord n'est pas appris.** Si l'utilisateur travaille
   systématiquement à 22 h ce que l'application place à 9 h 40, l'appel peut le
   dire mais rien ne le corrige. À concevoir.
-- **La mémoire par projet** (`Call/ProjectMemory.swift`) existe mais n'est
-  branchée à aucun écran : ni restitution dictée, ni lecture, ni export.
+- **La restitution n'est pas dictée**, seulement écrite. La saisie vocale
+  reste à faire.
 - **L'icône de l'application est vide** — héritée du gabarit de départ.
 - **La carte partageable** (écran 16 des maquettes) n'existe pas.
 - **Pas de complication montre.**

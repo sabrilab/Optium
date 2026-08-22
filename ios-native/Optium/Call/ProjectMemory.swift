@@ -12,7 +12,7 @@ import Foundation
 struct ProjectMemory {
     let slug: String
 
-    private static var root: URL {
+    static var root: URL {
         let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         return documents.appendingPathComponent("optium", isDirectory: true)
     }
@@ -47,6 +47,21 @@ struct ProjectMemory {
 
     func erase() {
         try? FileManager.default.removeItem(at: url)
+    }
+
+    /// Tous les fichiers de memoire.
+    static var all: [URL] {
+        (try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil))?
+            .filter { $0.pathExtension == "md" } ?? []
+    }
+
+    /// Efface tout, sans reste.
+    ///
+    /// L'utilisateur doit pouvoir le faire, et le verifier : sans cette
+    /// possibilite, « rien ne quitte l'appareil » serait une promesse qu'il
+    /// n'a aucun moyen d'eprouver.
+    static func eraseAll() {
+        for url in all { try? FileManager.default.removeItem(at: url) }
     }
 
     private static func slugify(_ title: String) -> String {

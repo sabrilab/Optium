@@ -19,6 +19,7 @@ struct JournalScreen: View {
     @Query private var nights: [RecordedNight]
     @Query private var coffees: [CoffeeIntake]
     @Query private var resumptions: [Resumption]
+    @Query(sort: \Calibration.askedAt, order: .reverse) private var calibrations: [Calibration]
 
     private var facts: ProofFacts {
         ProofFactsBuilder.facts(
@@ -27,6 +28,12 @@ struct JournalScreen: View {
             coffees: coffees.map(\.takenAt),
             resumptions: resumptions
         )
+    }
+
+    @State private var showsCorpus = false
+
+    private var tenure: Int? {
+        TierHistory.daysAtCurrentTier(nights: nights.map(\.night), now: Date())
     }
 
     private var tier: Tier? {
@@ -39,6 +46,8 @@ struct JournalScreen: View {
             ScrollView {
                 VStack(spacing: 14) {
                     tierCard
+                    corpusLink
+                    calibrationCard
                     proofGrid
                     if !closed.isEmpty { closedSection }
                 }
@@ -47,6 +56,7 @@ struct JournalScreen: View {
             }
             .background(InkBackground())
             .navigationTitle("Où tu en es")
+            .navigationDestination(isPresented: $showsCorpus) { CorpusScreen() }
         }
     }
 
@@ -64,16 +74,13 @@ struct JournalScreen: View {
                 HStack(alignment: .center, spacing: 18) {
                     // L'emblème est le cerveau lui-même, à un remplissage
                     // croissant. Pas de médaille : le même objet, plus plein.
-                    if settings.brainEnabled {
-                        BrainView(
-                            fill: tier.fill,
-                            base: 1,
-                            agitation: 0,
-                            isDay: true,
-                            isVisible: scenePhase == .active
-                        )
-                        .frame(width: 96, height: 96)
-                    }
+                    //
+                    // En silhouette et non en Metal : c'est un emblème fixe de
+                    // 96 points, faire tourner un moteur 3D pour lui serait un
+                    // gaspillage — et il doit se lire comme les cinq de
+                    // l'échelle juste en dessous, qui sont des silhouettes.
+                    BrainSilhouetteView(fill: tier.fill, tint: Ink.marker, showsBase: false)
+                        .frame(width: 84, height: 84)
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text(tier.word)
@@ -81,6 +88,15 @@ struct JournalScreen: View {
                         Text(situation(tier))
                             .font(.footnote)
                             .foregroundStyle(.secondary)
+                        if let days = tenure {
+                            // Retrospectif, jamais predictif : annoncer « tu
+                            // passes Net dans six jours » serait un compte a
+                            // rebours vers un score de sommeil, c'est-a-dire
+                            // le levier meme de l'orthosomnie.
+                            Text(days == 0 ? "Depuis aujourd’hui." : "Depuis \(days) jour\(days > 1 ? "s" : "").")
+                                .font(.caption)
+                                .foregroundStyle(Ink.marker)
+                        }
                     }
                     Spacer(minLength: 0)
                 }
@@ -148,6 +164,85 @@ struct JournalScreen: View {
             .reduce(0) { $0 + $1.populationShare }
         if above == 0 { return "Le palier le plus régulier. \(tier.populationShare) % des gens y sont." }
         return "\(above) % des gens dorment plus régulièrement. \(tier.populationShare) % sont à ton palier."
+    }
+
+    /// L'accès au corpus. Une entrée, pas une carte : ce n'est pas une
+    /// statistique de plus, c'est un objet qu'on va lire.
+    private var corpusLink: some View {
+        NavigationLink {
+            CorpusScreen()
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Ce que tu as décidé")
+                        .font(.system(size: 19, weight: .light))
+                        .foregroundStyle(.primary)
+                    Text(corpusCount == 0
+                         ? "Rien encore"
+                         : "\(corpusCount) décision\(corpusCount > 1 ? "s" : "") écrite\(corpusCount > 1 ? "s" : "")")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(18)
+            .bentoSurface(Ink.rose, corner: 28, intensity: 0.45)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var corpusCount: Int {
+        closed.filter { $0.acceptance != nil || $0.restitution != nil }.count
+    }
+
+    // ── Ce que la calibration a appris ──
+
+    /// L'écart entre le ressenti et la mesure, accumulé.
+    ///
+    /// C'est l'élément le plus métacognitif du produit : en restriction
+    /// chronique, la somnolence ressentie plafonne alors que la performance
+    /// continue de décliner. Voir l'écart s'accumuler est la seule façon
+    /// d'apprendre qu'on ne se juge pas bien.
+    @ViewBuilder
+    private var calibrationCard: some View {
+        if let insight = CalibrationInsight.summary(of: calibrations.map {
+            CalibrationRecord(askedAt: $0.askedAt, feltClear: $0.feltClear, measured: $0.measured)
+        }) {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("CE QUE TU APPRENDS")
+                    .font(.caption2.weight(.semibold))
+                    .tracking(1.6)
+                    .foregroundStyle(.secondary)
+
+                Text(insight.sentence)
+                    .font(.system(size: 17, weight: .light))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                HStack(spacing: 18) {
+                    tally("\(insight.overestimates)", "clair, mesuré bas")
+                    tally("\(insight.underestimates)", "émoussé, mesuré haut")
+                    tally("\(insight.agreements)", "d’accord")
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(20)
+            .bentoSurface(Ink.teal, corner: 30, intensity: 0.45)
+        }
+    }
+
+    private func tally(_ value: String, _ label: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value)
+                .font(.system(size: 20, weight: .medium))
+                .monospacedDigit()
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // ── Les preuves ──

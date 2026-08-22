@@ -7,7 +7,11 @@ struct SettingsScreen: View {
     @Environment(\.dismiss) private var dismiss
     @Query private var nights: [RecordedNight]
 
+    @State private var confirmingErase = false
+
     private var nightCount: Int { nights.count }
+
+    private var memoryCount: Int { ProjectMemory.all.count }
 
     private var regularityText: String {
         guard let regularity = clarityStore.reading.regularity else { return "—" }
@@ -56,6 +60,24 @@ struct SettingsScreen: View {
             } footer: {
                 footer("La porte ne se déclenche qu’à clarté basse. Attendre une mauvaise nuit pour l’éprouver rendrait toute vérification impraticable.")
             }
+
+            Section {
+                LabeledContent("Mémoire des projets", value: "\(memoryCount) fichier\(memoryCount > 1 ? "s" : "")")
+                    .listRowBackground(row)
+                Button("Tout effacer", role: .destructive) { confirmingErase = true }
+                    .listRowBackground(row)
+                    .frame(minHeight: 44)
+            } header: {
+                header("Confidentialité")
+            } footer: {
+                footer("Rien ne quitte l’appareil. La mémoire est en markdown, dans les fichiers de l’application — lisible, corrigeable, effaçable.")
+            }
+        }
+        .alert("Effacer la mémoire ?", isPresented: $confirmingErase) {
+            Button("Annuler", role: .cancel) {}
+            Button("Effacer", role: .destructive) { ProjectMemory.eraseAll() }
+        } message: {
+            Text("Les lignes écrites à la fermeture de tes fils seront perdues. Les fils eux-mêmes restent.")
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)

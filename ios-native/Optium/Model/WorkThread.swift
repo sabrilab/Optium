@@ -60,6 +60,13 @@ final class WorkThread {
     var heldUntil: Date?
     /// La ligne ecrite a la porte. Sans elle, une decision ne se ferme pas.
     var acceptance: String?
+    /// Ce qu'on en retient, dicte ou ecrit a la fermeture. Facultatif.
+    ///
+    /// C'est l'engagement actif au sens de Dehaene : reformuler ce qu'on vient
+    /// de faire fixe plus surement que de le relire. Facultatif parce qu'une
+    /// saisie obligatoire a la fermeture transformerait chaque fin de fil en
+    /// corvee, et on cesserait de fermer les fils.
+    var restitution: String?
     /// Combien de fois ce fil a ete retenu. Compte pour la preuve « Retenue ».
     var holdCount: Int = 0
     var project: Project?
