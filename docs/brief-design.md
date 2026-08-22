@@ -5,6 +5,24 @@ Dernière mise à jour : 2026-08-22.
 
 ---
 
+## Arbitrages tranchés — ne pas rouvrir sans décision explicite
+
+Ces points ont été décidés en regardant le rendu réel sur appareil, pas une
+description. Ils l'emportent sur toute autre source, y compris sur un document
+de design antérieur qui dirait le contraire.
+
+- **Pas de trame de points sur le fond.** Elle a été implémentée
+  (`rgba(255,255,255,0.085)`, 0,85 px, pas de 17 px), regardée en
+  fonctionnement, et retirée : elle donnait de la matière au noir mais le
+  salissait à l'usage. **Le fond est un noir nu.**
+- **Les chiffres en matrice de points sont conservés** comme signature, y
+  compris là où un document de design prévoit des chiffres fins en graisse 200.
+  Ils riment avec le caractère d'instrument de mesure du produit.
+
+---
+
+---
+
 ## Le produit
 
 Optium est une application Pomodoro pour iPhone. Trois onglets :
