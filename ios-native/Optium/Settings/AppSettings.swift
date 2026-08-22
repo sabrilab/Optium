@@ -15,24 +15,22 @@ final class AppSettings {
     /// Coupe la 3D : economise la batterie et debloque les appareils lents.
     var brainEnabled: Bool { didSet { defaults.set(brainEnabled, forKey: Key.brain) } }
 
-    /// Clarte forcee, le temps que le moteur reel existe.
+    /// Clarte forcee, ou `nil` pour la mesure reelle.
     ///
-    /// Ce reglage est temporaire et assume : la porte doit pouvoir etre
-    /// eprouvee aujourd'hui, alors que sa mesure demande vingt-huit nuits de
-    /// donnees. Il disparaitra avec l'arrivee de HealthKit et CoreMotion.
-    var simulatedClarity: ClarityLevel {
-        didSet { defaults.set(simulatedClarity.rawValue, forKey: Key.clarity) }
+    /// Outil de developpement, et il le restera : la porte ne se declenche
+    /// qu'a clarte basse, et attendre une mauvaise nuit pour l'eprouver
+    /// rendrait toute verification impraticable.
+    var clarityOverride: ClarityLevel? {
+        didSet { defaults.set(clarityOverride?.rawValue ?? "", forKey: Key.clarity) }
     }
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         hapticsEnabled = defaults.object(forKey: Key.haptics) as? Bool ?? true
         brainEnabled = defaults.object(forKey: Key.brain) as? Bool ?? true
-        simulatedClarity = (defaults.object(forKey: Key.clarity) as? String)
-            .flatMap(ClarityLevel.init(rawValue:)) ?? .high
+        clarityOverride = (defaults.object(forKey: Key.clarity) as? String)
+            .flatMap(ClarityLevel.init(rawValue:))
     }
-
-    var claritySource: ClaritySource { SimulatedClaritySource(level: simulatedClarity) }
 
     private enum Key {
         static let haptics = "hapticsEnabled"

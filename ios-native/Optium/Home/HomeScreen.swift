@@ -10,6 +10,7 @@ struct HomeScreen: View {
     let isVisible: Bool
 
     @Environment(AppSettings.self) private var settings
+    @Environment(ClarityStore.self) private var clarityStore
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
 
@@ -23,12 +24,24 @@ struct HomeScreen: View {
     @State private var showSettings = false
     @State private var active: WorkThread?
 
-    private var clarity: Clarity { settings.claritySource.current() }
-    private var window: DateInterval { settings.claritySource.window(on: Date()) }
+    /// La lecture mesurée, sauf si le forçage de développement l'écrase.
+    private var reading: ClarityReading {
+        if let forced = settings.clarityOverride {
+            return .forced(forced, window: clarityStore.reading.window)
+        }
+        return clarityStore.reading
+    }
 
-    /// Le plafond permis par la nuit. Simulé tant que le moteur n'existe pas :
-    /// il se pose juste au-dessus du niveau courant.
-    private var base: Double { min(1, Double(clarity.value) / 100 + 0.12) }
+    private var clarity: Clarity { reading.clarity }
+    private var window: DateInterval { reading.window }
+
+    /// Le plafond permis par la nuit : ce que la régularité autorise, quelle
+    /// que soit la nuit d'hier. On ne peut pas rattraper en une nuit ce que
+    /// vingt-huit ont défait.
+    private var base: Double {
+        guard let regularity = reading.regularity else { return 1 }
+        return min(1, 0.45 + regularity / 100 * 0.55)
+    }
 
     /// L'agitation est le nombre de fils ouverts. Au-delà de cinq la surface
     /// est déjà pleinement remuée : compter plus loin n'ajoute rien à lire.
@@ -76,8 +89,14 @@ struct HomeScreen: View {
             // constate à l'ouverture de l'écran plutôt que par une minuterie :
             // rien ne presse, et rien ne doit notifier.
             .onAppear(perform: releaseDueThreads)
+            .task {
+                await clarityStore.requestPermission()
+                await clarityStore.refresh(context: context)
+            }
             .onChange(of: scenePhase) { _, phase in
-                if phase == .active { releaseDueThreads() }
+                guard phase == .active else { return }
+                releaseDueThreads()
+                Task { await clarityStore.refresh(context: context) }
             }
         }
     }
@@ -105,8 +124,13 @@ struct HomeScreen: View {
 
             // Un mot, jamais un nombre. Un score chiffré de performance
             // cognitive s'approcherait d'un diagnostic.
-            Text(clarity.level.word)
-                .font(.system(size: 34, weight: .light))
+            //
+            // Et tant que l'historique est trop court, on le dit plutôt que
+            // d'annoncer un mot : un oracle qui a toujours une réponse ment
+            // en permanence.
+            Text(reading.isConfident ? clarity.level.word : "pas encore mesurable")
+                .font(.system(size: reading.isConfident ? 34 : 24, weight: .light))
+                .foregroundStyle(reading.isConfident ? .primary : .secondary)
 
             WindowStrip(window: window, now: Date())
 

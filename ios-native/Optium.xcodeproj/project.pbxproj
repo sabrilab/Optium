@@ -303,7 +303,9 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Optium enregistre le lieu de vos sessions pour vous montrer ou vous vous concentrez le mieux.";
+				CODE_SIGN_ENTITLEMENTS = Optium.entitlements;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Optium lit vos nuits pour estimer votre clarte. Rien n'en sort de l'appareil.";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Optium deduit vos nuits du mouvement du telephone, quand aucun sommeil n'est enregistre.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -336,7 +338,9 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Optium enregistre le lieu de vos sessions pour vous montrer ou vous vous concentrez le mieux.";
+				CODE_SIGN_ENTITLEMENTS = Optium.entitlements;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Optium lit vos nuits pour estimer votre clarte. Rien n'en sort de l'appareil.";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Optium deduit vos nuits du mouvement du telephone, quand aucun sommeil n'est enregistre.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

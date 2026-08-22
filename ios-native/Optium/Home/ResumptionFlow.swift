@@ -7,7 +7,16 @@ struct ResumptionFlow: View {
     let thread: WorkThread
 
     @Environment(AppSettings.self) private var settings
+    @Environment(ClarityStore.self) private var clarityStore
     @Environment(\.dismiss) private var dismiss
+
+    /// La lecture mesurée, sauf si le forçage de développement l'écrase.
+    private var reading: ClarityReading {
+        if let forced = settings.clarityOverride {
+            return .forced(forced, window: clarityStore.reading.window)
+        }
+        return clarityStore.reading
+    }
 
     private enum Step { case working, gate, held, closed }
     @State private var step: Step = .working
@@ -34,8 +43,8 @@ struct ResumptionFlow: View {
     private func start() {
         let now = Date()
         thread.startResumption(
-            clarity: settings.claritySource.current().level,
-            inWindow: settings.claritySource.window(on: now).contains(now),
+            clarity: reading.clarity.level,
+            inWindow: reading.window.contains(now),
             at: now
         )
     }
@@ -51,7 +60,7 @@ struct ResumptionFlow: View {
     /// reste se ferme directement — et c'est cette rareté qui rend le refus
     /// acceptable plutôt qu'agaçant.
     private func attemptClose() {
-        switch thread.closingOutcome(clarity: settings.claritySource.current().level) {
+        switch thread.closingOutcome(clarity: reading.clarity.level) {
         case .gate:
             step = .gate
         case .direct:
@@ -70,7 +79,15 @@ private struct ResumptionScreen: View {
     let onClose: () -> Void
 
     @Environment(AppSettings.self) private var settings
+    @Environment(ClarityStore.self) private var clarityStore
     @Environment(\.scenePhase) private var scenePhase
+
+    private var reading: ClarityReading {
+        if let forced = settings.clarityOverride {
+            return .forced(forced, window: clarityStore.reading.window)
+        }
+        return clarityStore.reading
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -93,8 +110,8 @@ private struct ResumptionScreen: View {
 
             if settings.brainEnabled {
                 BrainView(
-                    fill: Double(settings.claritySource.current().value) / 100,
-                    base: min(1, Double(settings.claritySource.current().value) / 100 + 0.12),
+                    fill: Double(reading.clarity.value) / 100,
+                    base: min(1, Double(reading.clarity.value) / 100 + 0.12),
                     agitation: 0.35,
                     isDay: true,
                     isVisible: scenePhase == .active

@@ -14,7 +14,16 @@ struct GateScreen: View {
     let onHeld: () -> Void
 
     @Environment(AppSettings.self) private var settings
+    @Environment(ClarityStore.self) private var clarityStore
     @Environment(\.scenePhase) private var scenePhase
+
+    /// La lecture mesurée, sauf si le forçage de développement l'écrase.
+    private var reading: ClarityReading {
+        if let forced = settings.clarityOverride {
+            return .forced(forced, window: clarityStore.reading.window)
+        }
+        return clarityStore.reading
+    }
 
     @State private var acceptance = ""
     @FocusState private var writing: Bool
@@ -23,7 +32,7 @@ struct GateScreen: View {
 
     private var nextWindow: Date {
         let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
-        return settings.claritySource.window(on: tomorrow).start
+        return reading.window.start
     }
 
     var body: some View {
@@ -37,8 +46,8 @@ struct GateScreen: View {
 
                 if settings.brainEnabled {
                     BrainView(
-                        fill: Double(settings.claritySource.current().value) / 100,
-                        base: min(1, Double(settings.claritySource.current().value) / 100 + 0.12),
+                        fill: Double(reading.clarity.value) / 100,
+                        base: min(1, Double(reading.clarity.value) / 100 + 0.12),
                         agitation: 0.75,
                         isDay: true,
                         isVisible: scenePhase == .active
@@ -78,7 +87,7 @@ struct GateScreen: View {
                     }
                     .padding(.bottom, 26)
 
-                Text("Ta clarté est \(settings.claritySource.current().level.word). C’est le seul moment où Optium t’arrête.")
+                Text("Ta clarté est \(reading.clarity.level.word). C’est le seul moment où Optium t’arrête.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }

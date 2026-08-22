@@ -1,8 +1,18 @@
+import SwiftData
 import SwiftUI
 
 struct SettingsScreen: View {
     @Environment(AppSettings.self) private var settings
+    @Environment(ClarityStore.self) private var clarityStore
     @Environment(\.dismiss) private var dismiss
+    @Query private var nights: [RecordedNight]
+
+    private var nightCount: Int { nights.count }
+
+    private var regularityText: String {
+        guard let regularity = clarityStore.reading.regularity else { return "—" }
+        return "\(Int(regularity.rounded())) / 100"
+    }
 
     var body: some View {
         @Bindable var settings = settings
@@ -20,17 +30,31 @@ struct SettingsScreen: View {
             }
 
             Section {
-                Picker("Clarté", selection: $settings.simulatedClarity) {
+                LabeledContent("Nuits observées", value: "\(nightCount)")
+                    .listRowBackground(row)
+                LabeledContent("Régularité") {
+                    Text(regularityText).foregroundStyle(.secondary)
+                }
+                .listRowBackground(row)
+            } header: {
+                header("Mesure")
+            } footer: {
+                footer("La clarté est lue du sommeil enregistré, ou déduite du mouvement du téléphone quand il n’y en a pas. Elle a besoin de deux semaines de nuits pour vouloir dire quelque chose.")
+            }
+
+            Section {
+                Picker("Forcer la clarté", selection: $settings.clarityOverride) {
+                    Text("Mesurée").tag(ClarityLevel?.none)
                     ForEach(ClarityLevel.allCases, id: \.self) { level in
-                        Text(level.word.capitalized).tag(level)
+                        Text(level.word.capitalized).tag(ClarityLevel?.some(level))
                     }
                 }
                 .pickerStyle(.segmented)
                 .listRowBackground(Color.clear)
             } header: {
-                header("Mesure")
+                header("Développement")
             } footer: {
-                footer("Réglage temporaire. La clarté sera lue du sommeil et du mouvement ; en attendant, elle se force ici pour que la porte soit éprouvable.")
+                footer("La porte ne se déclenche qu’à clarté basse. Attendre une mauvaise nuit pour l’éprouver rendrait toute vérification impraticable.")
             }
         }
         .listStyle(.insetGrouped)
