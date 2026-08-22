@@ -411,16 +411,61 @@ struct HomeScreen: View {
         return "\(landing.earliest.formatted(format)) → \(landing.latest.formatted(format))"
     }
 
+    /// Les fils ouverts, groupes sous leur projet.
+    ///
+    /// Le projet existait dans les donnees sans exister a l'ecran : on pouvait
+    /// en creer un, y ranger un fil, et ne plus jamais le voir comme projet.
+    /// Le groupe le rend visible sans ajouter d'ecran — l'application n'a que
+    /// deux niveaux, et un troisieme pour ranger des dossiers serait payer
+    /// cher une commodite.
+    ///
+    /// **L'ordre des groupes suit la premiere apparition d'un de leurs fils**,
+    /// et non le titre ni la date d'ouverture du projet : la liste garde ainsi
+    /// exactement l'ordre qu'elle avait avant le groupage, et ne se reorganise
+    /// pas sous les yeux de quelqu'un qui ferme un fil.
+    private var groups: [(project: Project?, threads: [WorkThread])] {
+        var order: [Project?] = []
+        var byProject: [UUID?: [WorkThread]] = [:]
+        for thread in threads {
+            let key = thread.project?.id
+            if byProject[key] == nil {
+                byProject[key] = []
+                order.append(thread.project)
+            }
+            byProject[key]?.append(thread)
+        }
+        // Les fils sans projet ferment la marche : ce sont les moins ranges,
+        // pas les plus importants.
+        let sorted = order.filter { $0 != nil } + order.filter { $0 == nil }
+        return sorted.map { ($0, byProject[$0?.id] ?? []) }
+    }
+
     @ViewBuilder
     private var threadList: some View {
         VStack(spacing: 12) {
-            ForEach(Array(threads.enumerated()), id: \.element.id) { index, thread in
-                Button {
-                    active = thread
-                } label: {
-                    ThreadRow(thread: thread, hue: Ink.cardHues[(index + 1) % Ink.cardHues.count])
+            ForEach(Array(groups.enumerated()), id: \.offset) { index, group in
+                VStack(alignment: .leading, spacing: 12) {
+                    projectHeader(group.project, index: index)
+                    ForEach(group.threads) { thread in
+                        Button {
+                            active = thread
+                        } label: {
+                            // La teinte du projet colore tous ses fils : le
+                            // groupe se lit alors comme un ensemble. Sans
+                            // projet, on reprend la progression des teintes.
+                            ThreadRow(
+                                thread: thread,
+                                hue: group.project?.hue
+                                    ?? Ink.cardHues[(index + 1) % Ink.cardHues.count],
+                                // Le nom est deja dans l'en-tete : le repeter
+                                // sur chaque fil encombre pour rien.
+                                showsProject: false
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             Button {
@@ -435,6 +480,28 @@ struct HomeScreen: View {
         }
     }
 
+    /// L'en-tete d'un groupe.
+    ///
+    /// Il ne s'affiche que s'il y a quelque chose a distinguer : avec un seul
+    /// groupe sans projet, il n'annoncerait rien.
+    @ViewBuilder
+    private func projectHeader(_ project: Project?, index: Int) -> some View {
+        if project != nil || groups.count > 1 {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(project?.hue.tint ?? Color.white.opacity(0.28))
+                    .frame(width: 7, height: 7)
+                Text((project?.title ?? "Sans projet").uppercased())
+                    .font(.caption2.weight(.semibold))
+                    .tracking(1.4)
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+            .padding(.top, index == 0 ? 0 : 10)
+            .padding(.horizontal, 4)
+        }
+    }
+
     private func releaseDueThreads() {
         let now = Date()
         for thread in threads { thread.releaseIfDue(now: now) }
@@ -445,11 +512,13 @@ struct HomeScreen: View {
 struct ThreadRow: View {
     let thread: WorkThread
     let hue: Ink.CardHue
+    /// Faux quand la ligne est deja sous un en-tete de projet.
+    var showsProject = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                if let project = thread.project {
+                if showsProject, let project = thread.project {
                     Circle()
                         .fill(project.hue.tint)
                         .frame(width: 6, height: 6)

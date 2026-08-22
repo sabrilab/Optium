@@ -31,9 +31,9 @@ struct WidgetBrain: View {
                 .widgetAccentedRenderingMode(.fullColor)
                 .scaledToFit()
         } else {
-            BrainSilhouetteView(
+            BrainMark(
                 fill: snapshot.fill, base: snapshot.base,
-                tint: tint, showsBase: showsBase
+                tint: tint, far: tint, showsBase: showsBase
             )
         }
     }
@@ -56,11 +56,11 @@ struct ClarityWidgetView: View {
         case .accessoryCircular:
             // Le cerveau seul, aucun texte : a cette taille un mot serait
             // illisible et volerait la place du seul signal utile.
-            BrainSilhouetteView(fill: snapshot.fill, tint: .white, showsBase: false)
+            BrainMark(fill: snapshot.fill, tint: .white, far: .white)
 
         case .accessoryRectangular:
             HStack(spacing: 8) {
-                BrainSilhouetteView(fill: snapshot.fill, tint: .white, showsBase: false)
+                BrainMark(fill: snapshot.fill, tint: .white, far: .white)
                     .frame(width: 30, height: 30)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(snapshot.clarityWord.map { "Clarté \($0)" } ?? "\(snapshot.observedNights) nuits observées")
@@ -118,7 +118,7 @@ struct ThreadWidgetView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
-                BrainSilhouetteView(fill: snapshot.fill, tint: Ink.focusGlow, showsBase: false)
+                BrainMark(fill: snapshot.fill, tint: Ink.focusGlow)
                     .frame(width: 26, height: 26)
                 Text((snapshot.tierWord ?? "").uppercased())
                     .font(.system(size: 10, weight: .semibold))

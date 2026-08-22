@@ -93,12 +93,14 @@ enum DemoData {
             context.insert(resumption)
         }
 
-        for (phrase, nature) in [
-            ("Trancher le positionnement de l’offre pro", ThreadNature.decision),
-            ("Écrire la note de cadrage", ThreadNature.production),
+        for (phrase, nature, inProject) in [
+            ("Trancher le positionnement de l’offre pro", ThreadNature.decision, true),
+            ("Écrire la note de cadrage", ThreadNature.production, true),
+            // Un fil hors projet : le groupage doit montrer les deux cas.
+            ("Rappeler le comptable", ThreadNature.mechanical, false),
         ] {
             let thread = WorkThread(phrase: phrase, nature: nature, createdAt: now.addingTimeInterval(-7200))
-            thread.project = project
+            if inProject { thread.project = project }
             context.insert(thread)
         }
 

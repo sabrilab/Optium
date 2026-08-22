@@ -159,9 +159,9 @@ struct JournalScreen: View {
                     BrainMark(
                         fill: tier.fill,
                         tint: tier == current ? Ink.marker : .white,
-                        far: tier == current ? Ink.focusGlowFar : .white,
-                        width: 26
+                        far: tier == current ? Ink.focusGlowFar : .white
                     )
+                    .frame(width: 26, height: 26)
                     .opacity(tier == current ? 1 : 0.34)
                     Text(tier.word)
                         .font(.system(size: 9, weight: tier == current ? .semibold : .regular))

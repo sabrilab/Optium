@@ -379,6 +379,34 @@ comparables.
 
 ---
 
+### Les projets
+
+Un projet groupe des fils. **Il n'a pas d'écran** : « Aujourd'hui » range les
+fils ouverts sous un en-tête portant la pastille et le nom du projet, les fils
+sans projet fermant la marche. L'application n'a que deux niveaux de
+navigation, et un troisième pour ranger des dossiers serait payer cher une
+commodité.
+
+L'ordre des groupes suit la première apparition d'un de leurs fils, jamais le
+titre ni la date : la liste ne doit pas se réorganiser sous les yeux de
+quelqu'un qui ferme un fil.
+
+`Project.closedAt` est déclaré et **n'est ni écrit ni lu** : on ne peut pas
+encore fermer un projet. À faire ou à supprimer, pas à laisser en l'état.
+
+**`ProjectMemory` a été en écriture seule pendant tout le développement.** Une
+ligne markdown s'écrivait à chaque fil fermé, et `CallScreen` passait `memory:
+""` au modèle — le fichier grossissait sans que rien ne l'ouvre. L'appel porte
+désormais un sélecteur de périmètre et lit la mémoire correspondante, bornée
+aux vingt-quatre dernières lignes : la fenêtre du modèle sur appareil est
+étroite, et un fichier de deux ans y chasserait les faits mesurés.
+
+**Piège restant** : la mémoire est indexée sur le slug du titre. Renommer un
+projet l'orphelinerait. Il n'y a pas de renommage aujourd'hui ; en ajouter un
+oblige à migrer le fichier.
+
+---
+
 ## 7. Les écrans
 
 Deux onglets. La barre d'onglets est **conservée** — voir §12 pour pourquoi
@@ -392,6 +420,27 @@ Existe, mais n'est pas une destination : rien n'y pousse.
 
 Présentés par-dessus : le composeur de fil, la reprise, la porte, la retenue,
 la fermeture, l'appel, les réglages.
+
+---
+
+### La voix du cerveau
+
+**Il parle à la première personne, et ça a demandé plus qu'une consigne.** Les
+trois questions proposées sont écrites au « je » de l'utilisateur — « qu'est-ce
+que j'ai appris sur ma façon de travailler ». Le pronom étant pris, un modèle à
+qui l'on demande par ailleurs de dire « je » pour lui-même tranchait la
+collision en se rabattant sur « tu ».
+
+Deux corrections, toutes deux nécessaires :
+
+- Les faits du prompt sont énoncés comme les siens — « ma régularité : 81 » et
+  non « régularité du sommeil : 81 ». Formulés au tiers neutre, ils invitaient
+  à les rapporter.
+- Les instructions lèvent explicitement l'ambiguïté des deux « je » et portent
+  des exemples de refus.
+
+`OptiumTests/BrainVoiceTests.swift` fixe la règle. **Ne pas reformuler les faits
+au tiers neutre** : c'est le levier qui compte, pas la consigne.
 
 ---
 
@@ -518,6 +567,24 @@ chiffres fins ; ils sont **conservés** comme signature.
 ---
 
 ## 13. Le langage visuel
+
+### Deux représentations du cerveau, et une seule règle
+
+- **En volume, en Metal** : l'écran Session, la porte, la reprise, l'appel, et
+  la carte « Ton palier ». Partout où l'organe est le sujet.
+- **`BrainMark`**, le symbole `brain` d'Apple masquant un dégradé qui monte du
+  bas : l'échelle des paliers, tous les widgets, l'île dynamique, l'écran
+  verrouillé. Partout où il est un repère.
+
+`BrainSilhouette`, un contour extrait du maillage, tenait le second rôle. Il
+était fidèle mais dessiné pour être vu grand, et à vingt-deux points il se
+refermait en tache. **Il a été supprimé, pas gardé en réserve** : deux tracés du
+même organe finissent par diverger.
+
+Le niveau se mesure sur les proportions du glyphe, jamais sur le cadre — dans un
+carré, `murky` à 0,16 tomberait sous le dessin et n'allumerait rien.
+
+### Les cartes
 
 Détail complet dans `docs/brief-design.md`. L'essentiel :
 

@@ -14,8 +14,11 @@ struct CallScreen: View {
 
     @Query private var threads: [WorkThread]
     @Query private var nights: [RecordedNight]
+    @Query(sort: \Project.openedAt, order: .reverse) private var projects: [Project]
 
     @State private var call = BrainCall()
+    /// Le projet dont on parle. `nil` veut dire « tout », et non « aucun ».
+    @State private var scope: Project?
 
     private static let questions = [
         "Qu’est-ce que j’ai appris sur ma façon de travailler ?",
@@ -41,6 +44,7 @@ struct CallScreen: View {
 
                     switch call.state {
                     case .idle:
+                        if !projects.isEmpty { scopePicker }
                         questionList
                     case .unavailable(let reason):
                         answer(reason, muted: true)
@@ -76,6 +80,36 @@ struct CallScreen: View {
         return false
     }
 
+    /// De quel projet parle-t-on.
+    ///
+    /// **Sans lui, la deuxieme question ne pouvait pas etre repondue.** Elle
+    /// demande « qu'est-ce que je fais de ce projet ensuite ? » alors que le
+    /// cerveau recevait tous les fils, tous projets confondus, et aucune
+    /// memoire : il devait deviner de quel projet il s'agissait. Le defaut
+    /// reste « tout », qui est une reponse honnete quand on n'a qu'un projet.
+    private var scopePicker: some View {
+        Menu {
+            Button("Tout") { scope = nil }
+            ForEach(projects) { project in
+                Button(project.title) { scope = project }
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(scope?.hue.tint ?? Color.white.opacity(0.28))
+                    .frame(width: 7, height: 7)
+                Text(scope?.title ?? "Tout")
+                    .font(.subheadline)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                Spacer()
+            }
+            .frame(minHeight: 44)
+        }
+        .tint(Ink.control)
+    }
+
     private var questionList: some View {
         VStack(spacing: 12) {
             ForEach(Self.questions, id: \.self) { question in
@@ -93,6 +127,22 @@ struct CallScreen: View {
         }
     }
 
+    /// La memoire du perimetre, tronquee par la fin.
+    ///
+    /// On garde les dernieres lignes et non les premieres : la memoire
+    /// s'accumule sans jamais s'ecraser, et c'est le recent qui eclaire la
+    /// question posee. La borne existe parce que la fenetre du modele sur
+    /// appareil est etroite — un fichier de deux ans la remplirait a lui seul
+    /// et chasserait les faits mesures.
+    private var memory: String {
+        let titles = scope.map { [$0.title] } ?? projects.map(\.title) + ["Sans projet"]
+        let lines = titles
+            .map { ProjectMemory(projectTitle: $0).read() }
+            .flatMap { $0.split(separator: "\n", omittingEmptySubsequences: true) }
+            .filter { $0.hasPrefix("- ") }
+        return lines.suffix(24).joined(separator: "\n")
+    }
+
     private func answer(_ text: String, muted: Bool) -> some View {
         Text(text)
             .font(.system(size: 19, weight: .light))
@@ -101,7 +151,11 @@ struct CallScreen: View {
     }
 
     private var context: BrainCall.Context {
-        let closed = threads.filter { $0.closedAt != nil }
+        // Le perimetre filtre ce que le cerveau voit. « Tout » ne filtre rien.
+        let inScope = scope.map { project in
+            threads.filter { $0.project?.id == project.id }
+        } ?? threads
+        let closed = inScope.filter { $0.closedAt != nil }
         return BrainCall.Context(
             nightCount: nights.count,
             regularity: clarityStore.reading.regularity,
@@ -110,8 +164,13 @@ struct CallScreen: View {
                 let summary = thread.summary()
                 return (thread.phrase, summary.resumptionCount, summary.nightsCrossed, summary.holdCount)
             },
-            openPhrases: threads.filter { $0.closedAt == nil }.map(\.phrase),
-            memory: ""
+            openPhrases: inScope.filter { $0.closedAt == nil }.map(\.phrase),
+            // **La memoire etait en ecriture seule.** Une ligne markdown
+            // s'ecrivait a chaque fil ferme depuis le premier jour, et rien ne
+            // la relisait jamais : le champ valait la chaine vide. C'est
+            // pourtant elle qui donne au cerveau sa continuite d'un mois sur
+            // l'autre.
+            memory: memory
         )
     }
 }

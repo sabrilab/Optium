@@ -22,11 +22,10 @@ struct OptiumLiveActivity: Widget {
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    BrainSilhouetteView(
+                    BrainMark(
                         fill: context.state.fill,
                         base: context.state.base,
-                        tint: Ink.focusGlow,
-                        showsBase: false
+                        tint: Ink.focusGlow
                     )
                     .frame(width: 64, height: 64)
                 }
@@ -51,7 +50,7 @@ struct OptiumLiveActivity: Widget {
                     }
                 }
             } compactLeading: {
-                BrainSilhouetteView(fill: context.state.fill, tint: Ink.focusGlow, showsBase: false)
+                BrainMark(fill: context.state.fill, tint: Ink.focusGlow)
                     .frame(width: 22, height: 22)
             } compactTrailing: {
                 Text(context.state.landing ?? context.state.clarityWord)
@@ -60,17 +59,18 @@ struct OptiumLiveActivity: Widget {
             } minimal: {
                 // Le cerveau seul : a cette taille il n'y a de place pour rien
                 // d'autre, et c'est lui le signal.
-                BrainSilhouetteView(fill: context.state.fill, tint: Ink.focusGlow, showsBase: false)
+                BrainMark(fill: context.state.fill, tint: Ink.focusGlow)
             }
         }
     }
 
     private func lockScreen(_ context: ActivityViewContext<OptiumActivity>) -> some View {
         HStack(alignment: .top, spacing: 16) {
-            BrainSilhouetteView(
+            BrainMark(
                 fill: context.state.fill,
                 base: context.state.base,
-                tint: Ink.focusGlow
+                tint: Ink.focusGlow,
+                showsBase: true
             )
             .frame(width: 62, height: 62)
 
