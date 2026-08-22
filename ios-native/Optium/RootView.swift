@@ -12,7 +12,7 @@ struct RootView: View {
             Tab("Aujourd’hui", systemImage: "brain", value: RootTab.home) {
                 HomeScreen(isVisible: selection == .home)
             }
-            Tab("Journal", systemImage: "text.line.first.and.arrowtriangle.forward", value: RootTab.journal) {
+            Tab("Où tu en es", systemImage: "chart.line.uptrend.xyaxis", value: RootTab.journal) {
                 JournalScreen()
             }
         }

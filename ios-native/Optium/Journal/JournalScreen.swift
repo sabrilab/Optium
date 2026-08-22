@@ -1,43 +1,176 @@
 import SwiftData
 import SwiftUI
 
-/// Les fils fermes.
+/// Le retrospectif : où tu te situes, ce que tu as débloqué, ce que tu as fermé.
 ///
-/// Le document est explicite : le journal existe mais **n'est pas une
-/// destination**. Il ne pousse a rien, ne notifie rien, ne compte aucune
-/// serie. Il sert a relire ce qu'on a decide, et plus tard a alimenter les
-/// fourchettes d'estimation.
+/// **Ce n'est pas un tableau de bord.** Il ne pousse à rien, ne notifie rien,
+/// ne compte aucune série à ne pas briser. Le document est explicite sur la
+/// raison : les applications de productivité meurent dans leur onglet
+/// Statistiques.
 struct JournalScreen: View {
-    @Query(
-        filter: #Predicate<WorkThread> { $0.closedAt != nil },
-        sort: \WorkThread.closedAt,
-        order: .reverse
-    )
+    @Environment(ClarityStore.self) private var clarityStore
+    @Environment(AppSettings.self) private var settings
+    @Environment(\.scenePhase) private var scenePhase
+
+    @Query(filter: #Predicate<WorkThread> { $0.closedAt != nil },
+           sort: \WorkThread.closedAt, order: .reverse)
     private var closed: [WorkThread]
+
+    @Query private var nights: [RecordedNight]
+    @Query private var coffees: [CoffeeIntake]
+    @Query private var resumptions: [Resumption]
+
+    private var facts: ProofFacts {
+        ProofFactsBuilder.facts(
+            closed: closed,
+            nights: nights.map(\.night),
+            coffees: coffees.map(\.takenAt),
+            resumptions: resumptions
+        )
+    }
+
+    private var tier: Tier? {
+        guard let regularity = clarityStore.reading.regularity else { return nil }
+        return Tier(regularity: regularity)
+    }
 
     var body: some View {
         NavigationStack {
-            Group {
-                if closed.isEmpty {
-                    ContentUnavailableView {
-                        Label("Aucun fil fermé", systemImage: "text.line.first.and.arrowtriangle.forward")
-                    } description: {
-                        Text("Les fils que tu fermes s’inscrivent ici, avec la phrase de départ.")
-                    }
-                } else {
-                    ScrollView {
-                        LazyVStack(spacing: 12) {
-                            ForEach(Array(closed.enumerated()), id: \.element.id) { index, thread in
-                                row(thread, hue: Ink.cardHues[index % Ink.cardHues.count])
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 100)
-                    }
+            ScrollView {
+                VStack(spacing: 14) {
+                    tierCard
+                    proofGrid
+                    if !closed.isEmpty { closedSection }
                 }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 110)
             }
             .background(InkBackground())
-            .navigationTitle("Journal")
+            .navigationTitle("Où tu en es")
+        }
+    }
+
+    // ── Le palier ──
+
+    @ViewBuilder
+    private var tierCard: some View {
+        if let tier {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("TON PALIER")
+                    .font(.caption2.weight(.semibold))
+                    .tracking(1.6)
+                    .foregroundStyle(.secondary)
+
+                HStack(alignment: .center, spacing: 18) {
+                    // L'emblème est le cerveau lui-même, à un remplissage
+                    // croissant. Pas de médaille : le même objet, plus plein.
+                    if settings.brainEnabled {
+                        BrainView(
+                            fill: tier.fill,
+                            base: 1,
+                            agitation: 0,
+                            isDay: true,
+                            isVisible: scenePhase == .active
+                        )
+                        .frame(width: 96, height: 96)
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(tier.word)
+                            .font(.system(size: 30, weight: .light))
+                        Text(situation(tier))
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(20)
+            .bentoSurface(Ink.indigo, corner: 34)
+        } else {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("TON PALIER")
+                    .font(.caption2.weight(.semibold))
+                    .tracking(1.6)
+                    .foregroundStyle(.secondary)
+                Text("Pas encore attribuable")
+                    .font(.system(size: 24, weight: .light))
+                    .foregroundStyle(.secondary)
+                Text("Il se calcule sur une médiane de vingt-huit nuits. On ne peut pas y monter par gavage — ni le connaître avant.")
+                    .font(.footnote)
+                    .foregroundStyle(.tertiary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(20)
+            .bentoSurface(Ink.indigo, corner: 34, intensity: 0.4)
+        }
+    }
+
+    /// Où l'on se situe — en distribution, jamais par rapport à des personnes.
+    ///
+    /// Trois règles absolues du document : jamais de noms ni de profils,
+    /// jamais le volume, et seulement les mesures réellement comparables.
+    private func situation(_ tier: Tier) -> String {
+        let above = Tier.allCases
+            .filter { $0 > tier }
+            .reduce(0) { $0 + $1.populationShare }
+        if above == 0 { return "Le palier le plus régulier. \(tier.populationShare) % des gens y sont." }
+        return "\(above) % des gens dorment plus régulièrement. \(tier.populationShare) % sont à ton palier."
+    }
+
+    // ── Les preuves ──
+
+    private var proofGrid: some View {
+        let facts = facts
+        return VStack(alignment: .leading, spacing: 12) {
+            Text("LES PREUVES")
+                .font(.caption2.weight(.semibold))
+                .tracking(1.6)
+                .foregroundStyle(.secondary)
+                .padding(.leading, 4)
+                .padding(.top, 8)
+
+            ForEach(Array(Proof.all.enumerated()), id: \.element.id) { index, proof in
+                let earned = proof.isEarned(by: facts)
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: earned ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 17))
+                        .foregroundStyle(earned ? Ink.marker : Color.white.opacity(0.22))
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(proof.word)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(earned ? .primary : .secondary)
+                        Text(proof.requirement)
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(16)
+                .bentoSurface(
+                    Ink.cardHues[index % Ink.cardHues.count],
+                    corner: 26,
+                    intensity: earned ? 0.5 : 0.16
+                )
+            }
+        }
+    }
+
+    // ── Les fils fermés ──
+
+    private var closedSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("FILS FERMÉS")
+                .font(.caption2.weight(.semibold))
+                .tracking(1.6)
+                .foregroundStyle(.secondary)
+                .padding(.leading, 4)
+                .padding(.top, 8)
+
+            ForEach(Array(closed.enumerated()), id: \.element.id) { index, thread in
+                row(thread, hue: Ink.cardHues[index % Ink.cardHues.count])
+            }
         }
     }
 
@@ -51,7 +184,7 @@ struct JournalScreen: View {
 
             Text(thread.phrase)
                 .font(.system(size: 20, weight: .light))
-                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 18) {
                 mark("\(summary.resumptionCount)", "reprises")

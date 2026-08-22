@@ -12,7 +12,6 @@ struct OptiumApp: App {
                 .environment(settings)
                 .environment(clarity)
         }
-        .modelContainer(for: [Project.self, WorkThread.self, Resumption.self,
-                              RecordedNight.self, CoffeeIntake.self])
+        .modelContainer(OptiumContainer.shared)
     }
 }

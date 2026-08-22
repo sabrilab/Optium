@@ -20,6 +20,9 @@ struct HomeScreen: View {
     )
     private var threads: [WorkThread]
 
+    @Query(sort: \CoffeeIntake.takenAt, order: .reverse)
+    private var coffees: [CoffeeIntake]
+
     @State private var composing = false
     @State private var showSettings = false
     @State private var active: WorkThread?
@@ -92,6 +95,11 @@ struct HomeScreen: View {
             .task {
                 await clarityStore.requestPermission()
                 await clarityStore.refresh(context: context)
+                await Notifications.schedule(
+                    window: reading.window,
+                    bedtime: reading.window.start.addingTimeInterval(13 * 3600),
+                    threadCount: threads.count
+                )
             }
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active else { return }
@@ -137,10 +145,52 @@ struct HomeScreen: View {
             Text(windowSentence)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
+
+            Divider().overlay(Color.white.opacity(0.12))
+
+            coffeeRow
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
         .bentoSurface(Ink.indigo, corner: 34)
+    }
+
+    /// Le seul geste déclaratif de l'application. Tout le reste est lu.
+    ///
+    /// Il agit sur la nuit projetée, donc sur la clarté de **demain** — jamais
+    /// sur celle d'aujourd'hui. C'est ce qui en fait un enseignement plutôt
+    /// qu'une punition.
+    private var coffeeRow: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Café")
+                    .font(.subheadline)
+                Text(coffeeSentence)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button {
+                context.insert(CoffeeIntake())
+                Task { await clarityStore.refresh(context: context) }
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 14, weight: .medium))
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.glass)
+            .tint(Ink.control)
+            .accessibilityLabel("Noter un café")
+        }
+    }
+
+    private var coffeeSentence: String {
+        let today = coffees.filter { Calendar.current.isDateInToday($0.takenAt) }
+        if today.isEmpty { return "aucun aujourd’hui" }
+        let penalty = reading.projectedNightPenalty
+        let count = "\(today.count) aujourd’hui"
+        guard penalty > 0.05 else { return count }
+        return "\(count) · la nuit de ce soir en pâtira"
     }
 
     private var windowSentence: String {
