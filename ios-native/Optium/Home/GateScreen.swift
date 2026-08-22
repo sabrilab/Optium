@@ -30,9 +30,16 @@ struct GateScreen: View {
 
     private var trimmed: String { acceptance.trimmingCharacters(in: .whitespacesAndNewlines) }
 
+    /// La prochaine fenetre, pas celle d'aujourd'hui.
+    ///
+    /// Retenir une decision, c'est la reporter au prochain creneau ou elle
+    /// tiendra. Pointer la fenetre du jour — deja passee au moment ou la porte
+    /// s'ouvre — la libererait immediatement, ce qui viderait la retenue de
+    /// tout sens.
     private var nextWindow: Date {
-        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
-        return reading.window.start
+        let today = reading.window.start
+        guard today <= Date() else { return today }
+        return Calendar.current.date(byAdding: .day, value: 1, to: today) ?? today
     }
 
     var body: some View {

@@ -10,8 +10,13 @@ struct ThreadComposer: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
 
+    @Query(sort: \Project.openedAt, order: .reverse) private var projects: [Project]
+
     @State private var phrase = ""
     @State private var nature: ThreadNature = .production
+    @State private var project: Project?
+    @State private var newProjectTitle = ""
+    @State private var namingProject = false
     @FocusState private var writing: Bool
 
     private var trimmed: String { phrase.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -41,6 +46,8 @@ struct ThreadComposer: View {
                     Text("Elle te sera remontrée à la fermeture du fil, telle quelle.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+
+                    projectSection
 
                     VStack(alignment: .leading, spacing: 10) {
                         Text("NATURE")
@@ -84,6 +91,54 @@ struct ThreadComposer: View {
         }
     }
 
+    /// Le projet est facultatif. Un fil peut vivre seul — l'imposer
+    /// obligerait à ranger avant de penser, ce qui est exactement l'inverse
+    /// de « une phrase, et on ouvre ».
+    @ViewBuilder
+    private var projectSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("PROJET")
+                .font(.caption2.weight(.semibold))
+                .tracking(1.6)
+                .foregroundStyle(.secondary)
+
+            Menu {
+                Button("Aucun") { project = nil }
+                ForEach(projects) { candidate in
+                    Button(candidate.title) { project = candidate }
+                }
+                Divider()
+                Button("Nouveau projet…") { namingProject = true }
+            } label: {
+                HStack {
+                    Text(project?.title ?? "Aucun")
+                        .font(.subheadline)
+                        .foregroundStyle(project == nil ? .secondary : .primary)
+                    Spacer()
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .frame(minHeight: 44)
+            }
+            .tint(Ink.control)
+        }
+        .alert("Nouveau projet", isPresented: $namingProject) {
+            TextField("Nom", text: $newProjectTitle)
+            Button("Annuler", role: .cancel) { newProjectTitle = "" }
+            Button("Créer") { createProject() }
+        }
+    }
+
+    private func createProject() {
+        let trimmed = newProjectTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let created = Project(title: trimmed, colorIndex: projects.count % Ink.cardHues.count)
+        context.insert(created)
+        project = created
+        newProjectTitle = ""
+    }
+
     private func natureRow(_ option: ThreadNature) -> some View {
         Button {
             nature = option
@@ -111,7 +166,9 @@ struct ThreadComposer: View {
 
     private func open() {
         guard !trimmed.isEmpty else { return }
-        context.insert(WorkThread(phrase: trimmed, nature: nature))
+        let thread = WorkThread(phrase: trimmed, nature: nature)
+        context.insert(thread)
+        project?.threads.append(thread)
         dismiss()
     }
 }

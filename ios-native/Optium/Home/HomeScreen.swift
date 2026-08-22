@@ -23,8 +23,14 @@ struct HomeScreen: View {
     @Query(sort: \CoffeeIntake.takenAt, order: .reverse)
     private var coffees: [CoffeeIntake]
 
+    @Query(filter: #Predicate<WorkThread> { $0.closedAt != nil })
+    private var closed: [WorkThread]
+
+    @Query private var allResumptions: [Resumption]
+
     @State private var composing = false
     @State private var showSettings = false
+    @State private var calling = false
     @State private var active: WorkThread?
 
     /// La lecture mesurée, sauf si le forçage de développement l'écrase.
@@ -61,9 +67,11 @@ struct HomeScreen: View {
                     .ignoresSafeArea()
 
                 ScrollView {
-                    VStack(spacing: 22) {
+                    VStack(spacing: 14) {
                         brain
                         clarityCard
+                        CalibrationCard(measured: clarity.level)
+                        landingCard
                         threadList
                     }
                     .padding(.horizontal, 16)
@@ -80,11 +88,20 @@ struct HomeScreen: View {
                     }
                     .tint(Ink.control)
                 }
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        calling = true
+                    } label: {
+                        Label("Appeler", systemImage: "waveform")
+                    }
+                    .tint(Ink.control)
+                }
             }
             .sheet(isPresented: $composing) { ThreadComposer() }
             .sheet(isPresented: $showSettings) {
                 NavigationStack { SettingsScreen() }
             }
+            .sheet(isPresented: $calling) { CallScreen() }
             .fullScreenCover(item: $active) { thread in
                 ResumptionFlow(thread: thread)
             }
@@ -92,19 +109,10 @@ struct HomeScreen: View {
             // constate à l'ouverture de l'écran plutôt que par une minuterie :
             // rien ne presse, et rien ne doit notifier.
             .onAppear(perform: releaseDueThreads)
-            .task {
-                await clarityStore.requestPermission()
-                await clarityStore.refresh(context: context)
-                await Notifications.schedule(
-                    window: reading.window,
-                    bedtime: reading.window.start.addingTimeInterval(13 * 3600),
-                    threadCount: threads.count
-                )
-            }
+
+
             .onChange(of: scenePhase) { _, phase in
-                guard phase == .active else { return }
-                releaseDueThreads()
-                Task { await clarityStore.refresh(context: context) }
+                if phase == .active { releaseDueThreads() }
             }
         }
     }
@@ -204,6 +212,47 @@ struct HomeScreen: View {
         return "Fenêtre fermée. Elle rouvre demain matin."
     }
 
+    /// L'atterrissage : le seul nombre de l'application, et toujours une
+    /// fourchette. Elle se tait tant qu'il n'y a rien à extrapoler — inventer
+    /// une date serait pire que se taire.
+    @ViewBuilder
+    private var landingCard: some View {
+        if let landing = landing {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("ATTERRISSAGE")
+                    .font(.caption2.weight(.semibold))
+                    .tracking(1.6)
+                    .foregroundStyle(.secondary)
+                Text(range(landing))
+                    .font(.system(size: 26, weight: .light))
+                Text("Calculé sur tes fils passés, pas sur une estimation.")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(20)
+            .bentoSurface(Ink.violet, corner: 30, intensity: 0.5)
+        }
+    }
+
+    private var landing: Landing? {
+        let history = closed.map(\.resumptions.count).filter { $0 > 0 }
+        let activeDays = Set(allResumptions.map { Calendar.current.startOfDay(for: $0.startedAt) })
+        let capacity = activeDays.isEmpty ? 0 : Double(allResumptions.count) / Double(activeDays.count)
+
+        return LandingEstimator.estimate(
+            closedResumptions: history,
+            openThreads: threads.count,
+            dailyCapacity: capacity,
+            from: Date()
+        )
+    }
+
+    private func range(_ landing: Landing) -> String {
+        let format = Date.FormatStyle.dateTime.weekday(.abbreviated).day()
+        return "\(landing.earliest.formatted(format)) → \(landing.latest.formatted(format))"
+    }
+
     @ViewBuilder
     private var threadList: some View {
         VStack(spacing: 12) {
@@ -242,6 +291,18 @@ struct ThreadRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
+                if let project = thread.project {
+                    Circle()
+                        .fill(project.hue.tint)
+                        .frame(width: 6, height: 6)
+                    Text(project.title.uppercased())
+                        .font(.caption2.weight(.semibold))
+                        .tracking(1.4)
+                        .foregroundStyle(.secondary)
+                    Text("·")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
                 Text(thread.nature.word.uppercased())
                     .font(.caption2.weight(.semibold))
                     .tracking(1.4)

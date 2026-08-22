@@ -11,6 +11,7 @@ struct OptiumApp: App {
             RootView()
                 .environment(settings)
                 .environment(clarity)
+
         }
         .modelContainer(OptiumContainer.shared)
     }

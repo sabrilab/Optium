@@ -22,8 +22,11 @@ final class ClarityStore {
     /// Combien de nuits en arriere l'indice de regularite est calcule.
     static let window = 28
 
-    init(source: any SleepSource = CompositeSleepSource(), calendar: Calendar = .current) {
-        self.source = source
+    /// La source par defaut se construit *dans* l'initialiseur et non en
+    /// valeur par defaut du parametre : le projet isole tout sur l'acteur
+    /// principal, et une valeur par defaut s'evalue hors de lui.
+    init(source: (any SleepSource)? = nil, calendar: Calendar = .current) {
+        self.source = source ?? CompositeSleepSource()
         self.calendar = calendar
         self.reading = ClarityEngine.reading(nights: [], now: Date(), calendar: calendar)
     }

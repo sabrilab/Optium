@@ -239,6 +239,26 @@ En test d'abord, sur ce qui se teste sans écran :
 
 L'interface se vérifie à l'écran, par capture.
 
+## Ce qui a été construit au-delà du tronçon
+
+Le tronçon « la porte » a été livré, puis étendu dans la foulée à la demande de
+l'auteur. S'y sont ajoutés :
+
+- **Le moteur de clarté réel.** HealthKit en source principale, CoreMotion en
+  repli — les deux interrogées par leur historique, jamais en arrière-plan.
+  Les nuits sont conservées en base parce que les sources ne gardent pas assez
+  loin. Pondération : régularité 45 %, durée 30 %, circadien 25 %.
+- **Le barème** : cinq paliers ancrés sur la UK Biobank, six preuves qui
+  récompensent toutes la retenue et jamais le volume.
+- **Le café**, seul geste déclaratif, agissant sur la nuit projetée.
+- **Les deux notifications**, et aucune autre.
+- **Trois raccourcis Siri**, dont aucun n'ouvre l'application.
+- **L'appel au cerveau** avec Foundation Models, sur l'appareil, borné à trois
+  questions, avec ses trois règles d'écriture dans les instructions.
+- **La calibration**, deux fois par semaine au maximum.
+- **L'atterrissage**, seul nombre de l'application, toujours une fourchette.
+- **Les projets**, facultatifs, comme conteneurs de fils.
+
 ## Hors périmètre
 
 Explicitement, et chacun mérite son propre cadrage : le moteur de clarté réel
