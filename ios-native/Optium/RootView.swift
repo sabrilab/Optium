@@ -73,20 +73,11 @@ struct RootView: View {
         TabView(selection: $selection) {
             Tab(RootTab.home.title, systemImage: RootTab.home.symbol, value: RootTab.home) {
                 HomeScreen(isVisible: selection == .home)
-                    // **Le masquage se pose sur le contenu, pas sur le
-                    // `TabView`.** Applique a celui-ci, il est ignore : la
-                    // barre du systeme reste visible derriere la notre.
-                    .toolbarVisibility(.hidden, for: .tabBar)
             }
             Tab(RootTab.journal.title, systemImage: RootTab.journal.symbol, value: RootTab.journal) {
                 JournalScreen(isVisible: selection == .journal)
-                    .toolbarVisibility(.hidden, for: .tabBar)
             }
         }
-        // La barre du systeme est masquee dans chaque onglet, pas remplacee :
-        // les vues restent des `Tab`. Voir `OptiumTabBar` pour pourquoi elle
-        // est redessinee.
-        .overlay(alignment: .bottom) { OptiumTabBar(selection: $selection) }
         // L'application ne suit pas l'apparence d'iOS : le noir est un choix de
         // direction artistique, et la scene comme les lavis n'existent que sur
         // lui.

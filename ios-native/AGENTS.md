@@ -714,45 +714,33 @@ nuits : rien ne permettait de la relancer après une correction dans Santé.
 
 ## 11 ter. La barre d'onglets, et l'île
 
-**La barre est dessinée, pas celle du système.** Aucune API ne permet de
-l'aligner à gauche : `TabBarPlacement` ne propose que `topBar`, `bottomBar` et
-`sidebar` — cette dernière réservée aux dispositions adaptatives de l'iPad. La
-barre flottante d'iOS 26 est centrée, sans réglage.
+**La barre est celle du système, centrée. Ne pas la remplacer.**
 
-Le `TabView` est conservé pour ce qu'il fait bien : la sélection, l'état de
-chaque onglet, la pile de navigation propre à chacun. Seule sa barre est
-masquée. **Le masquage se pose sur le contenu de chaque `Tab`, jamais sur le
-`TabView`** — appliqué à celui-ci il est ignoré en silence, et la barre système
-reste visible derrière la nôtre.
+Une barre dessinée et alignée à gauche a été construite puis **abandonnée**,
+après trois tentatives de la rendre acceptable. L'histoire mérite d'être
+gardée, parce que la demande reviendra.
 
-**Le verre est celui d'Apple, dans sa forme complète.** Une première version
-posait un `glassEffect` statique sur le fond : c'est bien l'API du système,
-mais c'en est la forme la plus pauvre — une plaque qui ne répond à rien. Trois
-choses manquaient, et ce sont elles qui font le Liquid Glass :
+Ce qui a été essayé, et pourquoi chaque version a échoué :
 
-1. `GlassEffectContainer` — sans lui, deux surfaces de verre voisines
-   s'ignorent. Dedans, elles se fondent et se séparent comme du liquide.
-2. `.interactive()` — le verre se déforme et s'illumine sous le doigt.
-3. `glassEffectID` dans un `Namespace` — l'indicateur de sélection **passe**
-   d'un onglet à l'autre au lieu de disparaître et réapparaître.
+1. Libellé sur le seul onglet courant, l'autre en icône à 45 % — moins
+   identifiable que la barre du système.
+2. Icône et libellé côte à côte — l'élément devenait petit, donc moins facile à
+   viser, et ne ressemblait plus à une barre d'onglets iOS.
+3. `GlassEffectContainer` + `.interactive()` + `glassEffectID` — le vrai verre
+   d'Apple, dans sa forme complète. **Ça ne suffisait toujours pas.**
 
-**Ce n'est pas une pratique recommandée.** Les HIG demandent une barre
-standard. C'est un écart assumé, à la demande explicite du propriétaire du
-produit — pas un choix à reproduire ailleurs sans raison.
+La conclusion est structurelle : la barre du système porte des comportements
+que l'API publique ne donne pas — la rétraction au défilement d'iOS 26, la
+morphologie exacte de la sélection, le rendu et l'espacement des libellés. On
+peut en approcher le matériau, pas l'objet.
 
-Ce qu'on perd : la réduction automatique au défilement d'iOS 26 et le rendu par
-défaut des badges.
+**Et il n'existe aucune API pour l'aligner à gauche** : `TabBarPlacement` ne
+propose que `topBar`, `bottomBar` et `sidebar`, cette dernière réservée aux
+dispositions adaptatives de l'iPad. L'alignement à gauche et la barre officielle
+s'excluent — c'est un choix, pas un problème à résoudre.
 
-Deux versions ont été écartées. La première ne montrait le libellé que sur l'onglet courant, au motif
-que deux libellés reconstituent la largeur d'une barre centrée. **C'était payer
-la lisibilité pour un effet** : l'onglet inactif devenait une icône seule à
-45 % d'opacité, moins identifiable que dans la barre du système. Les deux
-libellés sont revenus, et l'inactif est à 72 %. La seconde les posait à côté de
-l'icône pour tenir dans une capsule étroite : l'élément devenait petit, donc
-moins facile à viser, et ne ressemblait plus à ce qu'est une barre d'onglets sur
-iOS. **L'icône est au-dessus du libellé, comme dans la barre du système.**
-L'alignement à gauche était la seule demande ; la forme de l'élément n'avait
-aucune raison de changer.
+`RootTab` garde `title` et `symbol` : les deux `Tab` les lisent, et deux listes
+finiraient par diverger.
 
 ### L'île dynamique
 
