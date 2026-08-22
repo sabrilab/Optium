@@ -23,11 +23,19 @@ final class Project {
         self.colorHex = colorHex ?? Project.palette[0]
     }
 
-    /// Couleurs d'identification des projets, reprises telles quelles de la
-    /// version Expo pour que les deux applications restent comparables a l'oeil.
+    /// Couleurs d'identification des projets.
+    ///
+    /// Ecart assume avec la version Expo, dont la palette — bleu ciel, vert
+    /// pomme, jaune, orange vif — datait du modele et jurait avec la retenue
+    /// du reste. Celle-ci reste a huit teintes distinctes, mais toutes
+    /// sombres et desaturees : elles doivent identifier un projet d'un coup
+    /// d'oeil sans jamais dominer l'ecran.
+    ///
+    /// Les projets deja crees gardent la valeur enregistree dans leur modele :
+    /// changer cette liste ne les repeint pas.
     static let palette = [
-        "#5B9BD5", "#70AD47", "#FFC000", "#ED7D31",
-        "#A855F7", "#EC4899", "#14B8A6", "#F97316",
+        "#5B5BD6", "#7C5CD6", "#A855C4", "#C0567F",
+        "#B5654A", "#8E8244", "#3E8F7C", "#3F7BA8",
     ]
 
     /// Les taches dans l'ordre d'ajout : SwiftData ne garantit pas l'ordre d'une relation.

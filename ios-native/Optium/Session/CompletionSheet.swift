@@ -7,13 +7,22 @@ struct CompletionSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(spacing: 20) {
-            Image(systemName: mode == .focus ? "checkmark.circle.fill" : "cup.and.saucer.fill")
-                .font(.system(size: 56))
-                .foregroundStyle(Ink.glow(isFocus: mode == .focus))
+        VStack(spacing: 0) {
+            Text(mode == .focus ? "SESSION TERMINÉE" : "PAUSE TERMINÉE")
+                .font(.caption2.weight(.semibold))
+                .tracking(1.6)
+                .foregroundStyle(.secondary)
+                .padding(.bottom, 26)
 
-            Text(mode == .focus ? "Session terminée" : "Pause terminée")
-                .font(.title2.weight(.semibold))
+            // L'afficheur reprend celui du minuteur : c'est le meme objet, a
+            // son terme.
+            DotMatrixText(
+                text: "00:00",
+                dot: 6,
+                gap: 3.5,
+                glow: Ink.glow(isFocus: mode == .focus)
+            )
+            .padding(.bottom, 22)
 
             Text(mode == .focus
                  ? "Prenez une pause, vous l’avez méritée."
@@ -21,26 +30,35 @@ struct CompletionSheet: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+                .padding(.bottom, 30)
 
-            Button(mode == .focus ? "Commencer la pause" : "Reprendre") {
+            Button {
                 onContinue()
                 dismiss()
+            } label: {
+                HStack(spacing: 9) {
+                    Image(systemName: mode == .focus ? "cup.and.saucer.fill" : "play.fill")
+                        .font(.system(size: 14))
+                    Text(mode == .focus ? "Commencer la pause" : "Reprendre")
+                        .font(.subheadline.weight(.medium))
+                }
+                .frame(maxWidth: .infinity, minHeight: 54)
             }
-            .buttonStyle(.glassProminent)
-            .tint(Ink.glow(isFocus: mode == .focus))
-            .controlSize(.large)
-            .frame(minHeight: 44)
+            .buttonStyle(.glass)
+            .tint(Ink.control)
         }
-        .padding(32)
+        .padding(28)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
             ZStack {
                 InkBackground()
-                Aura(isFocus: mode == .focus, intensity: 0.8)
-                    .frame(height: 380)
+                Aura(isFocus: mode == .focus, intensity: 0.9)
+                    .frame(height: 420)
+                    .offset(y: -40)
             }
             .ignoresSafeArea()
         }
         .presentationDetents([.medium])
+        .presentationBackground(.clear)
     }
 }

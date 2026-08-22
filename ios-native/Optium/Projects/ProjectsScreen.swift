@@ -36,6 +36,7 @@ struct ProjectsScreen: View {
                     } label: {
                         Label("Nouveau projet", systemImage: "plus")
                     }
+                    .tint(Ink.control)
                 }
             }
             .sheet(isPresented: $composingProject) { ProjectComposer() }
@@ -58,10 +59,17 @@ struct ProjectsScreen: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            Button("Nouveau projet") { composingProject = true }
-                .buttonStyle(.glassProminent)
-                .tint(Ink.focusGlow)
-                .padding(.top, 4)
+            Button {
+                composingProject = true
+            } label: {
+                Text("Nouveau projet")
+                    .font(.subheadline.weight(.medium))
+                    .padding(.horizontal, 22)
+                    .frame(minHeight: 48)
+            }
+            .buttonStyle(.glass)
+            .tint(Ink.control)
+            .padding(.top, 4)
         }
         .padding(.top, 120)
         .padding(.horizontal, 40)
@@ -73,8 +81,17 @@ struct ProjectsScreen: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(project.name)
-                        .font(.title3.weight(.semibold))
+                    HStack(spacing: 9) {
+                        // L'identite du projet tient dans cette pastille, a
+                        // pleine saturation. Le lavis de la carte, lui, reste
+                        // tenu : huit teintes vives cote a cote rendraient
+                        // l'ecran criard.
+                        Circle()
+                            .fill(Color(hex: project.colorHex))
+                            .frame(width: 8, height: 8)
+                        Text(project.name)
+                            .font(.title3.weight(.semibold))
+                    }
                     if !project.tasks.isEmpty {
                         let done = project.tasks.filter(\.isDone).count
                         Text("\(done) sur \(project.tasks.count) terminées")
@@ -92,7 +109,9 @@ struct ProjectsScreen: View {
                     Image(systemName: "ellipsis")
                         .font(.system(size: 15, weight: .semibold))
                         .frame(width: 44, height: 44, alignment: .trailing)
+                        .foregroundStyle(.secondary)
                 }
+                .tint(Ink.control)
                 .accessibilityLabel("Actions du projet")
             }
 
@@ -106,15 +125,17 @@ struct ProjectsScreen: View {
             } label: {
                 Label("Ajouter une tâche", systemImage: "plus")
                     .font(.footnote.weight(.medium))
-                    .frame(maxWidth: .infinity, minHeight: 40)
+                    .frame(maxWidth: .infinity, minHeight: 44)
             }
             .buttonStyle(.glass)
+            .tint(Ink.control)
         }
         .padding(18)
         .bentoSurface(
             tint: Color(hex: project.colorHex),
-            accent: Color(hex: project.colorHex).mix(with: .white, by: 0.25),
-            corner: 30
+            accent: Color(hex: project.colorHex).mix(with: .white, by: 0.22),
+            corner: 30,
+            intensity: 0.46
         )
     }
 

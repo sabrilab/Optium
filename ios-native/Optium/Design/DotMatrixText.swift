@@ -8,11 +8,11 @@ import SwiftUI
 /// « afficheur » plutot que « police pointilliste ».
 struct DotMatrixText: View {
     let text: String
-    var dot: CGFloat = 6.5
-    var gap: CGFloat = 4.5
+    var dot: CGFloat = 7.5
+    var gap: CGFloat = 4
     var color: Color = .primary
     /// Luminosite des points eteints. Les garder visibles dessine la grille.
-    var dimOpacity: Double = 0.055
+    var dimOpacity: Double = 0.04
     /// Halo des points allumes, comme la diffusion d'une vraie diode.
     var glow: Color?
 
@@ -20,8 +20,12 @@ struct DotMatrixText: View {
 
     private var glyphs: [[String]] { text.map { Self.glyph(for: $0) } }
 
-    /// Espace entre deux glyphes, un cran de grille complet.
+    /// Pas de la grille, d'un point au suivant.
     private var advance: CGFloat { dot + gap }
+
+    /// Espace entre deux glyphes. Un seul cran de grille les colle : l'oeil
+    /// ne separe plus les chiffres et lit une masse de points.
+    private var tracking: CGFloat { advance * 1.6 }
 
     private func width(of glyph: [String]) -> CGFloat {
         let columns = CGFloat(glyph[0].count)
@@ -30,7 +34,7 @@ struct DotMatrixText: View {
 
     private var totalWidth: CGFloat {
         let glyphWidths = glyphs.reduce(0) { $0 + width(of: $1) }
-        return glyphWidths + CGFloat(max(0, glyphs.count - 1)) * advance
+        return glyphWidths + CGFloat(max(0, glyphs.count - 1)) * tracking
     }
 
     private var totalHeight: CGFloat {
@@ -57,7 +61,7 @@ struct DotMatrixText: View {
                         }
                     }
                 }
-                origin += width(of: glyph) + advance
+                origin += width(of: glyph) + tracking
             }
         }
         .frame(width: totalWidth, height: totalHeight)
@@ -69,8 +73,12 @@ struct DotMatrixText: View {
 
     private static func glyph(for character: Character) -> [String] {
         switch character {
-        case "0": ["01110", "10001", "10011", "10101", "11001", "10001", "01110"]
-        case "1": ["00100", "01100", "00100", "00100", "00100", "00100", "01110"]
+        // Zero sans barre diagonale : la diagonale, a cette taille, le fait
+        // hesiter avec un huit.
+        case "0": ["01110", "10001", "10001", "10001", "10001", "10001", "01110"]
+        // Un avec empattement : sans base, un trait vertical seul flotte et se
+        // lit mal a cote d'un sept.
+        case "1": ["00100", "01100", "10100", "00100", "00100", "00100", "11111"]
         case "2": ["01110", "10001", "00001", "00010", "00100", "01000", "11111"]
         case "3": ["11111", "00010", "00100", "00010", "00001", "10001", "01110"]
         case "4": ["00010", "00110", "01010", "10010", "11111", "00010", "00010"]
@@ -79,7 +87,7 @@ struct DotMatrixText: View {
         case "7": ["11111", "00001", "00010", "00100", "01000", "01000", "01000"]
         case "8": ["01110", "10001", "10001", "01110", "10001", "10001", "01110"]
         case "9": ["01110", "10001", "10001", "01111", "00001", "00010", "01100"]
-        case ":": ["00", "00", "11", "00", "11", "00", "00"]
+        case ":": ["0", "0", "1", "0", "1", "0", "0"]
         default:  ["00000", "00000", "00000", "00000", "00000", "00000", "00000"]
         }
     }

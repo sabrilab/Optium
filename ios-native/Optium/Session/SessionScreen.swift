@@ -32,6 +32,7 @@ struct SessionScreen: View {
                         } label: {
                             Label("Réglages", systemImage: "gearshape")
                         }
+                        .tint(Ink.control)
                     }
                 }
         }
@@ -207,21 +208,18 @@ struct SessionScreen: View {
                             .font(.subheadline.weight(.medium))
                     }
                     .frame(maxWidth: .infinity, minHeight: 54)
-                    // Libelle en blanc, pas dans la couleur d'accent : le
-                    // verre suffit a designer l'action, et une teinte de plus
-                    // ne ferait qu'ajouter du bruit.
-                    .foregroundStyle(.primary)
                 }
                 .buttonStyle(.glass)
+                .tint(Ink.control)
 
                 if timer.progress > 0 {
                     Button(action: endEarly) {
                         Image(systemName: "stop.fill")
                             .font(.system(size: 14))
                             .frame(width: 54, height: 54)
-                            .foregroundStyle(.primary)
                     }
                     .buttonStyle(.glass)
+                    .tint(Ink.control)
                     .accessibilityLabel("Terminer maintenant")
                 }
             }

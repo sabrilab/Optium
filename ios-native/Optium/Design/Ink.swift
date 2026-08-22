@@ -41,6 +41,15 @@ enum Ink {
     /// qu'une chose, le present.
     static let marker = Color(red: 0.839, green: 0.910, blue: 0.365)
 
+    /// Teint des commandes.
+    ///
+    /// `buttonStyle(.glass)` prend sa couleur de libelle dans le teint ambiant,
+    /// pas dans un `foregroundStyle` pose sur le contenu — celui-ci est
+    /// ecrase. Les commandes sont donc mises au blanc a la source : le verre
+    /// suffit a les designer, et une teinte de plus sur chaque bouton dilue
+    /// l'unique couleur franche de l'application.
+    static let control = Color.white
+
     static func glow(isFocus: Bool) -> Color { isFocus ? focusGlow : restGlow }
     static func glowFar(isFocus: Bool) -> Color { isFocus ? focusGlowFar : restGlowFar }
 }
