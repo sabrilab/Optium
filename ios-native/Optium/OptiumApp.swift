@@ -11,6 +11,15 @@ struct OptiumApp: App {
             RootView()
                 .environment(settings)
                 .environment(clarity)
+                #if DEBUG
+                .task {
+                    // Voir `DemoData` : DEBUG seulement, et sur argument
+                    // explicite.
+                    if DemoData.isRequested {
+                        DemoData.seed(into: ModelContext(OptiumContainer.shared))
+                    }
+                }
+                #endif
 
         }
         .modelContainer(OptiumContainer.shared)

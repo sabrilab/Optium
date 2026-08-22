@@ -51,36 +51,54 @@ enum Ink {
     // font les references qui ont nourri cette direction, qui melangent
     // librement rose, bleu, vert et ambre sur un meme ecran.
     //
-    // Chaque entree porte sa teinte et son second foyer, un cran plus clair.
+    // Chaque entree porte sa teinte, son second foyer un cran plus clair, et
+    // une **contre-teinte**.
+    //
+    // La contre-teinte est ce qui manquait pour que les cartes soient vives.
+    // Une seule couleur qui s'eteint vers le noir produit un fondu, jamais un
+    // degrade : l'oeil n'y voit qu'une valeur qui baisse. Les references de
+    // cette direction posent toujours un second ton *etranger* dans la carte —
+    // un bleu franc dans une carte orange — et c'est la rencontre des deux qui
+    // fait la couleur, pas leur intensite.
+    //
+    // Elle est franche et minoritaire : posee en un seul foyer bas, elle
+    // colore sans disputer la teinte principale.
 
     struct CardHue {
         let tint: Color
         let accent: Color
+        let counter: Color
     }
 
     static let indigo = CardHue(
         tint: Color(red: 0.322, green: 0.325, blue: 0.941),
-        accent: Color(red: 0.541, green: 0.290, blue: 0.867))
+        accent: Color(red: 0.541, green: 0.290, blue: 0.867),
+        counter: Color(red: 0.976, green: 0.404, blue: 0.502))
 
     static let violet = CardHue(
         tint: Color(red: 0.541, green: 0.290, blue: 0.867),
-        accent: Color(red: 0.753, green: 0.361, blue: 0.910))
+        accent: Color(red: 0.753, green: 0.361, blue: 0.910),
+        counter: Color(red: 0.204, green: 0.678, blue: 0.949))
 
     static let rose = CardHue(
         tint: Color(red: 0.820, green: 0.278, blue: 0.561),
-        accent: Color(red: 0.941, green: 0.420, blue: 0.659))
+        accent: Color(red: 0.941, green: 0.420, blue: 0.659),
+        counter: Color(red: 0.259, green: 0.353, blue: 0.949))
 
     static let teal = CardHue(
         tint: Color(red: 0.086, green: 0.647, blue: 0.588),
-        accent: Color(red: 0.247, green: 0.839, blue: 0.690))
+        accent: Color(red: 0.247, green: 0.839, blue: 0.690),
+        counter: Color(red: 0.616, green: 0.353, blue: 0.949))
 
     static let amber = CardHue(
         tint: Color(red: 0.851, green: 0.565, blue: 0.235),
-        accent: Color(red: 0.941, green: 0.722, blue: 0.369))
+        accent: Color(red: 0.941, green: 0.722, blue: 0.369),
+        counter: Color(red: 0.259, green: 0.404, blue: 0.949))
 
     static let coral = CardHue(
         tint: Color(red: 0.878, green: 0.341, blue: 0.310),
-        accent: Color(red: 0.961, green: 0.502, blue: 0.439))
+        accent: Color(red: 0.961, green: 0.502, blue: 0.439),
+        counter: Color(red: 0.180, green: 0.573, blue: 0.910))
 
     /// Les six, dans l'ordre ou elles se suivent le mieux.
     static let cardHues = [indigo, violet, rose, teal, amber, coral]

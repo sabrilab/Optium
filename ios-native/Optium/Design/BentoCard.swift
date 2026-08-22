@@ -18,7 +18,7 @@ struct BentoCard<Content: View>: View {
         content
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
-            .bentoSurface(tint: tint, accent: accent, corner: corner, intensity: intensity)
+            .bentoSurface(tint: tint, accent: accent, counter: hue.counter, corner: corner, intensity: intensity)
     }
 }
 
@@ -50,7 +50,9 @@ struct BentoStat: View {
 extension View {
     /// Variante prenant une teinte de carte complete.
     func bentoSurface(_ hue: Ink.CardHue, corner: CGFloat = 28, intensity: Double = 1) -> some View {
-        bentoSurface(tint: hue.tint, accent: hue.accent, corner: corner, intensity: intensity)
+        bentoSurface(
+            tint: hue.tint, accent: hue.accent, counter: hue.counter,
+            corner: corner, intensity: intensity)
     }
 
     /// Surface d'une carte : maillage colore diffus, puis verre d'Apple.
@@ -61,16 +63,24 @@ extension View {
     func bentoSurface(
         tint: Color,
         accent: Color? = nil,
+        counter: Color? = nil,
         corner: CGFloat = 28,
         intensity: Double = 1
     ) -> some View {
-        modifier(BentoSurface(tint: tint, accent: accent ?? tint, corner: corner, intensity: intensity))
+        modifier(BentoSurface(
+            tint: tint,
+            accent: accent ?? tint,
+            counter: counter ?? accent ?? tint,
+            corner: corner,
+            intensity: intensity
+        ))
     }
 }
 
 private struct BentoSurface: ViewModifier {
     let tint: Color
     let accent: Color
+    let counter: Color
     let corner: CGFloat
     let intensity: Double
 
@@ -101,7 +111,7 @@ private struct BentoSurface: ViewModifier {
             // Le remplissage monte en meme temps que le coeur s'assombrit :
             // c'est l'ecart entre les deux qui fait la lecture, pas leurs
             // valeurs absolues.
-            tint.opacity(0.72 * intensity)
+            tint.opacity(0.94 * intensity)
 
             // Le coeur sombre est decale sous le centre. Centre, il partage la
             // carte en deux moities egales et la lumiere n'a plus d'origine ;
@@ -110,14 +120,17 @@ private struct BentoSurface: ViewModifier {
             RadialGradient(
                 stops: [
                     .init(color: .black, location: 0),
-                    .init(color: .black.opacity(0.96), location: 0.26),
-                    .init(color: .black.opacity(0.74), location: 0.48),
-                    .init(color: .black.opacity(0.34), location: 0.72),
+                    .init(color: .black.opacity(0.92), location: 0.24),
+                    .init(color: .black.opacity(0.58), location: 0.46),
+                    .init(color: .black.opacity(0.20), location: 0.70),
                     .init(color: .clear, location: 1.0),
                 ],
                 center: UnitPoint(x: 0.50, y: 0.62),
                 startRadius: 0,
-                endRadius: radius * 0.68
+                // Resserre : le coeur mangeait la moitie de la carte, et la
+                // teinte ne survivait que sur les bords. C'est ce qui rendait
+                // les cartes ternes malgre un remplissage fort.
+                endRadius: radius * 0.54
             )
 
             // Arete superieure rallumee, dans la seconde teinte.
@@ -139,6 +152,18 @@ private struct BentoSurface: ViewModifier {
                 center: UnitPoint(x: 0.82, y: 0.14),
                 startRadius: 0,
                 endRadius: radius * 0.50
+            )
+            .blendMode(.plusLighter)
+
+            // La contre-teinte, en bas a gauche. Un ton etranger a la carte :
+            // c'est sa rencontre avec la teinte principale qui fait le
+            // degrade, la ou un fondu vers le noir ne donne qu'une valeur qui
+            // baisse.
+            RadialGradient(
+                colors: [counter.opacity(0.62 * intensity), .clear],
+                center: UnitPoint(x: 0.20, y: 0.88),
+                startRadius: 0,
+                endRadius: radius * 0.44
             )
             .blendMode(.plusLighter)
         }

@@ -8,6 +8,10 @@ import SwiftUI
 /// raison : les applications de productivité meurent dans leur onglet
 /// Statistiques.
 struct JournalScreen: View {
+    /// L'onglet est-il au premier plan. Le cerveau en volume de la carte de
+    /// palier n'est rendu que dans ce cas.
+    var isVisible: Bool = true
+
     @Environment(ClarityStore.self) private var clarityStore
     @Environment(AppSettings.self) private var settings
     @Environment(\.scenePhase) private var scenePhase
@@ -76,11 +80,26 @@ struct JournalScreen: View {
                     // croissant. Pas de médaille : le même objet, plus plein.
                     //
                     // En silhouette et non en Metal : c'est un emblème fixe de
-                    // 96 points, faire tourner un moteur 3D pour lui serait un
-                    // gaspillage — et il doit se lire comme les cinq de
-                    // l'échelle juste en dessous, qui sont des silhouettes.
-                    BrainSilhouetteView(fill: tier.fill, tint: Ink.marker, showsBase: false)
-                        .frame(width: 84, height: 84)
+                    // **Le seul cerveau en volume hors de l'ecran Session.**
+                    //
+                    // Il a d'abord ete une silhouette, au motif qu'un moteur
+                    // 3D pour un embleme etait un gaspillage. C'etait passer a
+                    // cote de ce que la carte annonce : le palier est la seule
+                    // chose de l'application qui se gagne sur des semaines, et
+                    // la seule qui merite d'etre montree en matiere plutot
+                    // qu'en signe. L'echelle juste en dessous reste en
+                    // symboles, et le contraste fait la hierarchie.
+                    //
+                    // Le rendu est suspendu des que l'onglet n'est plus
+                    // visible : sans cela la boucle tournerait a soixante
+                    // images par seconde derriere l'autre ecran.
+                    BrainView(
+                        fill: tier.fill,
+                        isDay: true,
+                        isVisible: isVisible && scenePhase == .active
+                    )
+                    .frame(width: 128, height: 128)
+                    .allowsHitTesting(false)
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text(tier.word)
@@ -137,12 +156,12 @@ struct JournalScreen: View {
         HStack(spacing: 10) {
             ForEach(Tier.allCases.sorted(), id: \.self) { tier in
                 VStack(spacing: 5) {
-                    BrainSilhouetteView(
+                    BrainMark(
                         fill: tier.fill,
                         tint: tier == current ? Ink.marker : .white,
-                        showsBase: false
+                        far: tier == current ? Ink.focusGlowFar : .white,
+                        width: 26
                     )
-                    .frame(width: 26, height: 26)
                     .opacity(tier == current ? 1 : 0.34)
                     Text(tier.word)
                         .font(.system(size: 9, weight: tier == current ? .semibold : .regular))

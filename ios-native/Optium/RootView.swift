@@ -56,7 +56,7 @@ struct RootView: View {
                 HomeScreen(isVisible: selection == .home)
             }
             Tab("Où tu en es", systemImage: "chart.line.uptrend.xyaxis", value: RootTab.journal) {
-                JournalScreen()
+                JournalScreen(isVisible: selection == .journal)
             }
         }
         // L'application ne suit pas l'apparence d'iOS : le noir est un choix de
