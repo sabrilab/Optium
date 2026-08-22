@@ -14,11 +14,37 @@
 			remoteGlobalIDString = A100000000000000000000A4;
 			remoteInfo = Optium;
 		};
+		A100000000000000000000F4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A100000000000000000000A1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A100000000000000000000E2;
+			remoteInfo = OptiumWidgets;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXBuildFile section */
+		A100000000000000000000F5 /* OptiumWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A100000000000000000000E3 /* OptiumWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A100000000000000000000F2 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A100000000000000000000F5 /* OptiumWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		A100000000000000000000A5 /* Optium.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Optium.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A100000000000000000000C2 /* OptiumTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OptiumTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A100000000000000000000E3 /* OptiumWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OptiumWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -30,6 +56,16 @@
 		A100000000000000000000C3 /* OptiumTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = OptiumTests;
+			sourceTree = "<group>";
+		};
+		A100000000000000000000E1 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		A100000000000000000000E4 /* OptiumWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = OptiumWidgets;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -49,6 +85,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A100000000000000000000E6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -56,6 +99,8 @@
 			isa = PBXGroup;
 			children = (
 				A100000000000000000000A6 /* Optium */,
+				A100000000000000000000E1 /* Shared */,
+				A100000000000000000000E4 /* OptiumWidgets */,
 				A100000000000000000000C3 /* OptiumTests */,
 				A100000000000000000000A3 /* Products */,
 			);
@@ -66,6 +111,7 @@
 			children = (
 				A100000000000000000000A5 /* Optium.app */,
 				A100000000000000000000C2 /* OptiumTests.xctest */,
+				A100000000000000000000E3 /* OptiumWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -80,13 +126,16 @@
 				A100000000000000000000A7 /* Sources */,
 				A100000000000000000000A8 /* Frameworks */,
 				A100000000000000000000A9 /* Resources */,
+				A100000000000000000000F2 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A100000000000000000000F3 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				A100000000000000000000A6 /* Optium */,
+				A100000000000000000000E1 /* Shared */,
 			);
 			name = Optium;
 			packageProductDependencies = (
@@ -118,6 +167,29 @@
 			productReference = A100000000000000000000C2 /* OptiumTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		A100000000000000000000E2 /* OptiumWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A100000000000000000000E8 /* Build configuration list for PBXNativeTarget "OptiumWidgets" */;
+			buildPhases = (
+				A100000000000000000000E5 /* Sources */,
+				A100000000000000000000E6 /* Frameworks */,
+				A100000000000000000000E7 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A100000000000000000000E4 /* OptiumWidgets */,
+				A100000000000000000000E1 /* Shared */,
+			);
+			name = OptiumWidgets;
+			packageProductDependencies = (
+			);
+			productName = OptiumWidgets;
+			productReference = A100000000000000000000E3 /* OptiumWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -134,6 +206,9 @@
 					A100000000000000000000C1 = {
 						CreatedOnToolsVersion = 26.3;
 						TestTargetID = A100000000000000000000A4;
+					};
+					A100000000000000000000E2 = {
+						CreatedOnToolsVersion = 26.3;
 					};
 				};
 			};
@@ -152,6 +227,7 @@
 			projectRoot = "";
 			targets = (
 				A100000000000000000000A4 /* Optium */,
+				A100000000000000000000E2 /* OptiumWidgets */,
 				A100000000000000000000C1 /* OptiumTests */,
 			);
 		};
@@ -166,6 +242,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		A100000000000000000000C6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A100000000000000000000E7 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -189,6 +272,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A100000000000000000000E5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -196,6 +286,11 @@
 			isa = PBXTargetDependency;
 			target = A100000000000000000000A4 /* Optium */;
 			targetProxy = A100000000000000000000D2 /* PBXContainerItemProxy */;
+		};
+		A100000000000000000000F3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A100000000000000000000E2 /* OptiumWidgets */;
+			targetProxy = A100000000000000000000F4 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -306,6 +401,7 @@
 				CODE_SIGN_ENTITLEMENTS = Optium.entitlements;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Optium lit vos nuits pour estimer votre clarte. Rien n'en sort de l'appareil.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "Optium deduit vos nuits du mouvement du telephone, quand aucun sommeil n'est enregistre.";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -341,6 +437,7 @@
 				CODE_SIGN_ENTITLEMENTS = Optium.entitlements;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Optium lit vos nuits pour estimer votre clarte. Rien n'en sort de l'appareil.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "Optium deduit vos nuits du mouvement du telephone, quand aucun sommeil n'est enregistre.";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -405,6 +502,64 @@
 			};
 			name = Release;
 		};
+		A100000000000000000000E9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = OptiumWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4L8JW7Q5R7;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Optium;
+				INFOPLIST_FILE = "OptiumWidgets-Info.plist";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sabrilab.optium.native.Widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A100000000000000000000F1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = OptiumWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4L8JW7Q5R7;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Optium;
+				INFOPLIST_FILE = "OptiumWidgets-Info.plist";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.sabrilab.optium.native.Widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -431,6 +586,15 @@
 			buildConfigurations = (
 				A100000000000000000000C8 /* Debug */,
 				A100000000000000000000C9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A100000000000000000000E8 /* Build configuration list for PBXNativeTarget "OptiumWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A100000000000000000000E9 /* Debug */,
+				A100000000000000000000F1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

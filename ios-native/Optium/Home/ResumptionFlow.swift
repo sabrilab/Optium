@@ -47,10 +47,12 @@ struct ResumptionFlow: View {
             inWindow: reading.window.contains(now),
             at: now
         )
+        LiveActivityController.start(thread: thread, reading: reading, landing: nil)
     }
 
     private func pause() {
         thread.pause(at: Date())
+        Task { await LiveActivityController.end() }
         dismiss()
     }
 
@@ -65,6 +67,7 @@ struct ResumptionFlow: View {
             step = .gate
         case .direct:
             thread.close(at: Date())
+            Task { await LiveActivityController.end() }
             step = .closed
         }
     }

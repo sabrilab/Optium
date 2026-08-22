@@ -9,6 +9,25 @@ private extension RootView {
             bedtime: clarity.reading.window.start.addingTimeInterval(13 * 3600),
             threadCount: openThreads.count
         )
+
+        WidgetBridge.publish(
+            reading: clarity.reading,
+            threadPhrase: openThreads.first?.phrase,
+            tier: clarity.reading.regularity.map(Tier.init(regularity:)),
+            landing: landing
+        )
+    }
+
+    /// L'atterrissage, calcule une fois et partage entre l'accueil, les
+    /// widgets et la Live Activity.
+    var landing: Landing? {
+        let history = closedThreads.map(\.resumptions.count).filter { $0 > 0 }
+        let activeDays = Set(allResumptions.map { Calendar.current.startOfDay(for: $0.startedAt) })
+        let capacity = activeDays.isEmpty ? 0 : Double(allResumptions.count) / Double(activeDays.count)
+        return LandingEstimator.estimate(
+            closedResumptions: history, openThreads: openThreads.count,
+            dailyCapacity: capacity, from: Date()
+        )
     }
 }
 
@@ -23,6 +42,11 @@ struct RootView: View {
 
     @Query(filter: #Predicate<WorkThread> { $0.closedAt == nil })
     private var openThreads: [WorkThread]
+
+    @Query(filter: #Predicate<WorkThread> { $0.closedAt != nil })
+    private var closedThreads: [WorkThread]
+
+    @Query private var allResumptions: [Resumption]
 
     @State private var selection: RootTab = .home
 

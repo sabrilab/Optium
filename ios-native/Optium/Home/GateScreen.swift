@@ -109,6 +109,7 @@ struct GateScreen: View {
                     // son objet : on ne franchit pas en tapant, on franchit en
                     // disant ce qu'on accepte.
                     if thread.closeThroughGate(acceptance: acceptance, at: Date()) {
+                        Task { await LiveActivityController.end() }
                         onClosed()
                     }
                 } label: {
@@ -122,6 +123,7 @@ struct GateScreen: View {
 
                 Button {
                     thread.hold(until: nextWindow, at: Date())
+                    Task { await LiveActivityController.end() }
                     onHeld()
                 } label: {
                     Text("Retenir jusqu’à \(nextWindow.formatted(date: .omitted, time: .shortened))")
