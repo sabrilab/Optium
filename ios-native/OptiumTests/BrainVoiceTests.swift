@@ -41,7 +41,7 @@ private let sample = CallFacts(
 }
 
 @Test func lePromptRappelleLePerimetreQuandIlYEnAUn() {
-    var scoped = sample
+    let scoped = sample
     let prompt = BrainCall.prompt("Et ensuite ?", CallFacts(
         nightCount: scoped.nightCount, regularity: scoped.regularity,
         clarityWord: scoped.clarityWord, window: scoped.window,
@@ -52,7 +52,6 @@ private let sample = CallFacts(
 
     #expect(prompt.contains("Refonte tarifaire"))
     #expect(prompt.contains("Ne cite rien d’un autre projet"))
-    _ = scoped
 }
 
 @Test func lePromptExigeLaConsultationAvantTouteAffirmation() {

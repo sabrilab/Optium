@@ -6,7 +6,9 @@ import Foundation
 /// l'interface montre un mot. La regle est esthetique autant que
 /// reglementaire — un score chiffre de performance cognitive s'approche d'un
 /// diagnostic, ce que cette application ne pose pas.
-enum ClarityLevel: String, Codable, CaseIterable {
+// `nonisolated` : un seuil est une constante, et `Vigilance` — pur, evalue
+// hors du fil principal — en a besoin pour deriver la fenetre.
+nonisolated enum ClarityLevel: String, Codable, CaseIterable {
     case low, medium, high
 
     /// Seuils du document : basse < 42 ≤ moyenne < 70 ≤ haute.
@@ -110,6 +112,7 @@ extension ClarityReading {
             // deja entamee, plafond au-dessus de la valeur forcee.
             ceiling: Double(min(100, value + 12)),
             hoursAwake: 4,
+            wokeAt: Date().addingTimeInterval(-4 * 3600),
             curve: [],
             level: level
         )

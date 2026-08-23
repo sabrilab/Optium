@@ -60,6 +60,11 @@ struct ClarityReading {
     /// courbe.
     let hoursAwake: Double
 
+    /// L'instant du reveil, pour convertir « heures depuis le lever » en heure
+    /// d'horloge. **C'est la seule facon d'ecrire une heure lisible** sur une
+    /// echelle dont l'origine est le lever et non minuit.
+    let wokeAt: Date?
+
     /// Un point de la journee.
     struct CurvePoint: Equatable, Identifiable {
         let at: Date
@@ -252,6 +257,7 @@ enum ClarityEngine {
                 shortfalls: [],
                 ceiling: nil,
                 hoursAwake: awake,
+                wokeAt: nil,
                 curve: []
             )
         }
@@ -302,6 +308,7 @@ enum ClarityEngine {
             shortfalls: shortfalls,
             ceiling: ceiling,
             hoursAwake: awake,
+            wokeAt: anchor,
             curve: vigilance.curve().map {
                 ClarityReading.CurvePoint(
                     at: anchor.addingTimeInterval($0.hoursAwake * 3600),

@@ -179,6 +179,13 @@ struct HomeScreen: View {
                 isVisible: isVisible && scenePhase == .active
             )
             .frame(height: 260)
+            // La regle vit dans la marge morte du cadre : le champ de vision
+            // du rendu est vertical, donc le cerveau ne retrecit pas et reste
+            // centre quelle que soit la largeur du cadre.
+            //
+            // Posee avant l'explication du plafond, pour que la phrase du
+            // toucher passe par-dessus les dernieres graduations.
+            .overlay(alignment: .trailing) { dayRule(at: date) }
             // La ligne de plafond n'est pas chiffree : sa valeur est derivee,
             // pas mesuree. Elle s'explique au toucher plutot que de porter un
             // nombre qui ne serait verifiable nulle part.
@@ -223,14 +230,44 @@ struct HomeScreen: View {
             .animation(Motion.state, value: live?.level ?? reading.level)
     }
 
-    /// La fenetre, en heures depuis le reveil, pour la poser sur la courbe.
+    /// La fenetre, en heures depuis le reveil, pour la poser sur la regle.
+    ///
+    /// **Ancree sur `reading.wokeAt`, jamais sur une ancre recalculee.**
+    /// Elle repartait de `Date() - hoursAwake`, or `hoursAwake` est fige au
+    /// dernier rafraichissement : sous un `TimelineView` qui redessine chaque
+    /// minute sans relire les sources, les deux ancres s'ecartent en sens
+    /// inverses — la fenetre glisse vers l'avant pendant que le curseur glisse
+    /// vers l'arriere. Deux heures d'ecart apres une heure.
     private var windowBounds: (start: Double, end: Double)? {
-        guard reading.clarity != nil else { return nil }
-        let anchor = Date().addingTimeInterval(-reading.hoursAwake * 3600)
+        guard reading.clarity != nil, let woke = reading.wokeAt else { return nil }
         return (
-            reading.window.start.timeIntervalSince(anchor) / 3600,
-            reading.window.end.timeIntervalSince(anchor) / 3600
+            reading.window.start.timeIntervalSince(woke) / 3600,
+            reading.window.end.timeIntervalSince(woke) / 3600
         )
+    }
+
+    /// La regle du jour, posee dans la marge morte du cadre du cerveau.
+    ///
+    /// **Sans mesure, pas de regle.** On ne dessine jamais une journee
+    /// inventee — meme regle que pour le mot et pour le cerveau.
+    ///
+    /// La borne haute n'est pas decorative : `ClarityEngine.hoursAwake` boucle
+    /// sur vingt-quatre heures quand aucune nuit n'a ete lue. Consulte a 5 h
+    /// avec un lever habituel a 6 h 42, on obtiendrait 22,3 — la regle
+    /// montrerait en silence une journee entierement consommee.
+    @ViewBuilder
+    private func dayRule(at date: Date) -> some View {
+        if reading.clarity != nil, let woke = reading.wokeAt, reading.curve.count > 2 {
+            let awake = date.timeIntervalSince(woke) / 3600
+            if awake >= 0, awake <= 17 {
+                DayRule(
+                    points: reading.curve,
+                    now: date,
+                    window: windowBounds,
+                    wakeTime: woke
+                )
+            }
+        }
     }
 
     private var clarityCard: some View {
@@ -260,16 +297,6 @@ struct HomeScreen: View {
                 // il fallait ouvrir un autre écran pour savoir sur quoi il
                 // reposait. Un verdict dont la cause est ailleurs se subit ;
                 // posé à côté d'elle, il s'examine.
-                // La journee entiere, sous le mot. On doit voir d'un coup
-                // d'oeil que le creux de l'apres-midi est passager.
-                if !reading.curve.isEmpty {
-                    DayCurve(
-                        points: reading.curve,
-                        hoursAwake: reading.hoursAwake,
-                        window: windowBounds
-                    )
-                }
-
                 NavigationLink { NightsScreen() } label: {
                     HStack(alignment: .top, spacing: 12) {
                         NightsStrip(nights: recordedNights)
@@ -285,7 +312,6 @@ struct HomeScreen: View {
                 arrival
             }
 
-            WindowStrip(window: window, now: Date())
 
             Text(windowSentence)
                 .font(.footnote)

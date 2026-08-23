@@ -842,6 +842,57 @@ même organe finissent par diverger.
 Le niveau se mesure sur les proportions du glyphe, jamais sur le cadre — dans un
 carré, `murky` à 0,16 tomberait sous le dessin et n'allumerait rien.
 
+### La règle du jour
+
+`Design/DayRule.swift`, posée en `overlay(alignment: .trailing)` sur le cadre
+du cerveau. 92 × 260 points, dans la marge morte du rendu.
+
+**Le principe de partage, et c'est lui qui rend l'écran lisible :**
+
+> **Le cerveau dit COMBIEN** — remplissage et ligne de plafond, sur 260 points.
+> **La règle dit QUAND.**
+
+Une idée par objet. C'est la seule réponse recevable à « la carte est trop
+grosse et on ne comprend pas » : ne pas redire le niveau sur 40 points quand il
+est déjà dit sur 260. C'est pourquoi **aucune ligne de plafond n'est tracée
+dans la règle**.
+
+**L'encodage est le point délicat, et deux options plausibles ont été mesurées
+puis écartées** contre le vrai moteur, sur sept qualités de nuit :
+
+- *clarté absolue → longueur* : la journée ne parcourt que ~26 points sur 100,
+  soit 9 points de bombé et un rebond de 2. Illisible.
+- *écart au plafond du réveil* : le déficit vaut les mêmes valeurs aux mêmes
+  heures dans **les sept scénarios**. La règle dessinerait le même motif tous
+  les matins.
+- **retenu — le rapport `clarté(h) / plafond(h)`**, ramené de [0,55 ; 1,00] à
+  [4 ; 40] points, **échelle fixe, jamais renormalisée sur la journée**. Le
+  rebond du soir vaut alors 6,7 à 19,3 points au-dessus du creux, et l'écart
+  pic-creux passe de 9,7 à 30,4 selon la nuit — *mal dormir creuse l'écart*
+  devient visible au lieu d'être affirmé.
+
+**Ne jamais renormaliser sur la journée** : un axe auto-ajusté effacerait
+exactement ce que le modèle a à dire.
+
+Deux autres décisions à ne pas défaire : la grille est en **demi-heures
+d'horloge** et non en heures depuis le lever — sans quoi aucune étiquette ne
+tomberait sur un trait ; et **une seule population de marques**, la hiérarchie
+passant par l'épaisseur et le débord, comme sur une vraie règle (mm / 5 mm /
+cm).
+
+`Ink.marker` ne désigne que le présent. **La fenêtre est en blanc** : c'est un
+intervalle dérivé, et deux objets jaune-vert donneraient deux sens à l'unique
+couleur franche.
+
+**Piège corrigé au passage** : `windowBounds` reconstruisait son ancre depuis
+`Date()` alors que `hoursAwake` est figé au dernier rafraîchissement. Sous un
+`TimelineView` qui redessine chaque minute sans relire les sources, les deux
+ancres s'écartaient en sens inverses — deux heures de dérive après une heure.
+Elle est ancrée sur `reading.wokeAt`.
+
+`DayCurve`, la version horizontale posée dans la carte, a été **supprimée** :
+jugée trop grosse et incompréhensible.
+
 ### Le lavis va jusqu'aux widgets
 
 `Shared/BentoWash.swift`. Il vivait dans `BentoSurface`, côté application
