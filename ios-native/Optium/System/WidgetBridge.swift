@@ -21,7 +21,7 @@ enum WidgetBridge {
         let graved = BrainSnapshot.render(fill: fill, base: reading.brainBase, isDay: true)
 
         WidgetSnapshot(
-            clarityWord: reading.clarity?.level.word,
+            clarityWord: reading.clarity == nil ? nil : reading.level.word,
             observedNights: reading.observedNights,
             fill: reading.clarity.map { Double($0.value) / 100 } ?? 0,
             base: reading.regularity.map { min(1, 0.45 + $0 / 100 * 0.55) } ?? 1,

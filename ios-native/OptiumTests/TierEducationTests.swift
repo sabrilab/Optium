@@ -56,3 +56,22 @@ import Testing
     #expect(Tier.crystalline.range.lowerBound == 87)
     #expect(Tier.crystalline.range.upperBound == 100)
 }
+
+// ── L'embleme de l'appel montre le bon palier ──
+//
+// `ExhibitCard` reconstruisait le palier depuis son libelle affiche —
+// `Tier(rawValue: "cristallin")` — alors que les `rawValue` sont les cas
+// anglais. La reconstruction renvoyait toujours `nil` et l'embleme affichait
+// un remplissage constant de 0,6, quel que soit le palier reel.
+
+@Test func unLibelleFrancaisNeReconstruitPasUnPalier() {
+    // Le piege, garde comme trace : c'est ce qui rendait le bug invisible.
+    for tier in Tier.allCases {
+        #expect(Tier(rawValue: tier.word.lowercased()) == nil)
+    }
+}
+
+@Test func chaquePalierAUnRemplissageDistinct() {
+    let fills = Set(Tier.allCases.map(\.fill))
+    #expect(fills.count == Tier.allCases.count)
+}

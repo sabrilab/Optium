@@ -13,7 +13,12 @@ enum CallExhibit: Sendable, Hashable {
     case clarity(word: String?, nights: Int, window: DateInterval)
     case thread(phrase: String, resumptions: Int, nights: Int, held: Int)
     case openThreads([String])
-    case tier(word: String, share: String, days: Int?)
+    /// **Le palier lui-meme, pas son libelle.** `ExhibitCard` reconstruisait
+    /// le palier depuis le mot affiche — `Tier(rawValue: "cristallin")` — alors
+    /// que les `rawValue` sont les cas anglais. La reconstruction renvoyait
+    /// donc toujours `nil`, et l'embleme affichait un remplissage de 0,6 quel
+    /// que soit le palier reel.
+    case tier(Tier, share: String, days: Int?)
 }
 
 /// La scene de l'appel : une seule chose a la fois.
@@ -55,7 +60,7 @@ struct CallFacts: Sendable {
     let window: DateInterval
     let closed: [ClosedThreadFact]
     let open: [String]
-    let tierWord: String?
+    let tier: Tier?
     let tierShare: String?
     let tierDays: Int?
     let memory: String

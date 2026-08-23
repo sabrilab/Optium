@@ -53,7 +53,7 @@ enum LiveActivityController {
         return OptiumActivity.ContentState(
             fill: reading.clarity.map { Double($0.value) / 100 } ?? 0,
             base: reading.regularity.map { min(1, 0.45 + $0 / 100 * 0.55) } ?? 1,
-            clarityWord: reading.clarity?.level.word ?? "en observation",
+            clarityWord: reading.clarity == nil ? "en observation" : reading.level.word,
             resumptionNumber: thread.resumptions.count,
             startedAt: thread.currentResumption?.startedAt ?? Date(),
             windowEnd: reading.window.end,

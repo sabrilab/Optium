@@ -72,7 +72,13 @@ extension ClarityReading {
 
     /// Plafond permis par la nuit. Sans regularite mesuree il n'y a pas de
     /// plafond a montrer — la ligne disparait plutot que d'etre inventee.
-    var brainBase: Double { regularity.map { min(1, 0.45 + $0 / 100 * 0.55) } ?? 0 }
+    /// **Le plafond, et il descend maintenant dans la journee.**
+    ///
+    /// Il valait `0,45 + regularite x 0,55` : une constante etablie au reveil,
+    /// sans aucun terme de temps. C'etait le manque principal — la ligne du
+    /// cerveau ne bougeait pas de la journee, alors qu'elle represente ce que
+    /// la nuit permet *encore*.
+    var brainBase: Double { (ceiling ?? 0) / 100 }
 
     /// Une lecture forcee, pour l'outil de developpement.
     ///
@@ -99,7 +105,13 @@ extension ClarityReading {
                 ClarityShortfall(component: .duration, amount: Double(100 - value) * 0.30),
                 ClarityShortfall(component: .regularity, amount: Double(100 - value) * 0.20),
                 ClarityShortfall(component: .circadian, amount: Double(100 - value) * 0.10),
-            ]
+            ],
+            // L'outil de developpement force un niveau : il simule une journee
+            // deja entamee, plafond au-dessus de la valeur forcee.
+            ceiling: Double(min(100, value + 12)),
+            hoursAwake: 4,
+            curve: [],
+            level: level
         )
     }
 }

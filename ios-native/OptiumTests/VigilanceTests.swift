@@ -163,3 +163,87 @@ private let poor = Vigilance(ceilingAtWake: 55, pressureTau: 7)
     #expect(ClarityLevel.level(value: 70, previous: nil) == .high)
     #expect(ClarityLevel.level(value: 41, previous: nil) == .low)
 }
+
+// ── Le raccordement : la clarte bouge vraiment dans la journee ──
+//
+// Le moteur pouvait rester juste et l'application rester figee : c'est ce qui
+// se passait. Ces tests portent sur `ClarityEngine.reading`, pas sur le
+// modele.
+
+private var cal: Calendar {
+    var c = Calendar(identifier: .gregorian)
+    c.timeZone = TimeZone(identifier: "Europe/Paris")!
+    return c
+}
+private let day0 = cal.date(from: DateComponents(year: 2026, month: 6, day: 1))!
+
+private func night(_ day: Int, bed: Double = 23, hours: Double = 8) -> Night {
+    let d = cal.date(byAdding: .day, value: day, to: day0)!
+    let asleep = cal.startOfDay(for: d).addingTimeInterval(bed * 3600)
+    return Night(asleepAt: asleep, wokeAt: asleep.addingTimeInterval(hours * 3600))
+}
+
+private func reading(at hoursAfterWake: Double, nights: [Night]) -> ClarityReading {
+    let woke = nights.last!.wokeAt
+    return ClarityEngine.reading(
+        nights: nights, now: woke.addingTimeInterval(hoursAfterWake * 3600), calendar: cal)
+}
+
+@Test func laClarteChangeAuFilDeLaJournee() {
+    let nights = (0..<28).map { night($0) }
+    let values = [1.0, 3.0, 6.0, 9.0, 12.0].map { reading(at: $0, nights: nights).clarity?.value ?? 0 }
+
+    // Elle etait figee : quatre-vingts pour cent du score venait de la nuit.
+    #expect(Set(values).count == values.count, "des valeurs identiques a des heures differentes")
+    #expect((values.max() ?? 0) - (values.min() ?? 0) >= 10, "la journee est encore trop plate")
+}
+
+@Test func lePlafondRapporteDescendAussi() {
+    let nights = (0..<28).map { night($0) }
+    let matin = reading(at: 1, nights: nights).ceiling ?? 0
+    let soir = reading(at: 14, nights: nights).ceiling ?? 0
+    #expect(soir < matin)
+}
+
+@Test func laCourbeDuJourEstRapportee() {
+    let nights = (0..<28).map { night($0) }
+    let curve = reading(at: 3, nights: nights).curve
+    #expect(curve.count > 40, "la courbe est trop grossiere pour etre dessinee")
+    #expect(curve.allSatisfy { $0.ceiling >= $0.clarity - 0.001 },
+            "la clarte passe au-dessus du plafond")
+}
+
+@Test func laFenetreRapporteeSuitLaCourbe() {
+    let good = (0..<28).map { night($0) }
+    var poor = (0..<27).map { night($0, bed: 20 + Double($0 % 5), hours: 5) }
+    poor.append(night(27, bed: 3, hours: 3.5))
+
+    let wide = reading(at: 3, nights: good).window.duration
+    let narrow = reading(at: 3, nights: poor).window.duration
+    #expect(narrow < wide, "la fenetre ne se retrecit pas apres une mauvaise nuit")
+}
+
+@Test func avantLeLeverOnNEstPasEveilleDepuisMoinsQueRien() {
+    let nights = (0..<28).map { night($0) }
+    // Consulte a 5 h du matin, avant le lever habituel : on est encore dans la
+    // nuit precedente, jamais un nombre d'heures negatif.
+    let dawn = cal.startOfDay(for: nights.last!.wokeAt).addingTimeInterval(5 * 3600)
+    let r = ClarityEngine.reading(nights: nights, now: dawn, calendar: cal)
+    #expect(r.hoursAwake >= 0)
+}
+
+@Test func leNiveauRapporteTientCompteDuPrecedent() {
+    let nights = (0..<28).map { night($0) }
+    let woke = nights.last!.wokeAt
+    let plain = ClarityEngine.reading(nights: nights, now: woke.addingTimeInterval(3 * 3600), calendar: cal)
+
+    // Meme instant, mais en venant de « basse » : l'hysteresis doit retenir la
+    // montee si la valeur est juste au-dessus du seuil.
+    let value = plain.clarity?.value ?? 0
+    let held = ClarityEngine.reading(
+        nights: nights, now: woke.addingTimeInterval(3 * 3600), calendar: cal, previousLevel: .low)
+    if value >= 42 && value < 45 {
+        #expect(held.level == .low)
+    }
+    #expect(plain.level == ClarityLevel(value: value))
+}

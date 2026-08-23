@@ -18,7 +18,7 @@ private let sample = CallFacts(
     window: DateInterval(start: Date(), duration: 9600),
     closed: [ClosedThreadFact(phrase: "Choisir le palier", resumptions: 3, nights: 2, held: 1)],
     open: ["Trancher le positionnement"],
-    tierWord: "Net",
+    tier: .clear,
     tierShare: "26 % sont à ton palier.",
     tierDays: 9,
     memory: "",
@@ -46,7 +46,7 @@ private let sample = CallFacts(
         nightCount: scoped.nightCount, regularity: scoped.regularity,
         clarityWord: scoped.clarityWord, window: scoped.window,
         closed: scoped.closed, open: scoped.open,
-        tierWord: scoped.tierWord, tierShare: scoped.tierShare, tierDays: scoped.tierDays,
+        tier: scoped.tier, tierShare: scoped.tierShare, tierDays: scoped.tierDays,
         memory: "", scope: "Refonte tarifaire"
     ))
 

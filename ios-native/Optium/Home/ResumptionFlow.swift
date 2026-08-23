@@ -44,7 +44,7 @@ struct ResumptionFlow: View {
     private func start() {
         let now = Date()
         thread.startResumption(
-            clarity: reading.clarity?.level ?? .medium,
+            clarity: reading.clarity == nil ? .medium : reading.level,
             inWindow: reading.window.contains(now),
             at: now
         )
@@ -63,7 +63,7 @@ struct ResumptionFlow: View {
     /// reste se ferme directement — et c'est cette rareté qui rend le refus
     /// acceptable plutôt qu'agaçant.
     private func attemptClose() {
-        switch thread.closingOutcome(clarity: reading.clarity?.level) {
+        switch thread.closingOutcome(clarity: reading.clarity == nil ? nil : reading.level) {
         case .gate:
             // Le retour precede l'ecran : la main sait qu'on l'arrete avant
             // que l'oeil ait lu pourquoi.

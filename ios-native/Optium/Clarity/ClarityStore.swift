@@ -12,6 +12,16 @@ import SwiftData
 @MainActor
 final class ClarityStore {
     private(set) var reading: ClarityReading
+
+    /// Le modele du jour, garde pour reevaluer la clarte **sans relire les
+    /// sources**.
+    ///
+    /// La valeur change en continu ; relancer `refresh` chaque minute
+    /// interrogerait Sante et SwiftData pour recalculer deux exponentielles.
+    /// Le modele et l'ancre du reveil suffisent — le reste est une fonction
+    /// pure du temps.
+    private(set) var vigilance: Vigilance?
+    private(set) var wakeAnchor: Date?
     private(set) var isRefreshing = false
     /// Faux tant que l'utilisateur n'a accorde aucune source.
     private(set) var hasPermission = false
@@ -35,6 +45,16 @@ final class ClarityStore {
         hasPermission = await source.requestAuthorization()
     }
 
+    /// La clarte a un instant donne, calculee sans toucher aux sources.
+    ///
+    /// - Returns: `nil` tant qu'aucune mesure n'existe.
+    func live(at date: Date) -> (value: Int, ceiling: Double, level: ClarityLevel)? {
+        guard let vigilance, let wakeAnchor, reading.clarity != nil else { return nil }
+        let awake = max(0, date.timeIntervalSince(wakeAnchor) / 3600)
+        let value = Int(min(100, max(0, vigilance.clarity(hoursAwake: awake).rounded())))
+        return (value, vigilance.ceiling(hoursAwake: awake), ClarityLevel.level(value: value, previous: reading.level))
+    }
+
     /// Relit les sources, conserve ce qui est nouveau, recalcule.
     func refresh(context: ModelContext, now: Date = Date()) async {
         guard !isRefreshing else { return }
@@ -56,12 +76,20 @@ final class ClarityStore {
             FetchDescriptor<CoffeeIntake>(predicate: #Predicate { $0.takenAt >= horizon })
         )) ?? []
 
+        // **Le niveau precedent est transmis, sinon l'hysteresis n'existe
+        // pas.** Elle compare la nouvelle valeur a l'etat affiche juste avant ;
+        // sans cette memoire, chaque lecture repartirait du seuil brut et la
+        // porte clignoterait autour de 42 et de 70.
         reading = ClarityEngine.reading(
             nights: stored.map(\.night),
             now: now,
             coffees: coffees.map(\.takenAt),
-            calendar: calendar
+            calendar: calendar,
+            previousLevel: reading.clarity == nil ? nil : reading.level
         )
+
+        vigilance = ClarityEngine.vigilance(nights: stored.map(\.night), calendar: calendar)
+        wakeAnchor = now.addingTimeInterval(-reading.hoursAwake * 3600)
     }
 
     /// Conserve ce qui est nouveau, **et corrige ce qui etait faux**.

@@ -134,12 +134,12 @@ struct TierTool: Tool {
     let show: @Sendable (CallExhibit) -> Void
 
     func call(arguments: GeneratedContent) async throws -> String {
-        guard let word = facts.tierWord, let share = facts.tierShare else {
+        guard let tier = facts.tier, let share = facts.tierShare else {
             return "Je n’ai pas encore assez de nuits pour avoir un palier."
         }
-        show(.tier(word: word, share: share, days: facts.tierDays))
+        show(.tier(tier, share: share, days: facts.tierDays))
 
-        var line = "Mon palier : \(word). \(share)"
+        var line = "Mon palier : \(tier.word). \(share)"
         if let days = facts.tierDays { line += " J’y suis depuis \(days) jours." }
         return line
     }

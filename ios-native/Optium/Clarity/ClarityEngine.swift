@@ -51,6 +51,37 @@ struct ClarityReading {
     /// Les manques, du plus grand au plus petit.
     let shortfalls: [ClarityShortfall]
 
+    // ── Ce que le modele a deux processus rend en plus ──
+
+    /// **Le plafond a cet instant**, 0…100 : ce que la nuit permet, moins ce
+    /// que la journee a deja coute. `nil` sans mesure.
+    let ceiling: Double?
+    /// Heures ecoulees depuis le reveil. Sert a situer le present sur la
+    /// courbe.
+    let hoursAwake: Double
+
+    /// Un point de la journee.
+    struct CurvePoint: Equatable, Identifiable {
+        let at: Date
+        let hoursAwake: Double
+        let clarity: Double
+        let ceiling: Double
+
+        var id: Double { hoursAwake }
+    }
+
+    /// La journee entiere, echantillonnee. **C'est elle qu'on dessine** : le
+    /// creux de l'apres-midi doit se voir comme passager, avec un rebond
+    /// derriere.
+    let curve: [CurvePoint]
+
+    /// Le niveau **avec hysteresis**, qui peut differer du seuil brut.
+    ///
+    /// Depuis que la clarte evolue dans la journee, elle traverse les seuils :
+    /// sans hysteresis, la porte s'ouvrirait et se fermerait autour de 42 ou
+    /// de 70. Voir `ClarityLevel.level(value:previous:)`.
+    var level: ClarityLevel = .medium
+
     /// La lecture repose-t-elle entierement sur des nuits devinees.
     ///
     /// Le cas ordinaire de quelqu'un sans montre : ce n'est pas un defaut, et
@@ -92,20 +123,20 @@ struct ClarityReading {
 /// d'Apple, et son rapport tourne dans une extension muree qui ne peut pas le
 /// renvoyer a l'application. Il a donc ete abandonne, et son poids reparti.
 enum ClarityEngine {
-    // Des poids ronds, et c'est deliberé.
+    // **Ce que la nuit decide, et rien d'autre.**
     //
-    // Ils etaient a 0,45 / 0,30 / 0,25 : ces decimales annoncaient une
-    // calibration qui n'existe pas. La fausse precision est ce qui
-    // decredibilise une heuristique aupres de quiconque connait le domaine —
-    // autant assumer l'ordre de grandeur.
+    // Les trois composantes etaient moyennees en un seul nombre — regularite
+    // 0,5, duree 0,3, circadien 0,2. C'est la raison mecanique pour laquelle
+    // rien ne bougeait dans la journee : quatre-vingts pour cent du score
+    // etait fige au reveil, et il ne restait que vingt points de marge.
     //
-    // La regularite domine parce qu'elle est la mieux etablie : Windred et
-    // coll. (2023) montrent qu'elle predit mieux la mortalite que la duree.
-    // Le circadien est descendu a 0,2 parce qu'il est le plus conteste des
-    // trois — voir le commentaire de `CircadianModel`.
-    static let regularityWeight = 0.5
-    static let durationWeight = 0.3
-    static let circadianWeight = 0.2
+    // Le circadien a quitte la somme : il n'est plus une composante mais
+    // l'oscillation elle-meme, dans `Vigilance`. Les deux qui restent gardent
+    // leur rapport et sont renormalisees — la regularite domine toujours,
+    // parce que Windred et coll. (2023) la trouvent plus predictive que la
+    // duree.
+    static let regularityWeight = 0.5 / 0.8
+    static let durationWeight = 0.3 / 0.8
 
     /// En deca, la clarte n'existe pas.
     ///
@@ -138,53 +169,125 @@ enum ClarityEngine {
         return 100 * exp(-deviation * deviation)
     }
 
+    /// Vitesse d'accumulation de la pression, en heures.
+    ///
+    /// **C'est la duree de la nuit qui la decide**, pas la regularite : une
+    /// nuit courte laisse une dette qui fait monter la pression plus vite le
+    /// lendemain. La regularite, elle, joue sur le point de depart.
+    ///
+    /// De 6 h 30 apres une nuit tres courte a 13 h 30 apres une nuit pleine.
+    static func pressureTau(durationScore: Double) -> Double {
+        6.5 + max(0, min(100, durationScore)) / 100 * 7
+    }
+
+    /// Heures ecoulees depuis le reveil.
+    ///
+    /// Le vrai lever quand il est connu et date d'aujourd'hui ; le lever
+    /// habituel sinon. **Jamais une valeur negative** : consulte l'application
+    /// avant son lever habituel, on est encore dans la nuit precedente.
+    static func hoursAwake(
+        now: Date, lastNight: Night?, habitualWake: Date, calendar: Calendar
+    ) -> Double {
+        if let woke = lastNight?.wokeAt, now > woke, now.timeIntervalSince(woke) < 24 * 3600 {
+            return now.timeIntervalSince(woke) / 3600
+        }
+        let parts = calendar.dateComponents([.hour, .minute], from: habitualWake)
+        let wakeHour = Double(parts.hour ?? 7) + Double(parts.minute ?? 0) / 60
+        let nowParts = calendar.dateComponents([.hour, .minute], from: now)
+        let hour = Double(nowParts.hour ?? 0) + Double(nowParts.minute ?? 0) / 60
+        var awake = hour - wakeHour
+        if awake < 0 { awake += 24 }
+        return awake
+    }
+
+    /// Le modele du jour, sans l'evaluer.
+    ///
+    /// Expose separement pour que `ClarityStore` puisse le garder et
+    /// reevaluer la clarte a la minute sans relire Sante.
+    static func vigilance(nights: [Night], calendar: Calendar = .current) -> Vigilance? {
+        let recent = nights.sorted { $0.asleepAt < $1.asleepAt }
+        guard recent.count >= minimumNights, let last = recent.last else { return nil }
+
+        let regularity = SleepRegularity.index(nights: recent, calendar: calendar) ?? 81
+        let regularityScore = SleepRegularity.populationScore(regularity)
+        let durations = recent.map(\.duration).sorted()
+        let median = durations[durations.count / 2]
+        let duration = durationScore(lastNight: last.duration, median: median)
+
+        return Vigilance(
+            ceilingAtWake: regularityWeight * regularityScore + durationWeight * duration,
+            pressureTau: pressureTau(durationScore: duration)
+        )
+    }
+
+    /// - Parameter previousLevel: le niveau affiche juste avant, pour
+    ///   l'hysteresis. `nil` a la premiere lecture.
     static func reading(
         nights: [Night],
         now: Date,
         coffees: [Date] = [],
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        previousLevel: ClarityLevel? = nil
     ) -> ClarityReading {
         let recent = nights.sorted { $0.asleepAt < $1.asleepAt }
         let habitualWake = averageWake(of: recent, calendar: calendar) ?? defaultWake(now, calendar)
-        let circadian = CircadianModel(habitualWake: habitualWake, calendar: calendar)
-        let window = circadian.window(on: now)
         let penalty = caffeinePenalty(coffees: coffees, bedtime: projectedBedtime(habitualWake, calendar), now: now)
 
         let lastNight = recent.last?.duration
         let spread = wakeSpread(of: recent.suffix(3), calendar: calendar)
+        let awake = hoursAwake(now: now, lastNight: recent.last, habitualWake: habitualWake, calendar: calendar)
 
         guard recent.count >= minimumNights, let last = recent.last else {
+            // Sans mesure, la fenetre reste celle du lever habituel : c'est la
+            // seule chose vraie qu'on puisse en dire.
             return ClarityReading(
                 clarity: nil,
                 observedNights: recent.count,
                 inferredNights: recent.count { $0.origin == .inferred },
                 regularity: nil,
-                window: window,
+                window: defaultWindow(habitualWake: habitualWake, now: now, calendar: calendar),
                 projectedNightPenalty: penalty,
                 lastNightDuration: lastNight,
                 wakeSpread: spread,
-                shortfalls: []
+                shortfalls: [],
+                ceiling: nil,
+                hoursAwake: awake,
+                curve: []
             )
         }
 
         // Le SRI brut est conserve pour l'affichage et les faits ; c'est son
-        // rang de population qui entre dans la ponderation. Voir
+        // rang de population qui entre dans le plafond. Voir
         // `SleepRegularity.populationScore`.
         let regularity = SleepRegularity.index(nights: recent, calendar: calendar) ?? 81
         let regularityScore = SleepRegularity.populationScore(regularity)
         let durations = recent.map(\.duration).sorted()
         let median = durations[durations.count / 2]
         let duration = durationScore(lastNight: last.duration, median: median)
-        let phase = circadian.score(at: now)
 
-        let value = regularityWeight * regularityScore
-                  + durationWeight * duration
-                  + circadianWeight * phase
+        // **Ce que la nuit decide : le plafond au reveil.**
+        let ceilingAtWake = regularityWeight * regularityScore + durationWeight * duration
+        let vigilance = Vigilance(
+            ceilingAtWake: ceilingAtWake,
+            pressureTau: pressureTau(durationScore: duration)
+        )
+
+        let value = vigilance.clarity(hoursAwake: awake)
+        let ceiling = vigilance.ceiling(hoursAwake: awake)
+
+        // La fenetre est derivee de la courbe, jamais codee en dur.
+        let bounds = vigilance.window()
+        let wakeMoment = recent.last.map { $0.wokeAt } ?? habitualWake
+        let anchor = now.addingTimeInterval(-awake * 3600)
+        let windowStart = anchor.addingTimeInterval(bounds.start * 3600)
+        _ = wakeMoment
 
         let shortfalls = [
             ClarityShortfall(component: .regularity, amount: regularityWeight * (100 - regularityScore)),
             ClarityShortfall(component: .duration, amount: durationWeight * (100 - duration)),
-            ClarityShortfall(component: .circadian, amount: circadianWeight * (100 - phase)),
+            // Le circadien ne pese plus dans une somme : ce qu'il « coute »,
+            // c'est ce que l'oscillation retire au plafond a cet instant.
+            ClarityShortfall(component: .circadian, amount: max(0, ceiling - value)),
         ].sorted { $0.amount > $1.amount }
 
         return ClarityReading(
@@ -192,12 +295,31 @@ enum ClarityEngine {
             observedNights: recent.count,
             inferredNights: recent.count { $0.origin == .inferred },
             regularity: regularity,
-            window: window,
+            window: DateInterval(start: windowStart, duration: (bounds.end - bounds.start) * 3600),
             projectedNightPenalty: penalty,
             lastNightDuration: lastNight,
             wakeSpread: spread,
-            shortfalls: shortfalls
+            shortfalls: shortfalls,
+            ceiling: ceiling,
+            hoursAwake: awake,
+            curve: vigilance.curve().map {
+                ClarityReading.CurvePoint(
+                    at: anchor.addingTimeInterval($0.hoursAwake * 3600),
+                    hoursAwake: $0.hoursAwake,
+                    clarity: $0.clarity,
+                    ceiling: vigilance.ceiling(hoursAwake: $0.hoursAwake)
+                )
+            },
+            level: ClarityLevel.level(value: Int(min(100, max(0, value.rounded()))), previous: previousLevel)
         )
+    }
+
+    /// La fenetre par defaut, quand aucune mesure n'existe.
+    private static func defaultWindow(habitualWake: Date, now: Date, calendar: Calendar) -> DateInterval {
+        let parts = calendar.dateComponents([.hour, .minute], from: habitualWake)
+        let wakeHour = Double(parts.hour ?? 7) + Double(parts.minute ?? 0) / 60
+        let start = calendar.startOfDay(for: now).addingTimeInterval((wakeHour + 2) * 3600)
+        return DateInterval(start: start, duration: 2.67 * 3600)
     }
 
     /// Amplitude des levers : l'ecart entre le plus tot et le plus tard.

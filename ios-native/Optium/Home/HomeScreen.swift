@@ -51,6 +51,17 @@ struct HomeScreen: View {
     private var window: DateInterval { reading.window }
     private var base: Double { reading.brainBase }
 
+    /// **Deux mouvements distincts, jamais fondus.** Le plafond descend au fil
+    /// de la journee ; le liquide ondule dessous. L'ecart entre les deux se
+    /// lit comme ce qui reste disponible.
+    private var liveFill: Double {
+        (clarityStore.live(at: Date()).map { Double($0.value) / 100 }) ?? reading.brainFill
+    }
+
+    private var liveBase: Double {
+        (clarityStore.live(at: Date()).map { $0.ceiling / 100 }) ?? base
+    }
+
     /// L'agitation est le nombre de fils ouverts. Au-delà de cinq la surface
     /// est déjà pleinement remuée : compter plus loin n'ajoute rien à lire.
     private var agitation: Double { min(1, Double(threads.count) / 5) }
@@ -147,9 +158,21 @@ struct HomeScreen: View {
     @ViewBuilder
     private var brain: some View {
         if settings.brainEnabled {
+            // **Le cerveau suit l'heure lui aussi.** Hors d'un `TimelineView`,
+            // `live(at:)` n'etait evalue qu'aux rafraichissements de la vue :
+            // le plafond ne descendait jamais sous les yeux.
+            TimelineView(.periodic(from: .now, by: 60)) { context in
+                brain(at: context.date)
+            }
+        }
+    }
+
+    private func brain(at date: Date) -> some View {
+        let live = clarityStore.live(at: date)
+        return Group {
             BrainView(
-                fill: reading.brainFill,
-                base: base,
+                fill: live.map { Double($0.value) / 100 } ?? reading.brainFill,
+                base: live.map { $0.ceiling / 100 } ?? base,
                 agitation: agitation,
                 isDay: true,
                 effort: clarityStore.isRefreshing ? 1 : 0,
@@ -188,6 +211,28 @@ struct HomeScreen: View {
         }
     }
 
+    /// Le mot de l'instant, avec l'hysteresis.
+    @ViewBuilder
+    private func liveWord(at date: Date) -> some View {
+        let live = clarityStore.live(at: date)
+        Text((live?.level ?? reading.level).word)
+            .font(.system(size: 34, weight: .light))
+            // Le mot fond au lieu de sauter : un basculement se voit alors
+            // comme une transition, pas comme une correction.
+            .contentTransition(.opacity)
+            .animation(Motion.state, value: live?.level ?? reading.level)
+    }
+
+    /// La fenetre, en heures depuis le reveil, pour la poser sur la courbe.
+    private var windowBounds: (start: Double, end: Double)? {
+        guard reading.clarity != nil else { return nil }
+        let anchor = Date().addingTimeInterval(-reading.hoursAwake * 3600)
+        return (
+            reading.window.start.timeIntervalSince(anchor) / 3600,
+            reading.window.end.timeIntervalSince(anchor) / 3600
+        )
+    }
+
     private var clarityCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("CLARTÉ")
@@ -201,16 +246,30 @@ struct HomeScreen: View {
                 // Pas encore de mesure et une lecture en cours : on montre la
                 // place du mot, jamais un mot invente.
                 SkeletonBar(width: 148, height: 34)
-            } else if let clarity = reading.clarity {
-                // Un mot, jamais un nombre. Un score chiffré de performance
-                // cognitive s'approcherait d'un diagnostic.
-                Text(clarity.level.word)
-                    .font(.system(size: 34, weight: .light))
+            } else if reading.clarity != nil {
+                // **Le mot suit l'heure.** `TimelineView` reevalue a la
+                // minute : c'est assez fin pour qu'un basculement se voie
+                // arriver, et assez large pour ne rien couter. Une minuterie
+                // aurait continue de tourner en arriere-plan ; celle-ci
+                // s'arrete avec la vue.
+                TimelineView(.periodic(from: .now, by: 60)) { context in
+                    liveWord(at: context.date)
+                }
 
                 // **Sa cause, juste en dessous.** Le mot apparaissait seul, et
                 // il fallait ouvrir un autre écran pour savoir sur quoi il
                 // reposait. Un verdict dont la cause est ailleurs se subit ;
                 // posé à côté d'elle, il s'examine.
+                // La journee entiere, sous le mot. On doit voir d'un coup
+                // d'oeil que le creux de l'apres-midi est passager.
+                if !reading.curve.isEmpty {
+                    DayCurve(
+                        points: reading.curve,
+                        hoursAwake: reading.hoursAwake,
+                        window: windowBounds
+                    )
+                }
+
                 NavigationLink { NightsScreen() } label: {
                     HStack(alignment: .top, spacing: 12) {
                         NightsStrip(nights: recordedNights)

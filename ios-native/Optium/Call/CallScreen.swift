@@ -261,7 +261,7 @@ struct CallScreen: View {
         return CallFacts(
             nightCount: nights.count,
             regularity: clarityStore.reading.regularity,
-            clarityWord: clarityStore.reading.clarity?.level.word,
+            clarityWord: clarityStore.reading.clarity == nil ? nil : clarityStore.reading.level.word,
             window: clarityStore.reading.window,
             closed: closed.map { thread in
                 let summary = thread.summary()
@@ -273,7 +273,7 @@ struct CallScreen: View {
                 )
             },
             open: inScope.filter { $0.closedAt == nil }.map(\.phrase),
-            tierWord: tier?.word,
+            tier: tier,
             tierShare: tier?.situation,
             tierDays: TierHistory.daysAtCurrentTier(nights: nights.map(\.night), now: Date()),
             memory: memory,

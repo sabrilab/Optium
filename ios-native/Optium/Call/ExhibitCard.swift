@@ -84,12 +84,12 @@ struct ExhibitCard: View {
                 }
             }
 
-        case let .tier(word, share, days):
+        case let .tier(tier, share, days):
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 12) {
-                    BrainMark(fill: Tier(rawValue: word.lowercased())?.fill ?? 0.6, tint: Ink.marker)
+                    BrainMark(fill: tier.fill, tint: Ink.marker)
                         .frame(width: 34, height: 34)
-                    Text(word)
+                    Text(tier.word)
                         .font(.system(size: 26, weight: .light))
                 }
                 Text(share)
