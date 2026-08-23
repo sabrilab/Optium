@@ -126,7 +126,12 @@ qui montre l'état d'après :
   avec `openThreads: threads.count + 1`. Le second segment dépasse.
   Le décalage s'écrit en `DotMatrixText` — `+3 J` — et c'est le seul texte.
 
-Trois règles, aucune négociable :
+Quatre règles, aucune négociable :
+
+0. **La bande ne s'affiche qu'à l'ouverture, jamais à la modification.**
+   `ThreadComposer` sert désormais aux deux (`var editing: WorkThread?`).
+   Modifier la phrase d'un fil déjà ouvert n'ajoute aucun fil : montrer un
+   coût à ce moment-là serait faux. Condition : `editing == nil`.
 
 1. **Le bouton n'est jamais désactivé** et ne change pas d'apparence. Aucune
    couleur d'alerte, aucun rouge, aucun point d'exclamation.
