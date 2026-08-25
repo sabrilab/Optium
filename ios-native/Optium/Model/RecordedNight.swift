@@ -24,18 +24,44 @@ final class RecordedNight {
     var originalWokeAt: Date?
     var originalAsleepAt: Date?
 
+    /// Le temps **reellement endormi**, reveils intra-nuit deduits.
+    ///
+    /// **Il se perdait ici, et c'etait le bug le plus couteux du moteur.**
+    /// `HealthSleepSource` calculait bien la somme des fragments, `Night` la
+    /// portait — et `RecordedNight` ne l'enregistrait pas. Le getter
+    /// reconstruisait un `Night` sans elle, `duration` retombait sur `span`,
+    /// et chaque reveil de nuit redevenait du sommeil.
+    ///
+    /// Consequence en cascade : plafond au reveil trop haut, `pressureTau`
+    /// trop long, donc une journee entiere calculee sur une nuit qui n'a pas
+    /// eu lieu. Seuls les tests, qui construisent un `Night` a la main, y
+    /// echappaient — le commentaire de `Night` affirmait un correctif qui
+    /// n'atteignait jamais la production.
+    ///
+    /// `nil` pour les nuits deduites du mouvement, qui n'ont qu'un bloc.
+    var sleptSeconds: Double?
+
     init(_ night: Night, measured: Bool) {
         self.id = UUID()
         self.asleepAt = night.asleepAt
         self.wokeAt = night.wokeAt
         self.measured = measured
+        // La duree reelle n'est retenue que si elle differe de l'amplitude :
+        // sinon `nil` dit la meme chose et laisse le getter la deriver.
+        let span = night.wokeAt.timeIntervalSince(night.asleepAt)
+        self.sleptSeconds = abs(night.duration - span) > 1 ? night.duration : nil
     }
 
     var night: Night {
         Night(
             asleepAt: asleepAt,
             wokeAt: wokeAt,
-            origin: corrected ? .corrected : (measured ? .measured : .inferred)
+            origin: corrected ? .corrected : (measured ? .measured : .inferred),
+            // **Une correction manuelle annule la duree mesuree.** Ce que
+            // l'utilisateur a saisi est un couple coucher-lever ; garder a
+            // cote une somme de fragments issue d'une lecture qu'il vient de
+            // dementir donnerait une nuit dont la duree contredit les bornes.
+            measuredSleep: corrected ? nil : sleptSeconds
         )
     }
 }

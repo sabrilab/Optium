@@ -214,13 +214,17 @@ private func reading(at hoursAfterWake: Double, nights: [Night]) -> ClarityReadi
 }
 
 @Test func laFenetreRapporteeSuitLaCourbe() {
-    let good = (0..<28).map { night($0) }
-    var poor = (0..<27).map { night($0, bed: 20 + Double($0 % 5), hours: 5) }
-    poor.append(night(27, bed: 3, hours: 3.5))
+    // **Ce qui retrecit la fenetre, c'est la duree de la nuit**, qui decide
+    // de la vitesse d'accumulation de la pression et donc du creusement de la
+    // journee. La regularite, elle, deplace le plafond sans changer la forme :
+    // deux nuits de meme duree mais d'horaires differents ont bien la meme
+    // largeur de fenetre, et c'est defendable.
+    let good = (0..<28).map { night($0, hours: 8) }
+    let poor = (0..<28).map { night($0, hours: 4.5) }
 
     let wide = reading(at: 3, nights: good).window.duration
     let narrow = reading(at: 3, nights: poor).window.duration
-    #expect(narrow < wide, "la fenetre ne se retrecit pas apres une mauvaise nuit")
+    #expect(narrow < wide, "la fenetre ne se retrecit pas apres des nuits courtes")
 }
 
 @Test func avantLeLeverOnNEstPasEveilleDepuisMoinsQueRien() {

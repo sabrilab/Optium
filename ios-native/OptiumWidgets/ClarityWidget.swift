@@ -47,10 +47,31 @@ struct SnapshotProvider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<SnapshotEntry>) -> Void) {
-        let entry = SnapshotEntry(date: Date(), snapshot: .load())
-        // Une heure : la clarte ne bouge pas plus vite, et demander davantage
-        // au systeme le ferait simplement refuser.
-        completion(Timeline(entries: [entry], policy: .after(Date().addingTimeInterval(3600))))
+        let snapshot = WidgetSnapshot.load()
+        let now = Date()
+
+        // **Plusieurs entrees dans la journee, pas une seule relue chaque
+        // heure.** L'instantane portant desormais le modele, l'extension
+        // evalue elle-meme la clarte a chaque instant : le liquide monte et
+        // descend sur l'ecran d'accueil sans qu'on ouvre l'application.
+        //
+        // Le pas de trente minutes est un compromis assume : le systeme
+        // budgete le nombre de rafraichissements par jour, et une entree par
+        // minute serait refusee. Une demi-heure suffit pour que le creux de
+        // l'apres-midi et le rebond du soir se voient.
+        guard snapshot.vigilance != nil else {
+            completion(Timeline(entries: [SnapshotEntry(date: now, snapshot: snapshot)],
+                                policy: .after(now.addingTimeInterval(3600))))
+            return
+        }
+
+        let entries = stride(from: 0.0, through: 12 * 3600, by: 1800).map { offset in
+            SnapshotEntry(date: now.addingTimeInterval(offset), snapshot: snapshot)
+        }
+        // La chronologie est reconstruite avant d'etre epuisee : l'ancre du
+        // reveil change chaque matin, et une journee entiere d'avance
+        // continuerait de deriver sur le lever de la veille.
+        completion(Timeline(entries: entries, policy: .after(now.addingTimeInterval(10 * 3600))))
     }
 }
 

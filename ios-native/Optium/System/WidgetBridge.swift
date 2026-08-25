@@ -12,16 +12,23 @@ enum WidgetBridge {
         reading: ClarityReading,
         threadPhrase: String?,
         tier: Tier?,
-        landing: Landing?
+        landing: Landing?,
+        /// Le modele du jour. **Sans lui le widget reste fige** : voir
+        /// `WidgetSnapshot.live(at:)`.
+        vigilance: Vigilance? = nil,
+        level: ClarityLevel? = nil
     ) {
         // La capture est produite dans le meme chemin de code que
         // l'instantane : image et valeurs sont ainsi coherentes par
         // construction, et ne peuvent pas se desynchroniser.
+        // Le niveau publie est celui de l'instant, pas celui du dernier
+        // rafraichissement : le widget montrerait sinon l'etat de la derniere
+        // ouverture de l'application.
         let fill = reading.brainFill
         let graved = BrainSnapshot.render(fill: fill, base: reading.brainBase, isDay: true)
 
         WidgetSnapshot(
-            clarityWord: reading.clarity == nil ? nil : reading.level.word,
+            clarityWord: reading.clarity == nil ? nil : (level ?? reading.level).word,
             observedNights: reading.observedNights,
             fill: reading.clarity.map { Double($0.value) / 100 } ?? 0,
             base: reading.regularity.map { min(1, 0.45 + $0 / 100 * 0.55) } ?? 1,
@@ -32,7 +39,10 @@ enum WidgetBridge {
             landingEarliest: landing?.earliest,
             landingLatest: landing?.latest,
             brainImageFill: graved,
-            brainImageRenderedAt: graved == nil ? nil : Date()
+            brainImageRenderedAt: graved == nil ? nil : Date(),
+            ceilingAtWake: vigilance?.ceilingAtWake,
+            pressureTau: vigilance?.pressureTau,
+            wakeAnchor: reading.wokeAt
         ).save()
 
         WidgetCenter.shared.reloadAllTimelines()

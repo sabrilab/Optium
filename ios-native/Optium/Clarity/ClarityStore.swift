@@ -45,6 +45,16 @@ final class ClarityStore {
         hasPermission = await source.requestAuthorization()
     }
 
+    /// Le dernier niveau **effectivement montre**, sur lequel l'hysteresis
+    /// s'ancre.
+    ///
+    /// Elle partait de `reading.level`, fige au dernier rafraichissement :
+    /// entre deux lectures des sources, chaque evaluation repartait donc du
+    /// meme point de reference, et une valeur qui derivait franchissait le
+    /// seuil d'un coup au lieu d'etre retenue. L'hysteresis ne tenait que
+    /// tant que rien ne bougeait.
+    private var shownLevel: ClarityLevel?
+
     /// La clarte a un instant donne, calculee sans toucher aux sources.
     ///
     /// - Returns: `nil` tant qu'aucune mesure n'existe.
@@ -52,7 +62,31 @@ final class ClarityStore {
         guard let vigilance, let wakeAnchor, reading.clarity != nil else { return nil }
         let awake = max(0, date.timeIntervalSince(wakeAnchor) / 3600)
         let value = Int(min(100, max(0, vigilance.clarity(hoursAwake: awake).rounded())))
-        return (value, vigilance.ceiling(hoursAwake: awake), ClarityLevel.level(value: value, previous: reading.level))
+        let level = ClarityLevel.level(value: value, previous: shownLevel ?? reading.level)
+        return (value, vigilance.ceiling(hoursAwake: awake), level)
+    }
+
+    /// **Le niveau de l'instant, et la seule source de verite.**
+    ///
+    /// Quatre endroits lisaient encore `reading.level`, fige au dernier
+    /// rafraichissement : la porte, `clarityAtStart` a chaque reprise, le pont
+    /// des widgets et l'appel. Le scenario reel : le rebond du soir arrive, le
+    /// cerveau se remplit a l'ecran, et la porte refuse toujours avec la
+    /// valeur du matin.
+    ///
+    /// **Ce qui decide doit lire ce que l'utilisateur voit.**
+    ///
+    /// - Returns: `nil` tant qu'aucune mesure n'existe — la porte reste alors
+    ///   fermee, un refus sans preuve etant pire qu'une absence de refus.
+    func currentLevel(at date: Date = Date()) -> ClarityLevel? {
+        guard reading.clarity != nil else { return nil }
+        return live(at: date)?.level ?? reading.level
+    }
+
+    /// A appeler quand un niveau vient d'etre montre, pour que l'hysteresis
+    /// s'ancre dessus.
+    func noteShown(_ level: ClarityLevel) {
+        shownLevel = level
     }
 
     /// Relit les sources, conserve ce qui est nouveau, recalcule.
@@ -90,6 +124,9 @@ final class ClarityStore {
 
         vigilance = ClarityEngine.vigilance(nights: stored.map(\.night), calendar: calendar)
         wakeAnchor = now.addingTimeInterval(-reading.hoursAwake * 3600)
+        // La lecture des sources fait autorite : elle repart du niveau qu'elle
+        // vient d'etablir.
+        shownLevel = reading.clarity == nil ? nil : reading.level
     }
 
     /// Conserve ce qui est nouveau, **et corrige ce qui etait faux**.

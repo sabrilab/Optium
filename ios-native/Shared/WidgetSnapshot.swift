@@ -35,6 +35,48 @@ struct WidgetSnapshot: Codable, Sendable {
     var brainImageFill: Double?
     var brainImageRenderedAt: Date?
 
+    // ── Le modele, pour que le widget calcule lui-meme ──
+    //
+    // **C'est le modele qui traverse le pont, plus une valeur.** L'instantane
+    // etait fige : le widget affichait l'etat de la derniere ouverture de
+    // l'application, et une politique horaire ne changeait rien puisque la
+    // valeur relue etait la meme.
+    //
+    // `Vigilance` est une struct pure et `nonisolated`, sans dependance a
+    // HealthKit : l'extension peut l'evaluer elle-meme, a n'importe quel
+    // instant, et produire une chronologie de plusieurs entrees dans la
+    // journee. Le liquide monte alors sur l'ecran d'accueil sans qu'on ouvre
+    // l'application.
+
+    /// Le plafond au reveil, 0…100.
+    var ceilingAtWake: Double?
+    /// Vitesse d'accumulation de la pression, en heures.
+    var pressureTau: Double?
+    /// L'instant du reveil, origine de la journee.
+    var wakeAnchor: Date?
+
+    /// Le modele reconstitue, quand l'instantane le porte.
+    var vigilance: Vigilance? {
+        guard let ceilingAtWake, let pressureTau else { return nil }
+        return Vigilance(ceilingAtWake: ceilingAtWake, pressureTau: pressureTau)
+    }
+
+    /// La clarte a un instant donne, calculee dans l'extension.
+    ///
+    /// - Returns: `nil` sans modele — l'instantane retombe alors sur ses
+    ///   valeurs figees, qui restent vraies au moment ou elles ont ete
+    ///   ecrites.
+    func live(at date: Date) -> (fill: Double, base: Double, word: String)? {
+        guard let vigilance, let wakeAnchor, clarityWord != nil else { return nil }
+        let awake = max(0, date.timeIntervalSince(wakeAnchor) / 3600)
+        let value = Int(min(100, max(0, vigilance.clarity(hoursAwake: awake).rounded())))
+        return (
+            Double(value) / 100,
+            vigilance.ceiling(hoursAwake: awake) / 100,
+            ClarityLevel(value: value).word
+        )
+    }
+
     /// Vrai si la capture peut etre montree telle quelle.
     func brainImageIsFresh(at date: Date, fill: Double) -> Bool {
         guard let graved = brainImageFill, let rendered = brainImageRenderedAt else { return false }

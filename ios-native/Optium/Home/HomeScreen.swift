@@ -222,13 +222,20 @@ struct HomeScreen: View {
     /// Le mot de l'instant, avec l'hysteresis.
     @ViewBuilder
     private func liveWord(at date: Date) -> some View {
-        let live = clarityStore.live(at: date)
-        Text((live?.level ?? reading.level).word)
+        let level = clarityStore.live(at: date)?.level ?? reading.level
+        Text(level.word)
             .font(.system(size: 34, weight: .light))
             // Le mot fond au lieu de sauter : un basculement se voit alors
             // comme une transition, pas comme une correction.
             .contentTransition(.opacity)
-            .animation(Motion.state, value: live?.level ?? reading.level)
+            .animation(Motion.state, value: level)
+            // **L'hysteresis s'ancre sur ce qui est montre.** Sans cette
+            // note, chaque evaluation repartirait du niveau du dernier
+            // rafraichissement, et une valeur qui derive franchirait le seuil
+            // d'un coup au lieu d'etre retenue.
+            .onChange(of: level, initial: true) { _, shown in
+                clarityStore.noteShown(shown)
+            }
     }
 
     /// La fenetre, en heures depuis le reveil, pour la poser sur la regle.
@@ -480,7 +487,7 @@ struct HomeScreen: View {
     /// tout l'interet du sceau depuis que la clarte vit dans la journee.
     private var gateIsArmed: Bool {
         guard reading.clarity != nil else { return false }
-        return (clarityStore.live(at: Date())?.level ?? reading.level) == .low
+        return clarityStore.currentLevel() == .low
     }
 
     /// 0…1 : la part de la fenetre deja parcourue.

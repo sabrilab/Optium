@@ -117,19 +117,62 @@ struct HealthSleepSource: SleepSource {
         return result
     }
 
-    /// Une nuit par jour de lever : **la plus longue**.
+    /// Au-dela de cet ecart a l'ancre, un episode appartient a une autre
+    /// nuit — ou a une sieste.
     ///
-    /// Une sieste de l'apres-midi remonte de Sante comme un episode a part
-    /// entiere. Sans ce tri, elle devenait « la nuit » du jour ou elle tombait
-    /// — et c'est exactement ce qui faisait afficher des nuits qui n'en
-    /// etaient pas.
+    /// **Rattacher par proximite plutot que par un seuil fixe d'une heure
+    /// d'eveil.** Le seuil frappait precisement les dormeurs fragmentes,
+    /// c'est-a-dire le public que l'application sert le mieux. Trois heures
+    /// laissent passer un reveil nocturne long sans admettre une sieste
+    /// d'apres-midi, qui tombe huit a dix heures apres le lever.
+    static let attachmentWindow: TimeInterval = 3 * 3600
+
+    /// Une nuit par jour de lever. **L'episode le plus long donne l'horaire,
+    /// tous les episodes rattachables donnent la duree.**
+    ///
+    /// Ne garder que le plus long amputait les cycles fragmentes : quelqu'un
+    /// qui dort deux heures, se reveille deux heures, puis dort quatre heures
+    /// etait credite de quatre heures. Les deux premieres etaient jetees.
+    ///
+    /// L'intention restait juste — une sieste ne doit pas devenir « la nuit »
+    /// — mais elle confondait deux choses que `Night` distingue deja :
+    ///
+    /// - l'episode le plus long est **l'ancre** : il donne `asleepAt` et
+    ///   `wokeAt`, donc l'horaire, donc la regularite ;
+    /// - la duree **additionne** les episodes rattachables a la meme nuit.
     static func longestPerDay(_ nights: [Night], calendar: Calendar = .current) -> [Night] {
-        var best: [Date: Night] = [:]
+        var byDay: [Date: [Night]] = [:]
         for night in nights {
-            let day = calendar.startOfDay(for: night.wokeAt)
-            if let existing = best[day], existing.duration >= night.duration { continue }
-            best[day] = night
+            byDay[calendar.startOfDay(for: night.wokeAt), default: []].append(night)
         }
-        return best.values.sorted { $0.asleepAt < $1.asleepAt }
+
+        return byDay.values.compactMap { episodes -> Night? in
+            guard let anchor = episodes.max(by: { $0.duration < $1.duration }) else { return nil }
+
+            // Un episode se rattache s'il touche l'ancre de pres. Le test
+            // porte sur l'ecart entre les deux intervalles, pas sur l'heure :
+            // un dormeur decale n'a pas de raison d'etre traite autrement.
+            let attached = episodes.filter { episode in
+                if episode == anchor { return true }
+                let after = episode.asleepAt.timeIntervalSince(anchor.wokeAt)
+                let before = anchor.asleepAt.timeIntervalSince(episode.wokeAt)
+                return (after >= 0 && after <= attachmentWindow)
+                    || (before >= 0 && before <= attachmentWindow)
+            }
+
+            let slept = attached.reduce(0.0) { $0 + $1.duration }
+            // Les bornes couvrent tout ce qui est rattache : c'est l'amplitude
+            // reelle de la nuit, et c'est elle qui situe le sommeil dans la
+            // journee pour l'indice de regularite.
+            let first = attached.map(\.asleepAt).min() ?? anchor.asleepAt
+            let last = attached.map(\.wokeAt).max() ?? anchor.wokeAt
+
+            return Night(
+                asleepAt: first,
+                wokeAt: last,
+                origin: .measured,
+                measuredSleep: slept
+            )
+        }.sorted { $0.asleepAt < $1.asleepAt }
     }
 }

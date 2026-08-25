@@ -118,29 +118,52 @@ nonisolated struct Vigilance {
 
     /// La courbe, echantillonnee. Sert au dessin et a la derivation de la
     /// fenetre.
-    func curve(from: Double = 0, to: Double = 17, step: Double = 0.25) -> [(hoursAwake: Double, clarity: Double)] {
+    /// **Vingt heures, pas dix-sept.** La courbe s'arretait a dix-sept heures
+    /// d'eveil, ce qui coupe la journee d'un mauvais dormeur avant qu'elle ne
+    /// finisse : leve a 5 h apres une nuit courte, on depasse ce plafond a
+    /// 22 h — soit exactement le moment ou l'on decide d'aller se coucher.
+    func curve(from: Double = 0, to: Double = 20, step: Double = 0.25) -> [(hoursAwake: Double, clarity: Double)] {
         stride(from: from, through: to, by: step).map { ($0, clarity(hoursAwake: $0)) }
     }
 
     /// **La fenetre, derivee de la courbe** et non codee en dur.
     ///
     /// Elle valait auparavant « reveil + 2 h, pendant 2 h 40 », identique tous
-    /// les jours, en ignorant le modele qui se trouvait juste a cote. Elle
-    /// entoure desormais le sommet de la journee, et se retrecit d'elle-meme
-    /// apres une mauvaise nuit — sans qu'aucune regle ne le dise.
+    /// les jours, en ignorant le modele qui se trouvait juste a cote.
     ///
-    /// Le plancher est le plus exigeant des deux : le seuil de clarte haute,
-    /// ou le sommet moins huit points. Le second existe pour les journees ou
-    /// rien n'atteint le seuil : la fenetre s'y reduit a la crete, ce qui est
-    /// honnete — c'est bien le meilleur moment disponible, meme s'il n'est pas
-    /// bon.
+    /// **Piege corrige, et c'etait la fenetre codee en dur revenue sous une
+    /// autre constante.** Le plancher valait `max(seuil de clarte haute,
+    /// pic - 8)`. Le `max` faisait gagner le seuil de 70 des que le pic
+    /// tombait sous 78 : aucun echantillon ne qualifiait, et toutes les nuits
+    /// mediocres recevaient la meme fenetre minimale. Mesure : plafond 85 →
+    /// 5 h ; 80 → 3 h 15 ; 78 → 2 h 15 ; **76 et tout ce qui est en dessous →
+    /// 45 min, identiques**. Une nuit mediocre et une nuit catastrophique ne
+    /// se distinguaient plus.
+    ///
+    /// Deux faits distincts avaient ete fusionnes, et ils sont desormais
+    /// separes :
+    ///
+    /// - **ou est le meilleur moment** → une part du sommet. C'est la
+    ///   fenetre, et elle varie continument avec la forme de la journee ;
+    /// - **est-ce qu'il passe la barre** → le seuil de clarte haute. Ca
+    ///   *qualifie* la fenetre — voir `qualifies` — ca ne la definit pas.
     ///
     /// - Returns: `(debut, fin)` en heures depuis le reveil.
     func window(minimumDuration: Double = 0.75) -> (start: Double, end: Double) {
         let samples = curve(from: 0.5, to: 15)
         guard let peak = samples.max(by: { $0.clarity < $1.clarity }) else { return (2, 4.67) }
 
-        let floor = max(Double(ClarityLevel.highThreshold), peak.clarity - 8)
+        // **Un plancher proportionnel, pas soustractif.** « Huit points sous
+        // le sommet » n'a pas de sens quand le sommet est a vingt : la marge
+        // passe sous zero, la courbe ecretee y reste, et toute la journee
+        // qualifie — une nuit catastrophique recevait ainsi la fenetre la plus
+        // large de toutes. Mesure du defaut : 4,50 h identiques pour tous les
+        // plafonds sous 74, contre 4,25 → 3,25 h en proportionnel.
+        //
+        // « A un dixieme du sommet » garde le meme sens a toute echelle, et
+        // fait varier la largeur continument : la marge se resserre quand la
+        // journee est basse, ce qui est exactement ce qu'on veut dire.
+        let floor = peak.clarity * Self.windowFloorRatio
         guard let peakIndex = samples.firstIndex(where: { $0.hoursAwake == peak.hoursAwake })
         else { return (2, 4.67) }
 
@@ -159,5 +182,20 @@ nonisolated struct Vigilance {
             end = start + minimumDuration
         }
         return (start, end)
+    }
+
+    /// La part du sommet au-dessus de laquelle un moment appartient encore a
+    /// la fenetre.
+    static let windowFloorRatio = 0.90
+
+    /// La fenetre atteint-elle le seuil de clarte haute.
+    ///
+    /// **C'est une qualification, pas une definition.** Elle dit si le
+    /// meilleur moment de la journee passe la barre, sans influer sur la
+    /// largeur du creneau — les confondre etait le defaut precedent.
+    var windowQualifies: Bool {
+        let bounds = window()
+        return clarity(hoursAwake: (bounds.start + bounds.end) / 2)
+            >= Double(ClarityLevel.highThreshold)
     }
 }

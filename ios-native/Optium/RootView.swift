@@ -14,7 +14,9 @@ private extension RootView {
             reading: clarity.reading,
             threadPhrase: openThreads.first?.phrase,
             tier: clarity.reading.regularity.map(Tier.init(regularity:)),
-            landing: landing
+            landing: landing,
+            vigilance: clarity.vigilance,
+            level: clarity.currentLevel()
         )
     }
 
