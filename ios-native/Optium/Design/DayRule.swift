@@ -44,6 +44,19 @@ struct DayRule: View {
     /// L'ancre de l'échelle : `ClarityReading.wokeAt`.
     let wakeTime: Date
 
+    /// Les reprises entamees aujourd'hui, en heures depuis le reveil.
+    ///
+    /// **Ferme la boucle de la fenetre.** La notification annoncait son
+    /// ouverture, et plus rien ensuite : personne ne savait jamais s'il
+    /// l'avait prise. C'est pourtant la seule chose qui peut varier d'un jour
+    /// a l'autre quand le sommeil, lui, ne s'ameliore pas.
+    ///
+    /// **Un constat, jamais un score.** Pas de felicitations, pas de serie a
+    /// ne pas briser, pas de reproche quand la fenetre a ete manquee. La regle
+    /// montre ou l'on a travaille ; ce qu'on en conclut n'appartient pas a
+    /// l'application.
+    var worked: [Double] = []
+
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.colorSchemeContrast) private var contrast
     @ScaledMetric(relativeTo: .caption2) private var labelSize: CGFloat = 11
@@ -235,6 +248,20 @@ struct DayRule: View {
                                  with: .color(.white.opacity(mark.opacity)))
                 }
 
+                // 2 bis. Les reprises du jour, du cote exterieur du dos.
+                //
+                // De l'autre cote des graduations : elles disent ce qu'on a
+                // fait, pas ce dont l'heure etait capable. Melangees aux
+                // marques, elles se liraient comme une variation de la journee.
+                for hour in worked where hour >= 0 && hour <= Self.span {
+                    let mark = CGRect(x: Self.spineX + 3,
+                                      y: y(hour) - 1,
+                                      width: 5,
+                                      height: 2)
+                    context.fill(Path(roundedRect: mark, cornerRadius: 1),
+                                 with: .color(.white.opacity(strong ? 0.85 : 0.62)))
+                }
+
                 // 3. La fenêtre, PAR-DESSUS les graduations : peinte avant,
                 //    les traits blancs repasseraient sur elle.
                 if let windowBar {
@@ -300,10 +327,9 @@ struct DayRule: View {
             }
         }
         .frame(width: Self.width, height: Self.height, alignment: .topLeading)
-        // La règle est posée sur le cadre du cerveau, qui capte le doigt
-        // (rotation, et le tap qui explique le plafond). Elle est un
-        // instrument qu'on lit, pas un contrôle : elle ne prend rien.
-        .allowsHitTesting(false)
+        // La regle est cliquable : elle mene au detail de la journee. Le
+        // cerveau garde ses propres gestes — les deux ne se recouvrent pas.
+        .contentShape(.rect)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("La règle de ta journée")
         .accessibilityHint("Chaque graduation est une demi-heure. Plus elle est longue, moins cette heure te retire de ce que ta nuit permet.")

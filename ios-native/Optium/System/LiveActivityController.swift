@@ -55,7 +55,18 @@ enum LiveActivityController {
             base: reading.regularity.map { min(1, 0.45 + $0 / 100 * 0.55) } ?? 1,
             clarityWord: reading.clarity == nil ? "en observation" : reading.level.word,
             resumptionNumber: thread.resumptions.count,
-            startedAt: thread.currentResumption?.startedAt ?? Date(),
+            // **Une origine reculee du temps deja passe.**
+            //
+            // L'ile repartait de zero a chaque reprise, comme l'ecran. Le
+            // style de minuterie du systeme ne sait compter que depuis une
+            // date : on lui donne donc une origine fictive, reculee du cumul
+            // des reprises fermees. Elle affiche alors le temps total du fil
+            // sans qu'aucun code ne tourne chaque seconde — ce qu'une activite
+            // en direct ne peut de toute facon pas faire.
+            startedAt: (thread.currentResumption?.startedAt ?? Date())
+                .addingTimeInterval(-thread.resumptions
+                    .filter { $0.endedAt != nil }
+                    .reduce(0.0) { $0 + $1.duration }),
             windowEnd: reading.window.end,
             landing: landing.map {
                 "\($0.earliest.formatted(format)) → \($0.latest.formatted(format))"

@@ -186,7 +186,17 @@ struct HomeScreen: View {
             //
             // Posee avant l'explication du plafond, pour que la phrase du
             // toucher passe par-dessus les dernieres graduations.
-            .overlay(alignment: .trailing) { dayRule(at: date) }
+            // **La regle capte son propre doigt, le cerveau garde le sien.**
+            // Elle etait `allowsHitTesting(false)` pour laisser passer la
+            // rotation et le tap qui explique le plafond. Elle occupe 92
+            // points dans la marge morte, ou le cerveau ne se rend pas : lui
+            // rendre ses gestes n'enleve donc rien a la scene.
+            .overlay(alignment: .trailing) {
+                NavigationLink { DayScreen(reading: reading) } label: {
+                    dayRule(at: date)
+                }
+                .buttonStyle(.plain)
+            }
             // La ligne de plafond n'est pas chiffree : sa valeur est derivee,
             // pas mesuree. Elle s'explique au toucher plutot que de porter un
             // nombre qui ne serait verifiable nulle part.
@@ -254,6 +264,17 @@ struct HomeScreen: View {
         )
     }
 
+    /// Les reprises entamees aujourd'hui, en heures depuis le reveil.
+    ///
+    /// Ferme la boucle de la fenetre : on voit ou l'on a travaille, sans
+    /// qu'aucune phrase ne juge si c'etait au bon moment.
+    private func workedToday(since woke: Date) -> [Double] {
+        allResumptions
+            .filter { Calendar.current.isDateInToday($0.startedAt) }
+            .map { $0.startedAt.timeIntervalSince(woke) / 3600 }
+            .filter { $0 >= 0 }
+    }
+
     /// La regle du jour, posee dans la marge morte du cadre du cerveau.
     ///
     /// **Sans mesure, pas de regle.** On ne dessine jamais une journee
@@ -272,7 +293,8 @@ struct HomeScreen: View {
                     points: reading.curve,
                     now: date,
                     window: windowBounds,
-                    wakeTime: woke
+                    wakeTime: woke,
+                    worked: workedToday(since: woke)
                 )
             }
         }

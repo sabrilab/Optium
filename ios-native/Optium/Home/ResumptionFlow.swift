@@ -138,20 +138,42 @@ private struct ResumptionScreen: View {
                     .font(.system(size: 21, weight: .light))
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                // Le temps s'affiche mais rien ne le décompte : ce n'est pas
+                // **Le cumul en grand, la reprise en cours en dessous.**
+                //
+                // Le chronometre repartait de zero a chaque reprise, et le
+                // total etait relegue en petits caracteres : rouvrir un fil
+                // travaille pendant des heures affichait « 00:12 », comme si
+                // rien n'avait ete fait. Un fil se mesure sur sa vie entiere,
+                // pas sur la session courante — c'est tout le contraire d'un
+                // minuteur.
+                //
+                // Le temps s'affiche mais rien ne le decompte : ce n'est pas
                 // un minuteur, c'est une observation.
                 TimelineView(.periodic(from: .now, by: 1)) { context in
-                    DotMatrixText(
-                        text: elapsed(at: context.date),
-                        dot: 6,
-                        gap: 3.5,
-                        glow: Ink.focusGlow
-                    )
-                }
+                    VStack(alignment: .leading, spacing: 8) {
+                        DotMatrixText(
+                            text: total(at: context.date),
+                            dot: 6,
+                            gap: 3.5,
+                            glow: Ink.focusGlow
+                        )
 
-                Text(rank)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                        HStack(spacing: 6) {
+                            Text(rank)
+                            // La reprise en cours n'est montree que s'il y en
+                            // a eu d'autres avant : sur la premiere, elle
+                            // repeterait le cumul.
+                            if thread.resumptions.count > 1 {
+                                Text("·")
+                                    .foregroundStyle(.tertiary)
+                                Text("\(elapsed(at: context.date)) maintenant")
+                                    .monospacedDigit()
+                            }
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                }
 
                 Button(action: onClose) {
                     Text("Fermer le fil")
@@ -175,13 +197,28 @@ private struct ResumptionScreen: View {
         return "FIL OUVERT DEPUIS \(days) JOURS"
     }
 
+    /// Le temps passe sur le fil **depuis son ouverture**, reprise en cours
+    /// comprise.
+    ///
+    /// C'est cette valeur qui merite la grande typographie : elle dit ce que
+    /// le fil a deja coute, ce qu'aucune session isolee ne peut dire.
+    private func total(at date: Date) -> String {
+        let closed = thread.resumptions
+            .filter { $0.endedAt != nil }
+            .reduce(0.0) { $0 + $1.duration }
+        let running = thread.currentResumption
+            .map { date.timeIntervalSince($0.startedAt) } ?? 0
+        let seconds = max(0, Int(closed + running))
+
+        let hours = seconds / 3600
+        let minutes = (seconds % 3600) / 60
+        guard hours > 0 else { return String(format: "%d:%02d", minutes, seconds % 60) }
+        return String(format: "%d:%02d:%02d", hours, minutes, seconds % 60)
+    }
+
     private var rank: String {
         let count = thread.resumptions.count
-        let total = thread.summary().totalDuration
-        let hours = Int(total) / 3600
-        let minutes = (Int(total) % 3600) / 60
-        let spent = hours > 0 ? "\(hours) h \(minutes) min en tout" : "\(minutes) min en tout"
-        return "\(count)\(count == 1 ? "re" : "e") reprise · \(spent)"
+        return "\(count)\(count == 1 ? "re" : "e") reprise"
     }
 
     /// Le temps ecoule, **au format de l'ile dynamique**.

@@ -56,6 +56,15 @@ final class BrainRenderer: NSObject, MTKViewDelegate {
     /// verrait comme un a-coup.
     private var effortLevel: Float = 0
     private var elapsed: Float = 0
+
+    /// Le lancer de l'arrivee : vitesse initiale, en tours par seconde
+    /// au-dessus du regime de repos, et constante de deceleration.
+    ///
+    /// Deux secondes et demie pour retomber au tiers de l'elan : assez long
+    /// pour que le ralentissement se sente, assez court pour ne pas retarder
+    /// la lecture de la scene.
+    private static let launchSpeed: Float = 3.4
+    private static let launchDecay: Float = 2.5
     private var wobble: Float = 0
     private var aspect: Float = 1
 
@@ -170,17 +179,36 @@ final class BrainRenderer: NSObject, MTKViewDelegate {
 
         effortLevel += (effort - effortLevel) * 0.05
 
+        // **L'arrivee est un lancer, pas un rebond.**
+        //
+        // La scene entrait en flottant : le cerveau montait et descendait sur
+        // place, ce qui se lit comme un objet suspendu qui ballotte. Il tourne
+        // desormais vite au premier instant puis decelere, comme une piece
+        // qu'on lance et qui trouve son regime. La decroissance est
+        // exponentielle : rapide au debut, de plus en plus douce, sans jamais
+        // s'arreter net.
+        //
+        // Elle ne se rejoue pas : `elapsed` repart de zero a chaque creation
+        // du rendu, donc a chaque arrivee sur l'ecran, et jamais pendant qu'on
+        // y est.
+        let launch = Self.launchSpeed * exp(-elapsed / Self.launchDecay)
+
         // **La rotation de repos etait trop lente pour se voir.** A 0,3 radian
         // par seconde, il faut vingt secondes pour un tour : l'oeil lit un
         // objet fixe. A 0,52, le mouvement se percoit sans distraire, et il
         // double quand la scene travaille.
-        rotation += delta * (0.52 + effortLevel * 0.55) + dragVelocity
+        rotation += delta * (0.52 + effortLevel * 0.55 + launch) + dragVelocity
 
-        // Flottement vertical et roulis, pour que la scene ne paraisse jamais
-        // figee. Les deux s'amplifient a l'effort.
+        // Roulis lent, pour que la scene ne paraisse jamais figee. Il
+        // s'amplifie a l'effort.
+        //
+        // **Le flottement vertical a ete retire.** Un objet qui monte et
+        // descend sur place se lit comme suspendu et ballottant ; la rotation
+        // seule suffit a le garder vivant, et elle dit quelque chose — la
+        // vitesse porte l'effort.
         let breath = 1 + effortLevel * 0.9
-        let bob = sin(elapsed * (1.0 + effortLevel * 0.7)) * 0.06 * breath
-        let tilt = sin(elapsed * 0.6) * 0.04 * breath
+        let bob: Float = 0
+        let tilt = sin(elapsed * 0.6) * 0.035 * breath
 
         var uniforms = makeUniforms(rotation: rotation, bob: bob, tilt: tilt)
 

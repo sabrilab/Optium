@@ -38,6 +38,15 @@ struct ClosedScreen: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
+                // **Le seul endroit ou l'application montre qu'elle a eu
+                // raison**, et seulement quand c'est vrai. Voir `GateLoop`.
+                if let loop = GateLoopReader.loop(for: thread), loop.isMeaningful {
+                    // Le conteneur est a espacement nul : la carte porte sa
+                    // propre marge, sinon elle colle au titre.
+                    GateLoopCard(loop: loop)
+                        .padding(.bottom, 26)
+                }
+
                 Text("FIL FERMÉ")
                     .font(.caption2.weight(.semibold))
                     .tracking(1.6)

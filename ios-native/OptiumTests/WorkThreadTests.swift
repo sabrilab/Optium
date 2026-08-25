@@ -294,3 +294,51 @@ extension Calendar {
         return calendar
     }
 }
+
+// ── Le temps deja passe sur un fil ──
+//
+// Le chronometre repartait de zero a chaque reprise : rouvrir un fil
+// travaille pendant des heures affichait « 00:12 », comme si rien n'avait ete
+// fait. Un fil se mesure sur sa vie entiere, pas sur la session courante.
+
+@MainActor
+@Test func leTotalCumuleLesReprisesFermees() {
+    let thread = WorkThread(phrase: "Trancher le positionnement", nature: .decision)
+    let base = Date().addingTimeInterval(-6 * 3600)
+
+    for offset in 0..<3 {
+        let resumption = Resumption(
+            startedAt: base.addingTimeInterval(Double(offset) * 3600),
+            clarityAtStart: .medium,
+            inWindow: false
+        )
+        resumption.endedAt = resumption.startedAt.addingTimeInterval(1800)
+        thread.resumptions.append(resumption)
+    }
+
+    // Trois reprises d'une demi-heure : une heure trente.
+    #expect(abs(thread.summary().totalDuration - 1.5 * 3600) < 5)
+}
+
+@MainActor
+@Test func laRepriseEnCoursCompteDansLeTotal() {
+    let thread = WorkThread(phrase: "Écrire la note", nature: .production)
+
+    let done = Resumption(startedAt: Date().addingTimeInterval(-7200),
+                          clarityAtStart: .high, inWindow: true)
+    done.endedAt = done.startedAt.addingTimeInterval(3600)
+    thread.resumptions.append(done)
+
+    thread.resumptions.append(Resumption(
+        startedAt: Date().addingTimeInterval(-600), clarityAtStart: .medium, inWindow: false))
+
+    // Une heure fermee, dix minutes en cours.
+    #expect(thread.summary().totalDuration > 3600)
+    #expect(thread.summary().totalDuration < 3600 + 700)
+}
+
+@MainActor
+@Test func unFilSansRepriseNAPasDeTemps() {
+    let thread = WorkThread(phrase: "Rappeler le comptable", nature: .mechanical)
+    #expect(thread.summary().totalDuration == 0)
+}
