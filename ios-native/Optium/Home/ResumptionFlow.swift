@@ -129,6 +129,16 @@ private struct ResumptionScreen: View {
                     isVisible: scenePhase == .active
                 )
                 .frame(maxHeight: .infinity)
+                // **La regle pendant qu'on travaille.**
+                //
+                // C'est le moment ou savoir ou l'on en est dans la journee
+                // compte le plus : on est en train de faire la chose, et ce
+                // qu'on peut en attendre depend de l'heure. La montrer ici
+                // evite d'avoir a sortir de la reprise pour le savoir.
+                //
+                // Elle est posee dans la meme marge morte que sur l'accueil,
+                // et ne prend aucun geste : le cerveau garde les siens.
+                .overlay(alignment: .trailing) { rule }
             } else {
                 Spacer()
             }
@@ -188,6 +198,39 @@ private struct ResumptionScreen: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 16)
         }
+    }
+
+    /// La regle du jour, sans geste.
+    ///
+    /// Aucun lien vers le detail ici : on est deja dans un ecran de travail,
+    /// et l'ouvrir depuis une reprise en cours ferait sortir de ce qu'on est
+    /// en train de faire.
+    @ViewBuilder
+    private var rule: some View {
+        if reading.clarity != nil, let woke = reading.wokeAt, reading.curve.count > 2 {
+            let awake = Date().timeIntervalSince(woke) / 3600
+            if awake >= 0, awake <= 20 {
+                TimelineView(.periodic(from: .now, by: 60)) { context in
+                    DayRule(
+                        points: reading.curve,
+                        now: context.date,
+                        window: windowBounds,
+                        wakeTime: woke
+                    )
+                }
+                .allowsHitTesting(false)
+            }
+        }
+    }
+
+    /// La fenetre, en heures depuis le reveil. Ancree sur `wokeAt`, comme sur
+    /// l'accueil : une ancre recalculee derive a contresens du curseur.
+    private var windowBounds: (start: Double, end: Double)? {
+        guard reading.clarity != nil, let woke = reading.wokeAt else { return nil }
+        return (
+            reading.window.start.timeIntervalSince(woke) / 3600,
+            reading.window.end.timeIntervalSince(woke) / 3600
+        )
     }
 
     private var openedSince: String {

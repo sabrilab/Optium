@@ -951,6 +951,44 @@ Elle est ancrée sur `reading.wokeAt`.
 `DayCurve`, la version horizontale posée dans la carte, a été **supprimée** :
 jugée trop grosse et incompréhensible.
 
+### La règle : ce qu'on peut en faire
+
+Trois gestes, et ils ne se marchent pas dessus.
+
+- **Un appui ouvre `DayScreen`** — les deux forces séparées (le seul endroit où
+  on a le droit de les distinguer : sur l'accueil ce serait deux idées dans un
+  objet), ce qui resserre la fenêtre aujourd'hui, et de quoi chaque moment est
+  capable.
+- **Un glissement interroge.** Le doigt ne déplace rien et ne règle rien : il
+  pointe une heure et la règle répond — l'heure d'horloge et un mot pour
+  l'état. Relâcher rend la main au présent. C'est ce qui la garde instrument
+  plutôt que contrôle, et pourquoi le geste n'a besoin d'aucune affordance :
+  rien n'est cassé si personne ne le trouve.
+- `minimumDistance: 12` sépare les deux — sans ce seuil, le glissement
+  avalerait le tap dès le premier point.
+
+Elle apparaît aussi **pendant une reprise**, sans geste : on est en train de
+faire la chose, et ce qu'on peut en attendre dépend de l'heure. Ouvrir le
+détail depuis là ferait sortir de ce qu'on fait.
+
+### Ce que l'application montre d'elle-même
+
+Deux surfaces qui n'existaient pas, et qui décident du huitième jour.
+
+**`Clarity/GateLoop.swift`** — à la fermeture d'une décision passée par la
+porte : la ligne écrite, quand elle a été retenue, dans quel état, et dans quel
+état elle a été tranchée. **Elle ne s'affiche que si la boucle a eu lieu** :
+retenu en clarté basse, tranché plus haut. Une décision retenue puis tranchée
+dans le même état n'a rien prouvé, et se féliciter d'avoir attendu pour rien
+serait pire que de se taire. Aucune notification, aucune félicitation.
+
+**`Clarity/OwnAccuracy.swift`** — la justesse de l'**application**, pas celle de
+l'utilisateur. La calibration mesurait implicitement la sienne ; personne ne
+mesurait celle du produit. Deux conditions font toute la valeur de la chose :
+**un mauvais résultat s'affiche quand même** — c'est ce qui rend l'application
+vérifiable au lieu d'être crue sur parole — et **ce n'est pas un score à
+améliorer**, puisque rien du côté de l'utilisateur ne peut le faire monter.
+
 ### Le lavis va jusqu'aux widgets
 
 `Shared/BentoWash.swift`. Il vivait dans `BentoSurface`, côté application

@@ -57,6 +57,13 @@ struct DayRule: View {
     /// l'application.
     var worked: [Double] = []
 
+    /// L'heure que le doigt designe, ou `nil` quand personne ne touche.
+    ///
+    /// **Une lecture, jamais un reglage.** Le doigt ne deplace rien : il
+    /// interroge. La regle reste un instrument qu'on consulte, et relacher
+    /// rend la main au present sans avoir rien change.
+    @State private var probed: Double?
+
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.colorSchemeContrast) private var contrast
     @ScaledMetric(relativeTo: .caption2) private var labelSize: CGFloat = 11
@@ -67,7 +74,11 @@ struct DayRule: View {
     static let width: CGFloat = 92
     static let height: CGFloat = 260
 
-    private static let span: Double = 17
+    /// **Vingt heures, comme la courbe.** Elle s'arretait a dix-sept, ce qui
+    /// coupait la journee d'un mauvais dormeur avant qu'elle ne finisse : leve
+    /// a 5 h apres une nuit courte, on depasse ce plafond a 22 h — soit
+    /// exactement le moment ou l'on decide d'aller se coucher.
+    private static let span: Double = 20
     private static let spineX: CGFloat = 44
     private static let gutterX: CGFloat = 48
     private static let inset: CGFloat = 10
@@ -86,6 +97,66 @@ struct DayRule: View {
     private var plotHeight: CGFloat { Self.height - plotTop - Self.inset }
 
     private var hoursAwake: Double { max(0, now.timeIntervalSince(wakeTime) / 3600) }
+
+    /// L'heure depuis le reveil que designe une ordonnee — l'inverse de `y`.
+    private func hour(atY position: CGFloat) -> Double {
+        let usable = plotHeight
+        guard usable > 0 else { return 0 }
+        return Double((position - plotTop) / usable) * Self.span
+    }
+
+    /// Ce que le doigt designe : l'heure d'horloge, et ce que ce moment laisse
+    /// passer.
+    ///
+    /// **Aucun chiffre de clarte, et aucune heure de pic nommee.** On dit
+    /// l'heure — que l'utilisateur connait deja — et un mot pour l'etat, le
+    /// meme vocabulaire que la carte.
+    @ViewBuilder
+    private var probeCursor: some View {
+        if let probed {
+            let position = y(probed)
+            let level = ClarityLevel(value: Int(clarityValue(at: probed)))
+
+            ZStack(alignment: .topLeading) {
+                Rectangle()
+                    .fill(Color.white.opacity(0.55))
+                    .frame(width: Self.width, height: 1)
+                    .offset(y: position)
+
+                VStack(alignment: .trailing, spacing: 1) {
+                    Text(Clock.hhmm(wakeTime.addingTimeInterval(probed * 3600)))
+                        .font(.system(size: labelSize, weight: .semibold, design: .rounded)
+                            .monospacedDigit())
+                        .foregroundStyle(.white)
+                    Text(level.word)
+                        .font(.system(size: labelSize - 1, weight: .regular))
+                        .foregroundStyle(.white.opacity(0.62))
+                }
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(width: Self.width - Self.gutterX, alignment: .trailing)
+                // Au-dessus du trait dans la moitie basse, en dessous sinon :
+                // l'etiquette ne sort jamais de la colonne.
+                .offset(x: Self.gutterX, y: position + (probed > Self.span * 0.75 ? -32 : 4))
+            }
+            .allowsHitTesting(false)
+            .transition(.opacity)
+        }
+    }
+
+    /// La clarte a une heure donnee, interpolee entre deux echantillons.
+    private func clarityValue(at hour: Double) -> Double {
+        guard let first = points.first, let last = points.last else { return 0 }
+        if hour <= first.hoursAwake { return first.clarity }
+        if hour >= last.hoursAwake { return last.clarity }
+        for (low, high) in zip(points, points.dropFirst()) where hour <= high.hoursAwake {
+            let width = high.hoursAwake - low.hoursAwake
+            guard width > 0 else { return low.clarity }
+            let share = (hour - low.hoursAwake) / width
+            return low.clarity + (high.clarity - low.clarity) * share
+        }
+        return last.clarity
+    }
 
     // ── Repérage ──
 
@@ -326,10 +397,29 @@ struct DayRule: View {
                     .offset(x: Self.gutterX, y: nowY - 7)
             }
         }
+        .overlay(alignment: .topLeading) { probeCursor }
         .frame(width: Self.width, height: Self.height, alignment: .topLeading)
         // La regle est cliquable : elle mene au detail de la journee. Le
         // cerveau garde ses propres gestes — les deux ne se recouvrent pas.
         .contentShape(.rect)
+        // **Glisser interroge, relacher rend la main au present.**
+        //
+        // Le doigt ne deplace rien et ne regle rien : il pointe une heure et
+        // la regle repond. C'est ce qui la garde instrument plutot que
+        // controle — et c'est aussi pourquoi le geste n'a besoin d'aucune
+        // affordance : rien n'est casse si personne ne le trouve.
+        //
+        // `minimumDistance: 12` laisse passer le tap qui ouvre le detail :
+        // sans ce seuil, le glissement l'avalerait des le premier point.
+        .gesture(
+            DragGesture(minimumDistance: 12)
+                .onChanged { value in
+                    let hour = hour(atY: value.location.y)
+                    if probed == nil { Feedback.play(.answered) }
+                    probed = min(Self.span, max(0, hour))
+                }
+                .onEnded { _ in probed = nil }
+        )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("La règle de ta journée")
         .accessibilityHint("Chaque graduation est une demi-heure. Plus elle est longue, moins cette heure te retire de ce que ta nuit permet.")
