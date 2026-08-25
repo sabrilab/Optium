@@ -842,6 +842,64 @@ même organe finissent par diverger.
 Le niveau se mesure sur les proportions du glyphe, jamais sur le cadre — dans un
 carré, `murky` à 0,16 tomberait sous le dessin et n'allumerait rien.
 
+### Les jauges circulaires
+
+`Design/RingGauge.swift`, sur le `Gauge` natif d'Apple et non un
+`Circle().trim()` fait main — le composant du système apporte le tracé exact,
+la valeur lue par VoiceOver sans qu'on l'écrive, et le corps accessibilité.
+
+**Une jauge circulaire demande un rapport avec un tout nommable.** Dans Optium
+il n'y en a que deux : les nuits observées sur le minimum requis, et l'avancée
+dans la fenêtre du jour. **Tout le reste serait un score déguisé** — la clarté
+n'a pas de « tout », le palier n'est pas un pourcentage, et les afficher en
+anneau reviendrait à montrer le nombre que le produit s'interdit d'écrire.
+
+### Le sceau de la porte
+
+`Design/GateSeal.swift`. Il transforme un refus subi en refus annoncé, sans une
+phrase de plus. Trois faits selon l'endroit : *ce fil peut m'arrêter* (dans le
+composeur), *lequel de mes fils peut m'arrêter* (dans la liste), et **vif quand
+la clarté est basse** → *maintenant, il m'arrêterait*.
+
+Le troisième état vaut bien plus depuis que la clarté vit dans la journée : le
+sceau s'allume au creux de l'après-midi et s'éteint au rebond du soir. C'est
+une propriété du monde qui change, pas un retour à une action — et c'est
+l'hystérésis du moteur qui l'empêche de clignoter.
+
+### L'échelle des paliers
+
+`Journal/TierLadder.swift` et `Tier.band`. Cinq barreaux, trois bandes.
+**Les bandes ne portent pas de nom et ne doivent pas en porter** : les nommer
+créerait une seconde échelle à trois crans à côté de celle de la clarté, qui ne
+mesure pas la même chose. C'est **l'écart entre bandes**, plus large que
+l'écart entre barreaux, qui fait lire les trois groupes — pas un trait, pas une
+étiquette.
+
+### La trace des reprises
+
+`Home/ResumptionTrace.swift`. « 3 reprises » ne dit rien : trois reprises en un
+après-midi et trois étalées sur quatre nuits sont deux histoires opposées.
+
+**C'est ici, et seulement ici, que `Resumption.clarityAtStart` reprend vie.** Le
+champ était écrit à chaque reprise depuis le début et n'alimentait aucune
+surface. La hauteur encode la clarté au démarrage, un écart plus large marque
+une nuit traversée. **Ne rien écrire à côté** — surtout pas « tu travailles
+souvent en clarté basse ».
+
+### Deux cartes, pas une
+
+La carte d'accueil portait le mot, la cause du mot, la fenêtre et quatre lignes
+de légende : elle occupait tout le bas de l'écran. Les nuits ont désormais
+**leur propre carte**, avec un titre et une ligne qui dit où l'on va.
+
+**Personne ne découvre une destination que rien n'annonce** : une bande de
+barres et un chevron gris n'invitaient à rien. « Voir le détail et les
+analyses » en `Ink.marker` le dit.
+
+La légende a perdu « Nuit » et « Fils » : la première est le sujet de sa propre
+carte, le second est écrit sous la liste qui les montre. Une légende qui répète
+ce qui est déjà à l'écran ne renseigne pas, elle allonge.
+
 ### La règle du jour
 
 `Design/DayRule.swift`, posée en `overlay(alignment: .trailing)` sur le cadre

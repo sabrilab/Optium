@@ -81,6 +81,7 @@ struct HomeScreen: View {
                         brain
                         crossingMessage
                         clarityCard
+                        nightsCard
                         if let clarity = reading.clarity {
                             CalibrationCard(measured: clarity.level)
                         }
@@ -270,6 +271,46 @@ struct HomeScreen: View {
         }
     }
 
+    /// Les nuits, et l'invitation a les ouvrir.
+    ///
+    /// **Elles etaient dans la carte de clarte, et rien n'invitait a les
+    /// toucher** : une bande de barres et un chevron gris. Personne ne
+    /// decouvre une destination que rien n'annonce. Elles ont donc leur propre
+    /// carte, avec un titre, ce qu'on y trouve, et une ligne qui dit ou l'on
+    /// va — c'est ce qui distingue une carte qui informe d'une carte qui ouvre.
+    ///
+    /// Ca degonfle aussi la carte de clarte, qui portait le mot, la cause du
+    /// mot, la fenetre et quatre lignes de legende sur un seul bloc.
+    @ViewBuilder
+    private var nightsCard: some View {
+        if reading.observedNights > 0 {
+            NavigationLink { NightsScreen() } label: {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("TES NUITS")
+                        .font(.caption2.weight(.semibold))
+                        .tracking(1.6)
+                        .foregroundStyle(.secondary)
+
+                    NightsStrip(nights: recordedNights)
+
+                    HStack(spacing: 6) {
+                        Text("Voir le détail et les analyses")
+                            .font(.footnote.weight(.medium))
+                        Image(systemName: "chevron.right")
+                            .font(.caption2)
+                        Spacer(minLength: 0)
+                    }
+                    .foregroundStyle(Ink.marker)
+                    .frame(minHeight: 30)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(18)
+                .bentoSurface(Ink.teal, corner: 28, intensity: 0.42)
+            }
+            .buttonStyle(Pressable())
+        }
+    }
+
     private var clarityCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("CLARTÉ")
@@ -293,21 +334,6 @@ struct HomeScreen: View {
                     liveWord(at: context.date)
                 }
 
-                // **Sa cause, juste en dessous.** Le mot apparaissait seul, et
-                // il fallait ouvrir un autre écran pour savoir sur quoi il
-                // reposait. Un verdict dont la cause est ailleurs se subit ;
-                // posé à côté d'elle, il s'examine.
-                NavigationLink { NightsScreen() } label: {
-                    HStack(alignment: .top, spacing: 12) {
-                        NightsStrip(nights: recordedNights)
-                        Spacer(minLength: 0)
-                        Image(systemName: "chevron.right")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .padding(.top, 16)
-                    }
-                }
-                .buttonStyle(.plain)
             } else {
                 arrival
             }
@@ -321,21 +347,6 @@ struct HomeScreen: View {
 
             legend
 
-            // Sans clarté, la bande n'a rien à montrer : le recours reste
-            // accessible, mais discret.
-            if reading.clarity == nil {
-                NavigationLink { NightsScreen() } label: {
-                    HStack(spacing: 6) {
-                        Text("Voir mes nuits")
-                        Image(systemName: "chevron.right").font(.caption2)
-                    }
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .frame(minHeight: 44)
-                }
-                .buttonStyle(.plain)
-            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
@@ -356,12 +367,32 @@ struct HomeScreen: View {
     @ViewBuilder
     private var arrival: some View {
         if clarityStore.hasPermission {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Optium lit tes nuits pour savoir quand tu peux décider.")
-                    .font(.system(size: 19, weight: .light))
-                Text(nightsProgress)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Ink.marker)
+            HStack(alignment: .center, spacing: 16) {
+                // **Un rapport avec un tout nommable** : des nuits sur le
+                // minimum requis. C'est le seul endroit de l'accueil ou un
+                // anneau ne serait pas un score deguise, et il dit d'un coup
+                // d'oeil ce que la phrase mettait une ligne a dire.
+                RingGauge(
+                    progress: Double(min(reading.observedNights, ClarityEngine.minimumNights))
+                            / Double(ClarityEngine.minimumNights),
+                    spoken: nightsProgress,
+                    size: 52
+                ) {
+                    Text("\(min(reading.observedNights, ClarityEngine.minimumNights))")
+                        .font(.system(size: 15, weight: .medium))
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Optium lit tes nuits pour savoir quand tu peux décider.")
+                        .font(.system(size: 18, weight: .light))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(nightsProgress)
+                        .font(.footnote)
+                        .foregroundStyle(Ink.marker)
+                }
+                Spacer(minLength: 0)
             }
         } else {
             // Cas distinct de « pas encore de données », et à ne pas
@@ -401,29 +432,63 @@ struct HomeScreen: View {
     @ViewBuilder
     private var legend: some View {
         VStack(spacing: 6) {
-            if let duration = reading.lastNightDuration, isRecent(duration) {
-                // **La ligne nomme sa provenance.** Elle annoncait « Nuit
-                // 5 h 10 » sans dire d'ou venait le chiffre. Quand il est
-                // deduit du mouvement, il ne se verifie nulle part ailleurs —
-                // l'annoncer comme un fait mesure etait la seule entorse de
-                // l'application a sa propre regle.
-                legendRow(
-                    reading.restsOnInference ? "Nuit déduite" : "Nuit",
-                    format(duration)
-                )
-            }
-            legendRow("Fenêtre", windowRange, muted: Date() > window.end)
+            // **La nuit et les fils ont quitte la legende.** La duree de la
+            // nuit est desormais le sujet de sa propre carte, juste dessous ;
+            // le nombre de fils ouverts est ecrit sous la liste qui les
+            // montre. Une legende qui repete ce qui est deja a l'ecran ne
+            // renseigne pas, elle allonge.
+            windowRow
             // Le café porte son bouton : c'est le seul geste déclaratif de
             // l'application, et le séparer de sa ligne le faisait apparaître
             // deux fois.
             //
             // Rien à zéro dans la valeur : une ligne à zéro est un reproche.
             coffeeRow
-            // Au-delà de deux, seuil à partir duquel l'agitation se voit.
-            if threads.count > 2 {
-                legendRow("Fils", "\(threads.count) ouverts")
-            }
         }
+    }
+
+    /// La fenetre, avec l'avancee dedans.
+    ///
+    /// **Le second rapport avec un tout naturel** : la part parcourue d'un
+    /// creneau qui a un debut et une fin. L'anneau se remplit pendant la
+    /// fenetre, et reste plein — eteint — une fois qu'elle est fermee.
+    private var windowRow: some View {
+        let closed = Date() > window.end
+        return HStack {
+            Text("Fenêtre")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text(windowRange)
+                .font(.footnote)
+                .monospacedDigit()
+                .foregroundStyle(closed ? .tertiary : .secondary)
+            RingGauge(
+                progress: windowProgress,
+                spoken: closed ? "Fenêtre fermée" : "Fenêtre parcourue à \(Int(windowProgress * 100)) pour cent",
+                // Eteinte quand la fenetre est passee : un anneau plein et vif
+                // se lirait comme un accomplissement.
+                tint: closed ? Color.white.opacity(0.22) : Ink.marker,
+                size: 22
+            )
+        }
+    }
+
+    /// La porte s'ouvrirait-elle maintenant.
+    ///
+    /// **Evalue a l'instant present, pas au dernier rafraichissement** : c'est
+    /// tout l'interet du sceau depuis que la clarte vit dans la journee.
+    private var gateIsArmed: Bool {
+        guard reading.clarity != nil else { return false }
+        return (clarityStore.live(at: Date())?.level ?? reading.level) == .low
+    }
+
+    /// 0…1 : la part de la fenetre deja parcourue.
+    private var windowProgress: Double {
+        let now = Date()
+        guard now > window.start else { return 0 }
+        guard now < window.end else { return 1 }
+        return now.timeIntervalSince(window.start) / window.duration
     }
 
     private func legendRow(_ label: String, _ value: String, muted: Bool = false) -> some View {
@@ -600,6 +665,26 @@ struct HomeScreen: View {
         return sorted.map { ($0, byProject[$0?.id] ?? []) }
     }
 
+    /// Une ligne de la liste.
+    ///
+    /// Extraite du corps : en ligne, l'expression depassait le budget de
+    /// verification de types du compilateur, qui refusait alors la fonction
+    /// entiere.
+    private func row(_ thread: WorkThread, in project: Project?, at index: Int) -> some View {
+        // La teinte du projet colore tous ses fils : le groupe se lit alors
+        // comme un ensemble. Sans projet, on reprend la progression des
+        // teintes.
+        let hue = project?.hue ?? Ink.cardHues[(index + 1) % Ink.cardHues.count]
+        return ThreadRow(
+            thread: thread,
+            hue: hue,
+            gateIsArmed: gateIsArmed,
+            // Le nom est deja dans l'en-tete : le repeter sur chaque fil
+            // encombre pour rien.
+            showsProject: false
+        )
+    }
+
     @ViewBuilder
     private var threadList: some View {
         VStack(spacing: 12) {
@@ -610,17 +695,7 @@ struct HomeScreen: View {
                         Button {
                             active = thread
                         } label: {
-                            // La teinte du projet colore tous ses fils : le
-                            // groupe se lit alors comme un ensemble. Sans
-                            // projet, on reprend la progression des teintes.
-                            ThreadRow(
-                                thread: thread,
-                                hue: group.project?.hue
-                                    ?? Ink.cardHues[(index + 1) % Ink.cardHues.count],
-                                // Le nom est deja dans l'en-tete : le repeter
-                                // sur chaque fil encombre pour rien.
-                                showsProject: false
-                            )
+                            row(thread, in: group.project, at: index)
                         }
                         .buttonStyle(Pressable())
                         .cardEntrance(index + rank)
@@ -713,6 +788,10 @@ struct HomeScreen: View {
 struct ThreadRow: View {
     let thread: WorkThread
     let hue: Ink.CardHue
+    /// Vrai quand la porte s'ouvrirait a cet instant. Passe depuis l'ecran
+    /// plutot que lu de l'environnement : la ligne ne doit pas dependre du
+    /// magasin pour se dessiner.
+    var gateIsArmed = false
     /// Faux quand la ligne est deja sous un en-tete de projet.
     var showsProject = true
 
@@ -735,6 +814,11 @@ struct ThreadRow: View {
                     .font(.caption2.weight(.semibold))
                     .tracking(1.4)
                     .foregroundStyle(.secondary)
+                // Le sceau ne suit que les decisions : c'est la seule nature
+                // que la porte arrete.
+                if thread.nature == .decision {
+                    GateSeal(isArmed: gateIsArmed)
+                }
                 Spacer()
                 if thread.state == .held, let until = thread.heldUntil {
                     Text("retenu jusqu’à \(until.formatted(date: .omitted, time: .shortened))")
@@ -750,9 +834,10 @@ struct ThreadRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             if !thread.resumptions.isEmpty {
-                Text("\(thread.resumptions.count) reprise\(thread.resumptions.count > 1 ? "s" : "")")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                // **La trace plutot que le compte.** Trois reprises en un
+                // apres-midi et trois etalees sur quatre nuits sont deux
+                // histoires opposees, et le nombre les confondait.
+                ResumptionTrace(resumptions: thread.resumptions)
             }
         }
         .padding(18)

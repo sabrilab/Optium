@@ -102,6 +102,27 @@ nonisolated enum Tier: String, CaseIterable, Comparable {
         return threshold...(above ?? 100)
     }
 
+    /// L'indice de bande, 0 (basse) a 2 (haute).
+    ///
+    /// **Volontairement sans mot.** *Cristallin, Limpide, Net, Voile, Trouble*
+    /// n'ont aucun ordre intuitif : sans le tableau sous les yeux, personne ne
+    /// sait si *Net* est au-dessus ou en dessous de *Limpide*. Les bandes
+    /// donnent cet ordre **par la position**, sans ajouter de vocabulaire.
+    ///
+    /// Les nommer « basse / moyenne / haute » creerait une seconde echelle a
+    /// trois crans a cote de celle de la clarte, qui ne mesure pas la meme
+    /// chose — les deux se confondraient. Elles restent donc muettes.
+    ///
+    /// Le regroupement vient de la repartition UK Biobank : 37 % en haut,
+    /// 26 % au milieu, 37 % en bas.
+    var band: Int {
+        switch self {
+        case .crystalline, .limpid: 2
+        case .clear: 1
+        case .veiled, .murky: 0
+        }
+    }
+
     /// Remplissage de l'embleme, 0…1.
     var fill: Double {
         switch self {

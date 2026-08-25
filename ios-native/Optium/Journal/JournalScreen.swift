@@ -190,30 +190,12 @@ struct JournalScreen: View {
 
     /// L'échelle, rendue visible.
     ///
-    /// Cristallin, Limpide, Net, Voilé, Trouble n'ont aucun ordre intuitif :
-    /// sans le tableau sous les yeux, personne ne sait si *Net* est au-dessus
-    /// ou en dessous de *Limpide*. C'est un lexique, pas une échelle.
-    ///
-    /// La montrer coûte cinq silhouettes et supprime le problème sans toucher
-    /// au vocabulaire.
+    /// Voir `TierLadder` : cinq barreaux rangés en trois bandes sans nom.
+    /// L'échelle horizontale précédente donnait bien l'ordre, mais rien n'y
+    /// disait que *Cristallin* et *Limpide* sont proches là où *Net* est seul
+    /// au milieu — l'écart entre bandes le dit sans ajouter un mot.
     private func scale(_ current: Tier) -> some View {
-        HStack(spacing: 10) {
-            ForEach(Tier.allCases.sorted(), id: \.self) { tier in
-                VStack(spacing: 5) {
-                    BrainMark(
-                        fill: tier.fill,
-                        tint: tier == current ? Ink.marker : .white
-                    )
-                    .frame(width: 26, height: 26)
-                    .opacity(tier == current ? 1 : 0.34)
-                    Text(tier.word)
-                        .font(.system(size: 9, weight: tier == current ? .semibold : .regular))
-                        .foregroundStyle(tier == current ? Ink.marker : Color.white.opacity(0.42))
-                }
-                .frame(maxWidth: .infinity)
-            }
-        }
-        .padding(.top, 6)
+        TierLadder(current: current)
     }
 
     /// L'accès au corpus. Une entrée, pas une carte : ce n'est pas une
