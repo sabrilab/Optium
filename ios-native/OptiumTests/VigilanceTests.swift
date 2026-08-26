@@ -293,3 +293,58 @@ private func reading(at hoursAfterWake: Double, nights: [Night]) -> ClarityReadi
         #expect(slope >= -1 && slope <= 1)
     }
 }
+
+// ── Le moment de la journee, seconde variable ──
+//
+// La clarte combine ce que la nuit permet et ce que l'heure en laisse passer :
+// elle peut donc etre basse un jour ou le moment est excellent, et l'inverse.
+// Confondues, les deux se masquent — et celle qui manquait est la seule sur
+// laquelle on puisse agir.
+
+@Test func leMomentEstIndependantDuNiveau() {
+    // **La propriete qui justifie la seconde variable.** Deux nuits opposees,
+    // au meme moment de leur journee : le mot de clarte differe, le moment
+    // non.
+    let good = Vigilance(ceilingAtWake: 96, pressureTau: 13)
+    let poor = Vigilance(ceilingAtWake: 52, pressureTau: 6.8)
+
+    for hour in [3.0, 6.0, 9.0, 13.0] {
+        #expect(good.moment(hoursAwake: hour) == poor.moment(hoursAwake: hour),
+                "le moment differe a +\(hour) h alors qu'il ne devrait pas")
+    }
+}
+
+@Test func onPeutEtreEnClarteBasseAuSommetDeSaJournee() {
+    // Le cas exact que l'utilisateur decrivait, et qui etait invisible.
+    let poor = Vigilance(ceilingAtWake: 52, pressureTau: 6.8)
+    let peak = poor.curve(from: 0.5, to: 15).max(by: { $0.clarity < $1.clarity })!
+
+    #expect(poor.moment(hoursAwake: peak.hoursAwake) == .peak)
+    #expect(ClarityLevel(value: Int(peak.clarity)) != .high)
+}
+
+@Test func lesSeptMomentsSeSuiventDansLOrdre() {
+    let model = Vigilance(ceilingAtWake: 90, pressureTau: 12)
+    let sequence = stride(from: 0.0, through: 15.0, by: 0.5)
+        .map { model.moment(hoursAwake: $0) }
+
+    #expect(sequence.first == .waking)
+    #expect(sequence.contains(.peak))
+    #expect(sequence.contains(.trough))
+    // Le sommet vient avant le creux, toujours.
+    let peakIndex = sequence.firstIndex(of: .peak)!
+    let troughIndex = sequence.firstIndex(of: .trough)!
+    #expect(peakIndex < troughIndex)
+}
+
+@Test func aucunMomentNeNommeUneHeure() {
+    // Le modele a deux processus est solide ; predire un pic personnel a
+    // l'heure pres ne l'est pas.
+    for moment in [Vigilance.Moment.waking, .rising, .peak, .falling, .trough, .rebound, .evening] {
+        let text = moment.word + " " + moment.capability
+        #expect(!text.contains("h "), "une heure est nommee dans « \(text) »")
+        for banned in ["tu dois", "il faut", "profite", "attends"] {
+            #expect(!text.lowercased().contains(banned))
+        }
+    }
+}

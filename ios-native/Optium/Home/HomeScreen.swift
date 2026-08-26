@@ -267,8 +267,11 @@ struct HomeScreen: View {
     @ViewBuilder
     private func liveWord(at date: Date) -> some View {
         let level = clarityStore.live(at: date)?.level ?? reading.level
-        Text(level.word)
-            .font(.system(size: 34, weight: .light))
+        let moment = clarityStore.moment(at: date)
+
+        VStack(alignment: .leading, spacing: 6) {
+            Text(level.word)
+                .font(.system(size: 34, weight: .light))
             // Le mot fond au lieu de sauter : un basculement se voit alors
             // comme une transition, pas comme une correction.
             .contentTransition(.opacity)
@@ -280,6 +283,28 @@ struct HomeScreen: View {
             .onChange(of: level, initial: true) { _, shown in
                 clarityStore.noteShown(shown)
             }
+
+            // **La seconde variable, et elle dit autre chose.** La clarte
+            // combine ce que la nuit permet et ce que l'heure en laisse
+            // passer : elle peut donc etre basse un jour ou le moment est
+            // excellent. Confondues, les deux se masquent — et celle qui
+            // manquait est la seule sur laquelle on puisse agir, puisque
+            // attendre deux heures ne change pas la nuit mais change le
+            // moment.
+            if let moment {
+                HStack(spacing: 7) {
+                    Text(moment.word)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Ink.marker)
+                    Text(moment.capability)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                }
+                .contentTransition(.opacity)
+                .animation(Motion.state, value: moment)
+            }
+        }
     }
 
     /// La fenetre, en heures depuis le reveil, pour la poser sur la regle.

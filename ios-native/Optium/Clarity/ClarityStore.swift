@@ -69,6 +69,12 @@ final class ClarityStore {
     /// La clarte a un instant donne, calculee sans toucher aux sources.
     ///
     /// - Returns: `nil` tant qu'aucune mesure n'existe.
+    /// Ou l'on en est dans l'oscillation, independamment du niveau.
+    func moment(at date: Date = Date()) -> Vigilance.Moment? {
+        guard let vigilance, let wakeAnchor, reading.clarity != nil else { return nil }
+        return vigilance.moment(hoursAwake: max(0, date.timeIntervalSince(wakeAnchor) / 3600))
+    }
+
     /// La moyenne du jour, pour ancrer l'amplification du fluide.
     var dayMean: Double? { vigilance?.dayMean }
 

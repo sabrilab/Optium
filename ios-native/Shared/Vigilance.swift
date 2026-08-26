@@ -132,6 +132,80 @@ nonisolated struct Vigilance {
         return values.reduce(0, +) / Double(values.count)
     }
 
+    /// Ou l'on se situe dans l'oscillation de la journee, independamment du
+    /// niveau.
+    ///
+    /// **C'est la seconde variable, et elle dit autre chose que la clarte.**
+    /// La clarte combine ce que la nuit permet et ce que l'heure en laisse
+    /// passer : elle peut donc etre basse un jour ou le moment est excellent,
+    /// et l'inverse. Confondues, ces deux informations se masquent — et celle
+    /// qui manque est precisement la seule sur laquelle on puisse agir :
+    /// attendre deux heures ne change pas la nuit, ca change le moment.
+    ///
+    /// Elle ne nomme **jamais une heure** : le modele a deux processus est
+    /// solide, predire un pic personnel a l'heure pres ne l'est pas.
+    enum Moment: String, Sendable {
+        /// L'inertie du reveil n'est pas encore dissipee.
+        case waking
+        /// La montee vers le sommet.
+        case rising
+        /// Le sommet de la journee, a une demi-heure pres.
+        case peak
+        /// La descente vers le creux.
+        case falling
+        /// Le creux du milieu de journee.
+        case trough
+        /// Le rebond du soir.
+        case rebound
+        /// La descente du soir.
+        case evening
+
+        var word: String {
+            switch self {
+            case .waking: "au réveil"
+            case .rising: "en montée"
+            case .peak: "au sommet"
+            case .falling: "en descente"
+            case .trough: "dans le creux"
+            case .rebound: "en remontée"
+            case .evening: "en fin de journée"
+            }
+        }
+
+        /// Ce que le moment permet, sans jamais dire quoi en faire.
+        var capability: String {
+            switch self {
+            case .waking: "L’inertie du réveil se dissipe."
+            case .rising: "Ça monte encore."
+            case .peak: "C’est le meilleur moment de ta journée."
+            case .falling: "Ça redescend."
+            case .trough: "Le creux du milieu de journée. Il passe."
+            case .rebound: "Une seconde plage, plus courte que celle du matin."
+            case .evening: "La journée se termine."
+            }
+        }
+    }
+
+    /// Le moment de la journee a cet instant.
+    func moment(hoursAwake: Double) -> Moment {
+        if hoursAwake < 1 { return .waking }
+
+        let samples = curve(from: 0.5, to: 15)
+        guard let peak = samples.max(by: { $0.clarity < $1.clarity }) else { return .rising }
+        let afternoon = samples.filter { $0.hoursAwake > peak.hoursAwake && $0.hoursAwake <= 12 }
+        let trough = afternoon.min(by: { $0.clarity < $1.clarity })
+
+        if abs(hoursAwake - peak.hoursAwake) <= 0.5 { return .peak }
+        if hoursAwake < peak.hoursAwake { return .rising }
+
+        guard let trough else { return .falling }
+        if abs(hoursAwake - trough.hoursAwake) <= 0.75 { return .trough }
+        if hoursAwake < trough.hoursAwake { return .falling }
+
+        // Apres le creux : on remonte tant que la pente est positive.
+        return slope(hoursAwake: hoursAwake) > 0.02 ? .rebound : .evening
+    }
+
     /// La pente de la clarte a cet instant, normalisee -1…1.
     ///
     /// **Le sens de variation, jamais le niveau.** Le brief interdit a la

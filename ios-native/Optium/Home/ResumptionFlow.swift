@@ -138,7 +138,19 @@ private struct ResumptionScreen: View {
                         isVisible: scenePhase == .active
                     )
                 }
-                .frame(maxHeight: .infinity)
+                // **Une hauteur bornee, pas toute la place disponible.**
+                //
+                // `maxHeight: .infinity` donnait au cerveau tout ce que
+                // l'ecran laissait — environ quatre cents points sur un grand
+                // iPhone, contre deux cent soixante sur l'accueil. Le champ de
+                // vision du rendu etant vertical, la taille du cerveau suit
+                // exactement cette hauteur : il etait donc la moitie plus gros
+                // ici que la, sans raison.
+                //
+                // Il reste le sujet de l'ecran, donc un peu plus grand que sur
+                // l'accueil, mais plus au point d'ecraser la phrase du fil et
+                // le temps passe.
+                .frame(maxHeight: 300)
                 .padding(.trailing, DayRule.width)
                 // **La regle pendant qu'on travaille.**
                 //
