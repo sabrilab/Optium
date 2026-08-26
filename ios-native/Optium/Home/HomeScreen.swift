@@ -361,10 +361,17 @@ struct HomeScreen: View {
         if reading.observedNights > 0 {
             NavigationLink { NightsScreen() } label: {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("TES NUITS")
-                        .font(.caption2.weight(.semibold))
-                        .tracking(1.6)
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 0) {
+                        Text("TES NUITS")
+                            .font(.caption2.weight(.semibold))
+                            .tracking(1.6)
+                            .foregroundStyle(.secondary)
+                        Spacer(minLength: 0)
+                        // Pourquoi Optium ne lit que les horaires, jamais les
+                        // stades — et ce que les montres mesurent mal.
+                        EvidenceButton(evidence: EvidenceLibrary.stages)
+                    }
+                    .frame(height: 22)
 
                     NightsStrip(nights: recordedNights, observedNights: reading.observedNights)
 
@@ -388,10 +395,17 @@ struct HomeScreen: View {
 
     private var clarityCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("CLARTÉ")
-                .font(.caption2.weight(.semibold))
-                .tracking(1.6)
-                .foregroundStyle(.secondary)
+            HStack(spacing: 0) {
+                Text("CLARTÉ")
+                    .font(.caption2.weight(.semibold))
+                    .tracking(1.6)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+                // Ce que « clarté » veut dire, et ce que la littérature
+                // n'autorise pas à en dire.
+                EvidenceButton(evidence: EvidenceLibrary.vigilance)
+            }
+            .frame(height: 22)
 
             ReadingBanner(isReading: clarityStore.isRefreshing)
 
@@ -724,15 +738,24 @@ struct HomeScreen: View {
     private var landingCard: some View {
         if let landing = landing {
             VStack(alignment: .leading, spacing: 12) {
-                Text("ATTERRISSAGE")
+                // **Le mot ne se suffisait pas.** « Atterrissage » est le
+                // seul terme inventé de l'application qui ne désigne rien de
+                // visible : ni un objet à l'écran, ni un geste. Personne ne
+                // peut le deviner — et il est resté opaque même pour l'auteur
+                // du produit.
+                //
+                // Le titre dit désormais ce que la carte annonce, et le mot
+                // reste dessous comme nom de la chose.
+                Text("TES FILS OUVERTS DEVRAIENT ÊTRE FERMÉS")
                     .font(.caption2.weight(.semibold))
                     .tracking(1.6)
                     .foregroundStyle(.secondary)
                 Text(range(landing))
                     .font(.system(size: 26, weight: .light))
-                Text("Calculé sur tes fils passés, pas sur une estimation.")
+                Text("C’est ce qu’Optium appelle l’atterrissage. Il le calcule sur le nombre de reprises qu’ont pris tes fils déjà fermés, pas sur une durée devinée.")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(20)

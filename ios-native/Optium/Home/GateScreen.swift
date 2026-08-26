@@ -46,6 +46,13 @@ struct GateScreen: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
+                // Ce que la porte defend, et le recit courant qu'elle
+                // contredit.
+                HStack {
+                    Spacer(minLength: 0)
+                    EvidenceButton(evidence: EvidenceLibrary.errorDetection)
+                }
+
                 Text("TU FERMES UNE DÉCISION")
                     .font(.caption2.weight(.semibold))
                     .tracking(1.6)

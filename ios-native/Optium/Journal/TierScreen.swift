@@ -150,10 +150,15 @@ struct TierScreen: View {
 
     private var scale: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("L’INDICE DE RÉGULARITÉ")
-                .font(.caption2.weight(.semibold))
-                .tracking(1.6)
-                .foregroundStyle(.secondary)
+            HStack(spacing: 0) {
+                Text("L’INDICE DE RÉGULARITÉ")
+                    .font(.caption2.weight(.semibold))
+                    .tracking(1.6)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+                EvidenceButton(evidence: EvidenceLibrary.regularity)
+            }
+            .frame(height: 22)
 
             ForEach(Tier.allCases.sorted().reversed(), id: \.self) { tier in
                 HStack(spacing: 12) {

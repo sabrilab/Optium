@@ -114,10 +114,17 @@ struct DayScreen: View {
 
     private var capabilities: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("CE DONT CHAQUE MOMENT EST CAPABLE")
-                .font(.caption2.weight(.semibold))
-                .tracking(1.6)
-                .foregroundStyle(.secondary)
+            HStack(spacing: 0) {
+                Text("CE DONT CHAQUE MOMENT EST CAPABLE")
+                    .font(.caption2.weight(.semibold))
+                    .tracking(1.6)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+                // **C'est ici que la modale vaut le plus** : elle dit que
+                // cette partie du calcul repose sur un effet contesté.
+                EvidenceButton(evidence: EvidenceLibrary.circadian)
+            }
+            .frame(height: 22)
 
             // **Aucun impératif, aucune heure nommée.** On décrit ce qu'un
             // moment permet ; ce qu'on en fait n'appartient pas à
