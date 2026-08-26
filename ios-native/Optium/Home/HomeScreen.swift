@@ -93,16 +93,25 @@ struct HomeScreen: View {
 
                 ScrollView {
                     VStack(spacing: 14) {
-                        // **En tête, avant tout le reste.** Ce qui se passe
-                        // maintenant passe avant ce qui se mesure.
+                        brain
+                        crossingMessage
+
+                        // **Entre la scène et la mesure.** Le cerveau et la
+                        // règle disent l'état ; les cartes en dessous le
+                        // détaillent. Ce qui se passe maintenant vient entre
+                        // les deux — après ce qui se regarde, avant ce qui se
+                        // lit.
+                        //
+                        // Posée avant le cerveau, elle repoussait la scène
+                        // hors du premier écran ; posée plus bas, elle se
+                        // serait perdue dans la liste. Ici elle est le premier
+                        // objet touchable de l'écran.
                         RunningCard(
                             running: runningThread,
                             onOpen: { active = runningThread },
                             onCompose: { composing = true }
                         )
 
-                        brain
-                        crossingMessage
                         clarityCard
                         nightsCard
                         if let clarity = reading.clarity {
