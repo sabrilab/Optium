@@ -163,7 +163,18 @@ private struct ResumptionScreen: View {
                 // Il reste le sujet de l'ecran, donc un peu plus grand que sur
                 // l'accueil, mais plus au point d'ecraser la phrase du fil et
                 // le temps passe.
-                .frame(maxHeight: 300)
+                // **Une part de l'ecran, pas une constante.**
+                //
+                // Trois cents points fixes tenaient sur un iPhone ordinaire et
+                // laissaient une bande noire d'une centaine de points sur un
+                // Pro Max. Le champ de vision du rendu etant vertical, la
+                // taille du cerveau suit exactement cette hauteur : une
+                // fraction la rend proportionnelle a l'appareil.
+                //
+                // Quarante-deux pour cent : assez pour que le cerveau reste le
+                // sujet, assez peu pour que la carte du fil et la barre du
+                // haut gardent leur place sur les petits ecrans.
+                .containerRelativeFrame(.vertical) { height, _ in height * 0.42 }
                 .padding(.trailing, DayRule.width)
                 // **La regle pendant qu'on travaille.**
                 //

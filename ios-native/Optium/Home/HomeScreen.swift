@@ -81,6 +81,22 @@ struct HomeScreen: View {
         threads.first { $0.currentResumption != nil }
     }
 
+    /// Le dernier fil travaille aujourd'hui, quand aucune reprise ne tourne.
+    ///
+    /// **Borne a la journee**, et c'est deliberé : un lecteur de musique ne
+    /// garde pas la piste d'avant-hier. Passe minuit, la carte redevient
+    /// « Ouvrir un fil » — l'application repart d'une page propre.
+    private var pausedThread: WorkThread? {
+        guard runningThread == nil else { return nil }
+        return threads
+            .compactMap { thread -> (WorkThread, Date)? in
+                guard let last = thread.resumptions.compactMap(\.endedAt).max(),
+                      Calendar.current.isDateInToday(last) else { return nil }
+                return (thread, last)
+            }
+            .max { $0.1 < $1.1 }?.0
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -108,7 +124,8 @@ struct HomeScreen: View {
                         // objet touchable de l'écran.
                         RunningCard(
                             running: runningThread,
-                            onOpen: { active = runningThread },
+                            paused: pausedThread,
+                            onOpen: { active = runningThread ?? pausedThread },
                             onCompose: { composing = true },
                             onPause: { ThreadRunner.pause($0) }
                         )
@@ -118,7 +135,6 @@ struct HomeScreen: View {
                         if let clarity = reading.clarity {
                             CalibrationCard(measured: clarity.level)
                         }
-                        landingCard
                         threadList
                     }
                     .padding(.horizontal, 16)
@@ -789,51 +805,17 @@ struct HomeScreen: View {
     /// fourchette. Elle se tait tant qu'il n'y a rien à extrapoler — inventer
     /// une date serait pire que se taire.
     @ViewBuilder
-    private var landingCard: some View {
-        if let landing = landing {
-            VStack(alignment: .leading, spacing: 12) {
-                // **Le mot ne se suffisait pas.** « Atterrissage » est le
-                // seul terme inventé de l'application qui ne désigne rien de
-                // visible : ni un objet à l'écran, ni un geste. Personne ne
-                // peut le deviner — et il est resté opaque même pour l'auteur
-                // du produit.
-                //
-                // Le titre dit désormais ce que la carte annonce, et le mot
-                // reste dessous comme nom de la chose.
-                Text("TES FILS OUVERTS DEVRAIENT ÊTRE FERMÉS")
-                    .font(.caption2.weight(.semibold))
-                    .tracking(1.6)
-                    .foregroundStyle(.secondary)
-                Text(range(landing))
-                    .font(.system(size: 26, weight: .light))
-                Text("C’est ce qu’Optium appelle l’atterrissage. Il le calcule sur le nombre de reprises qu’ont pris tes fils déjà fermés, pas sur une durée devinée.")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(20)
-            .bentoSurface(Ink.violet, corner: 30, intensity: 0.5)
-        }
-    }
-
-    private var landing: Landing? {
-        let history = closed.map(\.resumptions.count).filter { $0 > 0 }
-        let activeDays = Set(allResumptions.map { Calendar.current.startOfDay(for: $0.startedAt) })
-        let capacity = activeDays.isEmpty ? 0 : Double(allResumptions.count) / Double(activeDays.count)
-
-        return LandingEstimator.estimate(
-            closedResumptions: history,
-            openThreads: threads.count,
-            dailyCapacity: capacity,
-            from: Date()
-        )
-    }
-
-    private func range(_ landing: Landing) -> String {
-        let format = Date.FormatStyle.dateTime.weekday(.abbreviated).day()
-        return "\(landing.earliest.formatted(format)) → \(landing.latest.formatted(format))"
-    }
+    // **La prevision d'atterrissage a ete retiree de l'accueil.**
+    //
+    // `LandingEstimator` divise une mediane de reprises passees par le nombre
+    // de fils ouverts. C'est une heuristique grossiere, assumee comme telle
+    // dans son propre commentaire — et elle sortait sur l'ecran principal sous
+    // la forme d'une fourchette de dates, c'est-a-dire avec l'apparence d'un
+    // fait.
+    //
+    // Le calcul reste dans `RootView`, ou il alimente le widget et l'ile
+    // dynamique. Ce qui disparait, c'est la carte qui en faisait une annonce,
+    // et le calcul en double qui la nourrissait ici.
 
     /// Les fils ouverts, groupes sous leur projet.
     ///
@@ -847,7 +829,9 @@ struct HomeScreen: View {
     /// et non le titre ni la date d'ouverture du projet : la liste garde ainsi
     /// exactement l'ordre qu'elle avait avant le groupage, et ne se reorganise
     /// pas sous les yeux de quelqu'un qui ferme un fil.
-    private var groups: [(project: Project?, threads: [WorkThread])] {
+    // Une fonction : `ViewBuilder` s'applique par defaut aux proprietes
+    // calculees d'une vue, et celle-ci rend une valeur.
+    private func makeGroups() -> [(project: Project?, threads: [WorkThread])] {
         var order: [Project?] = []
         var byProject: [UUID?: [WorkThread]] = [:]
         for thread in threads {
@@ -887,7 +871,7 @@ struct HomeScreen: View {
     @ViewBuilder
     private var threadList: some View {
         VStack(spacing: 12) {
-            ForEach(Array(groups.enumerated()), id: \.offset) { index, group in
+            ForEach(Array(makeGroups().enumerated()), id: \.offset) { index, group in
                 VStack(alignment: .leading, spacing: 12) {
                     projectHeader(group.project, index: index)
                     ForEach(Array(group.threads.enumerated()), id: \.element.id) { rank, thread in
@@ -928,7 +912,7 @@ struct HomeScreen: View {
     /// groupe sans projet, il n'annoncerait rien.
     @ViewBuilder
     private func projectHeader(_ project: Project?, index: Int) -> some View {
-        if project != nil || groups.count > 1 {
+        if project != nil || makeGroups().count > 1 {
             HStack(spacing: 8) {
                 Circle()
                     .fill(project?.hue.tint ?? Color.white.opacity(0.28))

@@ -15,6 +15,14 @@ import SwiftUI
 struct RunningCard: View {
     /// Le fil dont une reprise est en cours, ou `nil`.
     let running: WorkThread?
+    /// Le dernier fil travaille aujourd'hui, quand rien ne tourne.
+    ///
+    /// **Une pause ne fait pas disparaitre le lecteur.** La carte se retirait
+    /// des qu'on arretait la reprise et redevenait « Ouvrir un fil » : le fil
+    /// sur lequel on venait de travailler disparaissait de l'ecran, et il
+    /// fallait le retrouver dans la liste pour le reprendre. Un lecteur de
+    /// musique en pause garde sa barre.
+    var paused: WorkThread?
     let onOpen: () -> Void
     let onCompose: () -> Void
     /// Arreter la reprise sans ouvrir le fil.
@@ -23,7 +31,12 @@ struct RunningCard: View {
     var body: some View {
         if let running {
             Button(action: onOpen) {
-                content(running)
+                content(running, isRunning: true)
+            }
+            .buttonStyle(Pressable())
+        } else if let paused {
+            Button(action: onOpen) {
+                content(paused, isRunning: false)
             }
             .buttonStyle(Pressable())
         } else {
@@ -38,13 +51,21 @@ struct RunningCard: View {
                 .foregroundStyle(Ink.control)
                 .padding(20)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 30))
+                // **La forme tactile avant le verre, et pas apres.**
+                //
+                // Un `Spacer` n'est pas une surface : sans `contentShape`, la
+                // zone touchable s'arretait au texte et les trois quarts
+                // droits de la carte ne repondaient a rien. Le verre
+                // `.interactive()` n'arrangeait rien — il reagit au doigt sans
+                // le transmettre.
+                .contentShape(.rect(cornerRadius: 30))
+                .glassEffect(.regular, in: .rect(cornerRadius: 30))
             }
             .buttonStyle(.plain)
         }
     }
 
-    private func content(_ thread: WorkThread) -> some View {
+    private func content(_ thread: WorkThread, isRunning: Bool) -> some View {
         // **Deux colonnes, pas trois lignes.** La carte empilait l'état, la
         // phrase et le compteur : elle faisait la hauteur d'une carte de
         // mesure alors qu'elle ne porte qu'une chose en train de se passer.
@@ -53,14 +74,15 @@ struct RunningCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
                     // Le seul endroit de l'application où quelque chose est
-                    // annoncé comme *en train* de se passer.
-                    Image(systemName: "waveform")
+                    // annoncé comme *en train* de se passer. En pause, le
+                    // marker s'éteint : il ne signale que le présent.
+                    Image(systemName: isRunning ? "waveform" : "pause.fill")
                         .font(.caption2)
-                        .foregroundStyle(Ink.marker)
-                    Text("EN COURS")
+                        .foregroundStyle(isRunning ? Ink.marker : .secondary)
+                    Text(isRunning ? "EN COURS" : "EN PAUSE")
                         .font(.caption2.weight(.semibold))
                         .tracking(1.6)
-                        .foregroundStyle(Ink.marker)
+                        .foregroundStyle(isRunning ? Ink.marker : .secondary)
                     if thread.nature == .decision {
                         Text("· \(thread.nature.word.uppercased())")
                             .font(.caption2.weight(.semibold))
@@ -82,7 +104,9 @@ struct RunningCard: View {
             //
             // En matrice de points, comme dans l'écran du fil : c'est le même
             // compteur, et il doit se reconnaître d'un écran à l'autre.
-            TimelineView(.periodic(from: .now, by: 1)) { context in
+            // En pause, le compteur est fige : rien ne court, donc rien ne
+            // doit compter.
+            TimelineView(.periodic(from: .now, by: isRunning ? 1 : 3600)) { context in
                 DotMatrixText(
                     text: elapsed(thread, at: context.date),
                     // Un cran plus petit : a 3,4 le compteur pesait autant
@@ -100,19 +124,23 @@ struct RunningCard: View {
             //
             // Le bouton est hors du `Button` de la carte : imbriquer deux
             // boutons rend le plus interne inatteignable sur iOS.
-            Image(systemName: "pause.fill")
+            Image(systemName: isRunning ? "pause.fill" : "play.fill")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Ink.control)
                 .frame(width: 40, height: 40)
-                .glassEffect(.regular.interactive(), in: .circle)
                 .contentShape(.circle)
-                .onTapGesture { onPause(thread) }
-                .accessibilityLabel("Mettre en pause")
+                .glassEffect(.regular, in: .circle)
+                // Reprendre ouvre le fil : c'est l'ecran du fil qui demarre
+                // une reprise, et le faire ici la demarrerait deux fois.
+                .onTapGesture { isRunning ? onPause(thread) : onOpen() }
+                .accessibilityLabel(isRunning ? "Mettre en pause" : "Reprendre")
                 .accessibilityAddTraits(.isButton)
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .bentoSurface(Ink.violet, corner: 28, intensity: 0.55)
+        // En pause, la carte s'assourdit sans changer de teinte : la
+        // hierarchie se fait par la valeur, jamais par la couleur.
+        .bentoSurface(Ink.violet, corner: 28, intensity: isRunning ? 0.55 : 0.3)
     }
 
     /// Le temps total du fil, au format de l'île dynamique.

@@ -18,7 +18,7 @@ private extension RootView {
             reading: clarity.reading,
             threadPhrase: openThreads.first?.phrase,
             tier: clarity.reading.regularity.map(Tier.init(regularity:)),
-            landing: landing,
+            landing: makeLanding(),
             vigilance: clarity.vigilance,
             level: clarity.currentLevel()
         )
@@ -26,7 +26,10 @@ private extension RootView {
 
     /// L'atterrissage, calcule une fois et partage entre l'accueil, les
     /// widgets et la Live Activity.
-    var landing: Landing? {
+    // Une fonction et non une propriete calculee : `ViewBuilder` s'applique
+    // par defaut aux proprietes d'une extension de vue, et celle-ci rend une
+    // valeur, pas une vue.
+    func makeLanding() -> Landing? {
         let history = closedThreads.map(\.resumptions.count).filter { $0 > 0 }
         let activeDays = Set(allResumptions.map { Calendar.current.startOfDay(for: $0.startedAt) })
         let capacity = activeDays.isEmpty ? 0 : Double(allResumptions.count) / Double(activeDays.count)

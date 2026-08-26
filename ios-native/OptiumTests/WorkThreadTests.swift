@@ -392,3 +392,53 @@ extension Calendar {
     // Une demi-heure, figee : le fil garde ce qu'il a coute.
     #expect(abs(thread.summary().totalDuration - 1800) < 2)
 }
+
+// ── Le lecteur garde sa place en pause ──
+//
+// La carte se retirait des qu'on arretait la reprise : le fil sur lequel on
+// venait de travailler disparaissait de l'ecran, et il fallait le retrouver
+// dans la liste. Un lecteur de musique en pause garde sa barre.
+
+@MainActor
+@Test func unFilMisEnPauseGardeSonTempsCumule() {
+    let thread = WorkThread(phrase: "Rappeler le comptable", nature: .mechanical)
+    let started = Date().addingTimeInterval(-900)
+    thread.resumptions.append(Resumption(startedAt: started, clarityAtStart: .medium, inWindow: false))
+    thread.state = .inProgress
+
+    thread.pause(at: started.addingTimeInterval(900))
+
+    // Quinze minutes, figees et lisibles apres la pause.
+    #expect(abs(thread.summary().totalDuration - 900) < 2)
+    #expect(thread.currentResumption == nil)
+    // Le fil reste ouvert : c'est ce qui permet de le reprendre.
+    #expect(thread.state == .open)
+}
+
+@MainActor
+@Test func laDerniereFinDeRepriseSitueLeFilDansLaJournee() {
+    let thread = WorkThread(phrase: "Écrire la note", nature: .production)
+    let old = Resumption(startedAt: Date().addingTimeInterval(-3 * 86_400),
+                         clarityAtStart: .high, inWindow: true)
+    old.endedAt = old.startedAt.addingTimeInterval(1800)
+    let recent = Resumption(startedAt: Date().addingTimeInterval(-3600),
+                            clarityAtStart: .medium, inWindow: false)
+    recent.endedAt = Date().addingTimeInterval(-600)
+    thread.resumptions.append(contentsOf: [old, recent])
+
+    let last = thread.resumptions.compactMap(\.endedAt).max()
+    #expect(last != nil)
+    #expect(Calendar.current.isDateInToday(last!))
+}
+
+@MainActor
+@Test func unFilTravailleHierNEstPlusLeFilDuJour() {
+    let thread = WorkThread(phrase: "Ancien", nature: .production)
+    let yesterday = Resumption(startedAt: Date().addingTimeInterval(-30 * 3600),
+                               clarityAtStart: .medium, inWindow: false)
+    yesterday.endedAt = yesterday.startedAt.addingTimeInterval(1800)
+    thread.resumptions.append(yesterday)
+
+    let last = thread.resumptions.compactMap(\.endedAt).max()!
+    #expect(!Calendar.current.isDateInToday(last))
+}
