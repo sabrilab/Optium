@@ -141,18 +141,21 @@ struct HomeScreen: View {
     /// que de le laisser decouvrir a la premiere porte.
     @ViewBuilder
     private var crossingMessage: some View {
-        if reading.clarity != nil && !settings.hasSeenThreshold {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Optium a assez observé. À partir de maintenant, il t’arrêtera si tu essaies de trancher une décision quand tes nuits ne le permettent pas.")
-                    .font(.system(size: 17, weight: .light))
-                Button("Compris") { settings.hasSeenThreshold = true }
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Ink.marker)
-                    .frame(minHeight: 44)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(20)
-            .bentoSurface(Ink.teal, corner: 30, intensity: 0.5)
+        if pendingIntro == .gate {
+            // **La porte est nommee en troisieme, jamais en premier.** Elle
+            // est ce qui rend Optium defendable ; la regle est ce qui le rend
+            // utilise. Annoncer un refus avant d'avoir montre a quoi
+            // l'application sert reviendrait a se presenter par son
+            // interdiction.
+            //
+            // Elle remplace l'ancienne carte de franchissement, qui sortait
+            // des la premiere seconde chez quelqu'un dont Sante rend
+            // vingt-huit nuits — donc avant tout le reste.
+            IntroLine(
+                title: "Optium t’arrêtera si tu essaies de fermer une décision quand tes nuits ne le permettent pas.",
+                detail: "C’est son seul refus. Sur un fil de nature Décision, le sceau s’allume les jours où il t’arrêterait."
+            )
+            .padding(.horizontal, 16)
         }
     }
 
@@ -164,6 +167,28 @@ struct HomeScreen: View {
             // le plafond ne descendait jamais sous les yeux.
             TimelineView(.periodic(from: .now, by: 60)) { context in
                 brain(at: context.date)
+            }
+
+            // La phrase de la regle se pose sous le cerveau, juste sous
+            // l'objet qu'elle nomme.
+            // **On ne dessine jamais une journee inventee.** La place se
+            // reserve par une phrase, pas par un faux objet : une regle nue
+            // devrait ancrer son axe sur quelque chose, et ce quelque chose
+            // serait invente.
+            if reading.clarity == nil, clarityStore.hasRead {
+                Text("Ta journée se lira ici, dès qu’Optium aura lu \(ClarityEngine.minimumNights) nuits.")
+                    .font(.footnote)
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+            }
+
+            if pendingIntro == .rule {
+                IntroLine(
+                    title: "À droite, ta journée : du lever, en haut, au soir, en bas.",
+                    detail: "La longueur d’une graduation dit ce que cette heure laisse passer de ce que ta nuit permet."
+                )
+                .padding(.horizontal, 16)
             }
         }
     }
@@ -320,7 +345,7 @@ struct HomeScreen: View {
                         .tracking(1.6)
                         .foregroundStyle(.secondary)
 
-                    NightsStrip(nights: recordedNights)
+                    NightsStrip(nights: recordedNights, observedNights: reading.observedNights)
 
                     HStack(spacing: 6) {
                         Text("Voir le détail et les analyses")
@@ -349,9 +374,14 @@ struct HomeScreen: View {
 
             ReadingBanner(isReading: clarityStore.isRefreshing)
 
-            if clarityStore.isRefreshing && reading.clarity == nil {
-                // Pas encore de mesure et une lecture en cours : on montre la
-                // place du mot, jamais un mot invente.
+            if !clarityStore.hasRead && reading.clarity == nil {
+                // **Tant que rien n'a ete lu, on ne dit rien.** La condition
+                // portait sur `isRefreshing`, qui est faux pendant la seconde
+                // qui precede la premiere lecture : le cas frequent — Sante
+                // rend vingt-huit nuits — commencait donc par « 0 nuit
+                // observee sur 3 », le message du cas rare.
+                //
+                // La place du mot, jamais un mot invente.
                 SkeletonBar(width: 148, height: 34)
             } else if reading.clarity != nil {
                 // **Le mot suit l'heure.** `TimelineView` reevalue a la
@@ -363,18 +393,34 @@ struct HomeScreen: View {
                     liveWord(at: context.date)
                 }
 
+                if pendingIntro == .clarity {
+                    IntroLine(
+                        title: "C’est ce que tes nuits laissent passer à cette heure-ci.",
+                        detail: "Un mot, jamais un chiffre — il monte et descend dans la journée. La fenêtre, plus bas, est le moment du jour où une décision tient : elle est calculée, pas choisie."
+                    )
+                }
+
             } else {
                 arrival
             }
 
 
-            Text(windowSentence)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+            // La fenetre ne se nomme que si elle est mesuree : sinon elle
+            // vaut « lever habituel + 2 h », une heure que personne n'a
+            // constatee.
+            if reading.measuredWindow != nil {
+                Text(windowSentence)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
 
-            Divider().overlay(Color.white.opacity(0.12))
-
-            legend
+            // **La legende se tait sans mesure.** La fenetre, le cafe et la
+            // nuit sont tous derives d'un calcul qui n'a pas eu lieu : les
+            // afficher reviendrait a poser des faits sur une lecture vide.
+            if reading.clarity != nil {
+                Divider().overlay(Color.white.opacity(0.12))
+                legend
+            }
 
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -395,57 +441,69 @@ struct HomeScreen: View {
     /// téléphone qui ne dort pas près de son propriétaire.
     @ViewBuilder
     private var arrival: some View {
-        if clarityStore.hasPermission {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Optium ne sait pas encore.")
+                .font(.system(size: 26, weight: .light))
+                .foregroundStyle(.secondary)
+
             HStack(alignment: .center, spacing: 16) {
                 // **Un rapport avec un tout nommable** : des nuits sur le
                 // minimum requis. C'est le seul endroit de l'accueil ou un
-                // anneau ne serait pas un score deguise, et il dit d'un coup
-                // d'oeil ce que la phrase mettait une ligne a dire.
+                // anneau ne serait pas un score deguise — il mesure le
+                // remplissage de l'application, pas la qualite de quelqu'un.
                 RingGauge(
                     progress: Double(min(reading.observedNights, ClarityEngine.minimumNights))
                             / Double(ClarityEngine.minimumNights),
                     spoken: nightsProgress,
-                    size: 52
+                    size: 46
                 ) {
                     Text("\(min(reading.observedNights, ClarityEngine.minimumNights))")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(.system(size: 14, weight: .medium))
                         .monospacedDigit()
                         .contentTransition(.numericText())
                 }
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Optium lit tes nuits pour savoir quand tu peux décider.")
-                        .font(.system(size: 18, weight: .light))
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(nightsProgress)
-                        .font(.footnote)
-                        .foregroundStyle(Ink.marker)
-                }
+                Text(nightsProgress)
+                    .font(.footnote)
+                    .foregroundStyle(Ink.marker)
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)
             }
-        } else {
-            // Cas distinct de « pas encore de données », et à ne pas
-            // confondre : ici la mesure ne viendra jamais.
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Optium a besoin de tes nuits pour fonctionner. Sans elles, il reste un carnet de fils.")
-                    .font(.system(size: 18, weight: .light))
-                Button("Ouvrir les réglages") {
-                    if let url = URL(string: UIApplication.openSettingsURLString) {
-                        UIApplication.shared.open(url)
-                    }
-                }
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(Ink.marker)
-                .frame(minHeight: 44)
+
+            Text("Optium lit tes nuits dans Santé. Sans montre, il les déduit du mouvement du téléphone : il ne lit que les nuits passées près de lui.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            // **Le seul rendez-vous que l'application ait le droit de
+            // donner** : un fait verifiable, aucune demande, aucune
+            // notification. C'est la seule reponse honnete a « pourquoi
+            // rouvrir demain » dans cet etat.
+            Text("Les nuits arrivent au réveil. Optium en saura plus demain matin.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            // **Jamais « tu as refuse ».** `requestAuthorization` rend `true`
+            // meme quand la lecture est refusee : l'application ne peut pas
+            // savoir. Elle dit ce qu'elle constate — elle n'a rien lu — et
+            // indique le chemin, sans accuser.
+            if clarityStore.hasRead, reading.observedNights == 0 {
+                Text("Si tes nuits sont enregistrées dans Santé et qu’Optium n’en voit toujours aucune, c’est que le partage ne lui est pas accordé. Ça se règle dans Santé, onglet Partage, puis Applications.")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// Le compte est réel : il mesure le remplissage de l'application
     /// elle-même, ce qui est la seule chose vraie à dire à ce moment.
     private var nightsProgress: String {
         let seen = min(reading.observedNights, ClarityEngine.minimumNights)
-        return "\(seen) nuit\(seen > 1 ? "s" : "") observée\(seen > 1 ? "s" : "") sur \(ClarityEngine.minimumNights)."
+        let count = "\(seen) nuit\(seen > 1 ? "s" : "") observée\(seen > 1 ? "s" : "") sur \(ClarityEngine.minimumNights)."
+        return "\(count) Il lui faut \(ClarityEngine.minimumNights) nuits avant d’en dire quoi que ce soit."
     }
 
     // ── La légende ──
@@ -501,6 +559,20 @@ struct HomeScreen: View {
                 size: 22
             )
         }
+    }
+
+    /// La phrase a montrer dans cette session, ou `nil`.
+    ///
+    /// **Une seule par session d'avant-plan.** Sante rend souvent vingt-huit
+    /// nuits d'un coup : les trois phrases du chemin principal tomberaient
+    /// alors dans la meme seconde, ce qui est exactement le mur de vocabulaire
+    /// que le produit s'interdit.
+    ///
+    /// L'ordre est immuable — la regle du jour d'abord : c'est elle qui rend
+    /// l'application utilisee, la ou la porte la rend defendable.
+    private var pendingIntro: Intro? {
+        guard reading.clarity != nil else { return nil }
+        return [Intro.rule, .clarity, .gate].first { !settings.hasSeen($0) }
     }
 
     /// La porte s'ouvrirait-elle maintenant.

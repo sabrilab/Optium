@@ -756,6 +756,76 @@ de minuterie du système, qui rend `7:42` puis `1:07:42`. L'app affichait
 
 ---
 
+## 11 quater. Le premier lancement
+
+**Il n'y a aucun écran d'accueil, et c'est le parti.** L'application s'ouvre
+sur « Aujourd'hui », et c'est ce que cet écran a de vrai à dire — plein, à
+demi rempli ou vide — qui tient lieu d'introduction. Pas de second écran, donc
+pas de taux de complétion à négocier, et **la règle du jour est la première
+chose montrée par construction, pas par discipline.**
+
+### Le défaut central, corrigé
+
+**Le cas fréquent commençait par le message du cas rare.** HealthKit rend
+souvent vingt-huit nuits d'un coup, mais la lecture prend une à deux secondes :
+pendant ce temps `observedNights` valait zéro et l'écran annonçait « 0 nuit
+observée sur 3 » à quelqu'un qui en avait vingt-huit. `ClarityStore.hasRead`
+distingue désormais **« rien lu » de « rien trouvé »** — sans mesure, on montre
+la place du mot, jamais un mot inventé.
+
+### Les mots, un par session
+
+`Design/IntroLine.swift` et `Intro`. Chaque terme s'introduit **sur la chose
+elle-même**, une fois, et jamais plus : un écran qui définit douze mots est un
+écran que personne ne lit, et il arrive avant que le premier ait un objet à
+désigner.
+
+**Une seule phrase par session d'avant-plan**, dans un ordre immuable : la
+règle, puis la clarté et la fenêtre fusionnées, puis la porte. Sans file, les
+trois tomberaient dans la même seconde chez quelqu'un dont Santé est plein.
+
+Deux pièges tenus : le drapeau se pose **au passage en arrière-plan**, jamais
+sur `onDisappear` — l'accueil vit dans un `TabView`, dont le `onDisappear` se
+déclenche à chaque aller-retour d'onglet et aurait brûlé les trois phrases en
+dix secondes. Et les cas d'`Intro` sont **persistés par leur valeur brute** :
+les renommer ferait ressurgir les phrases chez tout le monde.
+
+`IntroLine` se retire d'elle-même, **sans bouton « Compris »** : un accusé de
+lecture est une demande, et l'application ne demande rien.
+
+### La fenêtre inventée est morte à la source
+
+`ClarityReading.window` porte toujours un intervalle, y compris sans aucune
+nuit — il vaut alors « lever habituel + 2 h ». Il sortait par quatre portes :
+la carte, la notification quotidienne, le widget et l'intention.
+
+**Tout ce qui affirme lit `measuredWindow`**, qui vaut `nil` sous le seuil.
+`window` ne reste que pour les vues qui ont besoin d'un intervalle à dessiner.
+La notification retire ses deux rappels plutôt que de donner rendez-vous à une
+heure que personne n'a mesurée.
+
+### Ce que l'écran vide dit, et ne dit pas
+
+Il tient en quatre phrases et un bouton : l'application est un carnet dès la
+première seconde et le dit sans s'excuser. Une seule promesse — « Les nuits
+arrivent au réveil, Optium en saura plus demain matin » — un fait vérifiable,
+aucune demande.
+
+**Jamais « tu as refusé ».** `HKHealthStore.requestAuthorization` rend `true`
+même quand la lecture est refusée : l'application ne peut pas le savoir. Elle
+dit ce qu'elle constate — elle n'a rien lu — et indique le chemin dans Santé,
+sans accuser.
+
+**Aucune règle nue n'est dessinée.** Une règle sans mesure devrait ancrer son
+axe sur quelque chose, et ce quelque chose serait inventé. La place se réserve
+par une phrase.
+
+Et **le plafond ne se dessine pas** : `brainBase` sort de l'échelle à 1,3. Un
+cerveau vide surmonté d'une ligne dit « ton plafond est nul » ; l'absence de
+ligne dit « l'instrument n'a pas démarré ».
+
+---
+
 ## 12. L'annulation
 
 `System/ActionLog.swift`, `Design/UndoBar.swift`, et une ligne dans

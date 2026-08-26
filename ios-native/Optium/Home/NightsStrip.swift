@@ -18,6 +18,14 @@ import SwiftUI
 /// une catégorie de sommeil.
 struct NightsStrip: View {
     let nights: [RecordedNight]
+    /// Le nombre de nuits sur lesquelles la clarte est **reellement**
+    /// calculee.
+    ///
+    /// La legende ecrivait « se calcule sur ces 7 nuits » parce qu'elle
+    /// comptait les barres affichees. Le moteur, lui, travaille sur vingt-huit
+    /// : la premiere affirmation verifiable de l'application etait fausse des
+    /// la huitieme nuit.
+    var observedNights: Int?
     /// La cible haute, pour poser le trait de reference.
     var target: TimeInterval = 8 * 3600
 
@@ -90,10 +98,17 @@ struct NightsStrip: View {
     /// Ce que la bande dit, en une ligne, et **rattache a aujourd'hui**.
     private var caption: String {
         guard !recent.isEmpty else { return "Aucune nuit lue. Ta clarté ne peut pas être calculée." }
+        let total = observedNights ?? recent.count
+
+        // Sous le seuil, aucun calcul n'a lieu : l'affirmer serait faux.
+        guard total >= ClarityEngine.minimumNights else {
+            return "\(total) nuit\(total > 1 ? "s" : "") lue\(total > 1 ? "s" : ""). Optium en attend \(ClarityEngine.minimumNights) avant d’en tirer quoi que ce soit."
+        }
+
         let inferred = recent.count { !$0.measured }
-        let base = "Ta clarté d’aujourd’hui se calcule sur ces \(recent.count) nuits"
-        if inferred == recent.count { return base + ", toutes déduites du mouvement du téléphone." }
-        if inferred > 0 { return base + ", dont \(inferred) déduites du mouvement." }
+        let base = "Ta clarté d’aujourd’hui se calcule sur \(total) nuits"
+        if inferred == recent.count { return base + ", déduites du mouvement du téléphone." }
+        if inferred > 0 { return base + ". Les \(inferred) plus récentes sont déduites du mouvement." }
         return base + ", lues dans Santé."
     }
 }

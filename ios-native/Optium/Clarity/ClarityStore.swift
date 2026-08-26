@@ -23,6 +23,17 @@ final class ClarityStore {
     private(set) var vigilance: Vigilance?
     private(set) var wakeAnchor: Date?
     private(set) var isRefreshing = false
+
+    /// Vrai des que les sources ont ete interrogees une fois, quel qu'ait ete
+    /// le resultat.
+    ///
+    /// **Sans cette distinction, le cas frequent commence par le message du
+    /// cas rare.** Sante rend souvent des mois de nuits d'un coup, mais la
+    /// lecture prend une a deux secondes : pendant ce temps, `observedNights`
+    /// vaut zero et l'ecran annonce « 0 nuit observee sur 3 » a quelqu'un qui
+    /// en a vingt-huit. On ne peut pas distinguer « rien lu » de « rien
+    /// trouve » sans le dire.
+    private(set) var hasRead = false
     /// Faux tant que l'utilisateur n'a accorde aucune source.
     private(set) var hasPermission = false
 
@@ -93,7 +104,9 @@ final class ClarityStore {
     func refresh(context: ModelContext, now: Date = Date()) async {
         guard !isRefreshing else { return }
         isRefreshing = true
-        defer { isRefreshing = false }
+        // Pose meme en cas d'echec : « je n'ai rien trouve » est une reponse,
+        // et rester indefiniment sur le squelette serait pire que l'anneau.
+        defer { isRefreshing = false; hasRead = true }
 
         let horizon = calendar.date(byAdding: .day, value: -Self.window, to: now) ?? now
         let fetched = await source.nights(from: horizon, to: now)

@@ -4,8 +4,12 @@ import SwiftUI
 private extension RootView {
     func refresh() async {
         await clarity.refresh(context: context)
+        // **Pas de rappel sur une fenetre que personne n'a mesuree.** Elle
+        // vaut « lever habituel + 2 h » tant qu'aucune nuit n'est lue :
+        // annoncer son ouverture reviendrait a donner rendez-vous a une heure
+        // inventee.
         await Notifications.schedule(
-            window: clarity.reading.window,
+            window: clarity.reading.measuredWindow,
             bedtime: clarity.reading.window.start.addingTimeInterval(13 * 3600),
             threadCount: openThreads.count
         )

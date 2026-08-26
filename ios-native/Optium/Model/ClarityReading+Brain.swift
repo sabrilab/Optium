@@ -20,7 +20,13 @@ extension ClarityReading {
     /// sans aucun terme de temps. C'etait le manque principal — la ligne du
     /// cerveau ne bougeait pas de la journee, alors qu'elle represente ce que
     /// la nuit permet *encore*.
-    var brainBase: Double { (ceiling ?? 0) / 100 }
+    /// **Hors de l'echelle quand rien n'est mesure.**
+    ///
+    /// Un cerveau vide surmonte d'une ligne de plafond dit « ton plafond est
+    /// nul » ; l'absence de ligne dit « l'instrument n'a pas demarre ». La
+    /// premiere affirmation est fausse, la seconde est vraie — et c'est la
+    /// seule difference qui compte au premier lancement.
+    var brainBase: Double { ceiling.map { $0 / 100 } ?? 1.3 }
 
     /// Une lecture forcee, pour l'outil de developpement.
     ///

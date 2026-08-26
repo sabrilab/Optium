@@ -45,7 +45,7 @@ struct ResumptionFlow: View {
         let now = Date()
         thread.startResumption(
             clarity: clarityStore.currentLevel() ?? .medium,
-            inWindow: reading.window.contains(now),
+            inWindow: reading.measuredWindow?.contains(now) ?? false,
             at: now
         )
         LiveActivityController.start(thread: thread, reading: reading, landing: nil)

@@ -60,6 +60,18 @@ struct ClarityReading {
     /// courbe.
     let hoursAwake: Double
 
+    /// **La fenetre, quand elle est mesuree.** `nil` sous le seuil.
+    ///
+    /// `window` porte toujours un intervalle, y compris sans aucune nuit : il
+    /// vaut alors « lever habituel + 2 h, pendant 2 h 40 », une valeur que
+    /// personne n'a mesuree. Elle sortait par quatre portes — la carte, la
+    /// notification quotidienne, le widget et l'intention — en se presentant
+    /// partout comme un fait.
+    ///
+    /// **Tout ce qui affirme doit lire celle-ci** ; `window` ne reste que pour
+    /// les vues qui ont besoin d'un intervalle a dessiner.
+    var measuredWindow: DateInterval? { clarity == nil ? nil : window }
+
     /// L'instant du reveil, pour convertir « heures depuis le lever » en heure
     /// d'horloge. **C'est la seule facon d'ecrire une heure lisible** sur une
     /// echelle dont l'origine est le lever et non minuit.

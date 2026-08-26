@@ -21,9 +21,14 @@ enum Notifications {
     /// Repetition quotidienne : les heures suivent la fenetre, qui suit le
     /// chronotype appris. Elles se deplacent donc d'elles-memes quand les
     /// habitudes changent.
-    static func schedule(window: DateInterval, bedtime: Date, threadCount: Int, calendar: Calendar = .current) async {
+    /// - Parameter window: la fenetre **mesuree**, ou `nil`. Sans mesure, les
+    ///   deux rappels sont simplement retires : donner rendez-vous a une heure
+    ///   que personne n'a mesuree serait une promesse inventee, et le seul
+    ///   moment ou l'application parle d'elle-meme sans avoir rien a dire.
+    static func schedule(window: DateInterval?, bedtime: Date, threadCount: Int, calendar: Calendar = .current) async {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [morning, evening])
+        guard let window else { return }
         guard await requestAuthorization() else { return }
 
         // Trente minutes avant l'ouverture, jamais au reveil : prevenir

@@ -19,6 +19,18 @@ final class AppSettings {
     /// Coupe la 3D : economise la batterie et debloque les appareils lents.
     var brainEnabled: Bool { didSet { defaults.set(brainEnabled, forKey: Key.brain) } }
 
+    /// Les phrases d'introduction deja vues.
+    ///
+    /// **Persistees par leur valeur brute** : renommer un cas de `Intro` ferait
+    /// ressurgir sa phrase chez tout le monde. Les valeurs sont donc figees.
+    private(set) var seenIntros: Set<String> {
+        didSet { defaults.set(Array(seenIntros), forKey: Key.intros) }
+    }
+
+    func hasSeen(_ intro: Intro) -> Bool { seenIntros.contains(intro.rawValue) }
+
+    func markSeen(_ intro: Intro) { seenIntros.insert(intro.rawValue) }
+
     /// Vrai une fois que le message de franchissement a ete montre.
     ///
     /// Une seule fois : le repeter le transformerait en rappel, et
@@ -42,6 +54,14 @@ final class AppSettings {
         hasSeenThreshold = defaults.object(forKey: Key.threshold) as? Bool ?? false
         clarityOverride = (defaults.object(forKey: Key.clarity) as? String)
             .flatMap(ClarityLevel.init(rawValue:))
+
+        var seen = Set(defaults.stringArray(forKey: Key.intros) ?? [])
+        // Migration : qui avait deja vu le message de franchissement connait
+        // la porte. Lui rejouer sa phrase serait lui apprendre ce qu'il sait.
+        if defaults.object(forKey: Key.threshold) as? Bool == true {
+            seen.insert(Intro.gate.rawValue)
+        }
+        seenIntros = seen
     }
 
     private enum Key {
@@ -50,5 +70,6 @@ final class AppSettings {
         static let brain = "brainEnabled"
         static let threshold = "hasSeenThreshold"
         static let clarity = "simulatedClarity"
+        static let intros = "seenIntros"
     }
 }
