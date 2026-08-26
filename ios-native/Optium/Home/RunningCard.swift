@@ -43,48 +43,56 @@ struct RunningCard: View {
     }
 
     private func content(_ thread: WorkThread) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                // Le seul endroit de l'application où quelque chose est
-                // annoncé comme *en train* de se passer.
-                Image(systemName: "waveform")
-                    .font(.caption)
-                    .foregroundStyle(Ink.marker)
-                Text("EN COURS")
-                    .font(.caption2.weight(.semibold))
-                    .tracking(1.6)
-                    .foregroundStyle(Ink.marker)
-                Spacer(minLength: 0)
-                if thread.nature == .decision {
-                    Text(thread.nature.word.uppercased())
+        // **Deux colonnes, pas trois lignes.** La carte empilait l'état, la
+        // phrase et le compteur : elle faisait la hauteur d'une carte de
+        // mesure alors qu'elle ne porte qu'une chose en train de se passer.
+        // Le compteur à droite la ramène à deux lignes.
+        HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    // Le seul endroit de l'application où quelque chose est
+                    // annoncé comme *en train* de se passer.
+                    Image(systemName: "waveform")
+                        .font(.caption2)
+                        .foregroundStyle(Ink.marker)
+                    Text("EN COURS")
                         .font(.caption2.weight(.semibold))
-                        .tracking(1.4)
-                        .foregroundStyle(.secondary)
+                        .tracking(1.6)
+                        .foregroundStyle(Ink.marker)
+                    if thread.nature == .decision {
+                        Text("· \(thread.nature.word.uppercased())")
+                            .font(.caption2.weight(.semibold))
+                            .tracking(1.4)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 0)
                 }
-            }
 
-            Text(thread.phrase)
-                .font(.system(size: 20, weight: .light))
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .multilineTextAlignment(.leading)
+                Text(thread.phrase)
+                    .font(.system(size: 18, weight: .light))
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .multilineTextAlignment(.leading)
+            }
 
             // Le temps du fil entier, pas de la session : un fil se mesure sur
             // sa vie, jamais sur la reprise courante.
+            //
+            // En matrice de points, comme dans l'écran du fil : c'est le même
+            // compteur, et il doit se reconnaître d'un écran à l'autre.
             TimelineView(.periodic(from: .now, by: 1)) { context in
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(elapsed(thread, at: context.date))
-                        .font(.system(size: 26, weight: .light))
-                        .monospacedDigit()
-                    Text(rank(thread))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Spacer(minLength: 0)
-                }
+                DotMatrixText(
+                    text: elapsed(thread, at: context.date),
+                    dot: 3.4,
+                    gap: 2,
+                    glow: Ink.focusGlow
+                )
             }
+            .fixedSize()
         }
-        .padding(20)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .bentoSurface(Ink.violet, corner: 30, intensity: 0.55)
+        .bentoSurface(Ink.violet, corner: 28, intensity: 0.55)
     }
 
     /// Le temps total du fil, au format de l'île dynamique.
@@ -102,8 +110,4 @@ struct RunningCard: View {
         return String(format: "%d:%02d:%02d", hours, minutes, seconds % 60)
     }
 
-    private func rank(_ thread: WorkThread) -> String {
-        let count = thread.resumptions.count
-        return "\(count)\(count == 1 ? "re" : "e") reprise"
-    }
 }
