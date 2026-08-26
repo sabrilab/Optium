@@ -104,6 +104,12 @@ private struct ResumptionScreen: View {
     }
 
     var body: some View {
+        // **Ancre en haut, et c'est necessaire depuis que le cerveau est
+        // borne.** Tant qu'il prenait `maxHeight: .infinity`, le contenu
+        // remplissait l'ecran et la barre restait collee en haut. Borne a
+        // trois cents points, le contenu ne remplit plus — et un `ZStack`
+        // centre ce qui ne remplit pas, ce qui faisait descendre la barre
+        // d'une centaine de points.
         VStack(spacing: 0) {
             HStack {
                 Button(action: onPause) {
@@ -169,6 +175,20 @@ private struct ResumptionScreen: View {
                 // Elle est posee dans la meme marge morte que sur l'accueil,
                 // et ne prend aucun geste : le cerveau garde les siens.
                 .overlay(alignment: .trailing) { rule }
+                // La meme marge que la barre du haut et la carte du bas :
+                // sans elle, les heures de la regle touchaient le bord et
+                // sortaient a demi de l'ecran.
+                .padding(.horizontal, 20)
+
+                // **Apres l'overlay, jamais au milieu de la chaine.** Insere
+                // entre le padding et l'overlay, il coupait la suite de
+                // modificateurs : la regle se posait alors en surimpression du
+                // `Spacer` lui-meme, donc sous le cerveau et ecrasee.
+                //
+                // Il pousse la carte vers le bas et la barre vers le haut :
+                // sans lui, le bloc entier flotte au milieu depuis que le
+                // cerveau est borne.
+                Spacer(minLength: 0)
             } else {
                 Spacer()
             }
