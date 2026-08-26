@@ -73,6 +73,14 @@ struct HomeScreen: View {
     /// est déjà pleinement remuée : compter plus loin n'ajoute rien à lire.
     private var agitation: Double { min(1, Double(threads.count) / 5) }
 
+    /// Le fil dont une reprise est en cours, s'il y en a un.
+    ///
+    /// Une seule a la fois : deux reprises simultanees n'existent pas dans le
+    /// produit, et `LiveActivityController` fait deja cette hypothese.
+    private var runningThread: WorkThread? {
+        threads.first { $0.currentResumption != nil }
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -85,6 +93,14 @@ struct HomeScreen: View {
 
                 ScrollView {
                     VStack(spacing: 14) {
+                        // **En tête, avant tout le reste.** Ce qui se passe
+                        // maintenant passe avant ce qui se mesure.
+                        RunningCard(
+                            running: runningThread,
+                            onOpen: { active = runningThread },
+                            onCompose: { composing = true }
+                        )
+
                         brain
                         crossingMessage
                         clarityCard
@@ -125,7 +141,19 @@ struct HomeScreen: View {
                 NavigationStack { SettingsScreen() }
             }
             .sheet(isPresented: $calling) { CallScreen() }
-            .fullScreenCover(item: $active) { thread in
+            // **Une feuille qu'on baisse, plus un plein ecran qu'on ferme.**
+            //
+            // `fullScreenCover` n'a pas de geste de retrait : on en sort par
+            // un bouton, et l'ecran d'ou l'on vient disparait entierement. La
+            // feuille, elle, se tire vers le bas — et comme la carte du fil en
+            // cours est desormais en tete de l'accueil, on retombe exactement
+            // dessus. C'est le modele du lecteur de musique, et il tient
+            // parce que les deux moities existent.
+            //
+            // `presentationDragIndicator` n'est pas ajoute : la barre grise
+            // annoncerait le geste, et l'application ne commente pas ses
+            // propres gestes.
+            .sheet(item: $active) { thread in
                 ResumptionFlow(thread: thread)
             }
             // Un fil retenu redevient ouvert de lui-même à l'échéance. On le
@@ -883,15 +911,6 @@ struct HomeScreen: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            Button {
-                composing = true
-            } label: {
-                Label("Ouvrir un fil", systemImage: "plus")
-                    .font(.subheadline.weight(.medium))
-                    .frame(maxWidth: .infinity, minHeight: 54)
-            }
-            .buttonStyle(.glass)
-            .tint(Ink.control)
         }
     }
 
