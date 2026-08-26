@@ -28,7 +28,8 @@ struct ResumptionFlow: View {
 
             switch step {
             case .working:
-                ResumptionScreen(thread: thread, onPause: pause, onClose: attemptClose)
+                ResumptionScreen(thread: thread, onPause: pause,
+                                 onDismiss: { dismiss() }, onClose: attemptClose)
             case .gate:
                 GateScreen(thread: thread, onClosed: { step = .closed }, onHeld: { step = .held })
             case .held:
@@ -87,6 +88,8 @@ struct ResumptionFlow: View {
 private struct ResumptionScreen: View {
     let thread: WorkThread
     let onPause: () -> Void
+    /// Baisser l'ecran sans arreter la reprise.
+    let onDismiss: () -> Void
     let onClose: () -> Void
 
     @Environment(AppSettings.self) private var settings
@@ -116,6 +119,11 @@ private struct ResumptionScreen: View {
                     .tracking(1.4)
                     .foregroundStyle(.secondary)
             }
+            // La barre du haut porte le geste de retrait : c'est l'endroit ou
+            // personne ne s'attend a faire tourner le cerveau, qui capte le
+            // pan juste en dessous.
+            .contentShape(.rect)
+            .dismissDrag { onDismiss() }
             .padding(.horizontal, 20)
             .padding(.top, 14)
 

@@ -151,30 +151,18 @@ struct HomeScreen: View {
                 NavigationStack { SettingsScreen() }
             }
             .sheet(isPresented: $calling) { CallScreen() }
-            // **Une feuille qu'on baisse, plus un plein ecran qu'on ferme.**
+            // **Plein ecran, et le geste de retrait pose a la main.**
             //
-            // `fullScreenCover` n'a pas de geste de retrait : on en sort par
-            // un bouton, et l'ecran d'ou l'on vient disparait entierement. La
-            // feuille, elle, se tire vers le bas — et comme la carte du fil en
-            // cours est desormais en tete de l'accueil, on retombe exactement
-            // dessus. C'est le modele du lecteur de musique, et il tient
-            // parce que les deux moities existent.
+            // Une feuille avait ete essayee pour obtenir le glissement : elle
+            // l'apporte, mais `.large` est son maximum et elle s'arrete sous
+            // la barre d'etat, en laissant voir l'ecran dessous. L'ecran ou
+            // l'on travaille se retrouvait a l'etroit.
             //
-            // `presentationDragIndicator` n'est pas ajoute : la barre grise
-            // annoncerait le geste, et l'application ne commente pas ses
-            // propres gestes.
-            .sheet(item: $active) { thread in
+            // Le plein ecran reprend toute la hauteur, et `DismissDrag` lui
+            // rend le glissement — sur une zone dediee, pour ne pas disputer
+            // le doigt au cerveau, qui tourne au pan.
+            .fullScreenCover(item: $active) { thread in
                 ResumptionFlow(thread: thread)
-                    // **Toute la hauteur.** Une feuille s'arrete par defaut
-                    // sous la barre d'etat et laisse voir l'ecran dessous :
-                    // le fil se retrouvait a l'etroit alors que c'est l'ecran
-                    // ou l'on travaille. `.large` lui rend la place que le
-                    // plein ecran lui donnait, sans lui reprendre le geste de
-                    // glissement.
-                    .presentationDetents([.large])
-                    // Le fond noir de la feuille, sinon le systeme pose un
-                    // gris qui casse le noir permanent.
-                    .presentationBackground(Ink.canvas)
             }
             // Un fil retenu redevient ouvert de lui-même à l'échéance. On le
             // constate à l'ouverture de l'écran plutôt que par une minuterie :
