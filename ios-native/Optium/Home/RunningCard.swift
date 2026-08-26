@@ -17,6 +17,8 @@ struct RunningCard: View {
     let running: WorkThread?
     let onOpen: () -> Void
     let onCompose: () -> Void
+    /// Arreter la reprise sans ouvrir le fil.
+    var onPause: (WorkThread) -> Void = { _ in }
 
     var body: some View {
         if let running {
@@ -83,12 +85,30 @@ struct RunningCard: View {
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 DotMatrixText(
                     text: elapsed(thread, at: context.date),
-                    dot: 3.4,
-                    gap: 2,
+                    // Un cran plus petit : a 3,4 le compteur pesait autant
+                    // que la phrase, alors qu'il l'accompagne.
+                    dot: 2.6,
+                    gap: 1.6,
                     glow: Ink.focusGlow
                 )
             }
             .fixedSize()
+
+            // **La pause, sans ouvrir le fil.** Elle passe par le meme chemin
+            // que celle de l'ecran — `ThreadRunner.pause` — donc les deux ne
+            // peuvent pas diverger.
+            //
+            // Le bouton est hors du `Button` de la carte : imbriquer deux
+            // boutons rend le plus interne inatteignable sur iOS.
+            Image(systemName: "pause.fill")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Ink.control)
+                .frame(width: 40, height: 40)
+                .glassEffect(.regular.interactive(), in: .circle)
+                .contentShape(.circle)
+                .onTapGesture { onPause(thread) }
+                .accessibilityLabel("Mettre en pause")
+                .accessibilityAddTraits(.isButton)
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)

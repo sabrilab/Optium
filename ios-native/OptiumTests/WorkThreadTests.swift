@@ -342,3 +342,53 @@ extension Calendar {
     let thread = WorkThread(phrase: "Rappeler le comptable", nature: .mechanical)
     #expect(thread.summary().totalDuration == 0)
 }
+
+// ── Les deux commandes de pause ne peuvent pas diverger ──
+//
+// La pause se declenche depuis l'ecran du fil et depuis la carte de l'accueil.
+// Les deux appellent la meme methode sur le meme objet : elles ne partagent
+// pas un etat, elles agissent sur la source de verite.
+
+@MainActor
+@Test func mettreEnPauseArreteLaRepriseEnCours() {
+    let thread = WorkThread(phrase: "Rappeler le comptable", nature: .mechanical)
+    let resumption = Resumption(startedAt: Date().addingTimeInterval(-600),
+                                clarityAtStart: .medium, inWindow: false)
+    thread.resumptions.append(resumption)
+    thread.state = .inProgress
+
+    thread.pause(at: Date())
+
+    #expect(thread.currentResumption == nil, "la reprise tourne encore")
+    #expect(thread.state == .open)
+}
+
+@MainActor
+@Test func mettreEnPauseDeuxFoisNeCassRien() {
+    let thread = WorkThread(phrase: "Écrire la note", nature: .production)
+    let resumption = Resumption(startedAt: Date().addingTimeInterval(-300),
+                                clarityAtStart: .high, inWindow: true)
+    thread.resumptions.append(resumption)
+    thread.state = .inProgress
+
+    let first = Date()
+    thread.pause(at: first)
+    thread.pause(at: first.addingTimeInterval(60))
+
+    // La seconde pause ne doit pas rallonger la reprise deja fermee.
+    #expect(thread.resumptions.first?.endedAt == first)
+    #expect(thread.state == .open)
+}
+
+@MainActor
+@Test func leTempsCumuleSurvitALaPause() {
+    let thread = WorkThread(phrase: "Trancher", nature: .decision)
+    let started = Date().addingTimeInterval(-1800)
+    thread.resumptions.append(Resumption(startedAt: started, clarityAtStart: .low, inWindow: false))
+    thread.state = .inProgress
+
+    thread.pause(at: started.addingTimeInterval(1800))
+
+    // Une demi-heure, figee : le fil garde ce qu'il a coute.
+    #expect(abs(thread.summary().totalDuration - 1800) < 2)
+}

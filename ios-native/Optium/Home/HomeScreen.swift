@@ -109,7 +109,8 @@ struct HomeScreen: View {
                         RunningCard(
                             running: runningThread,
                             onOpen: { active = runningThread },
-                            onCompose: { composing = true }
+                            onCompose: { composing = true },
+                            onPause: { ThreadRunner.pause($0) }
                         )
 
                         clarityCard
@@ -164,6 +165,16 @@ struct HomeScreen: View {
             // propres gestes.
             .sheet(item: $active) { thread in
                 ResumptionFlow(thread: thread)
+                    // **Toute la hauteur.** Une feuille s'arrete par defaut
+                    // sous la barre d'etat et laisse voir l'ecran dessous :
+                    // le fil se retrouvait a l'etroit alors que c'est l'ecran
+                    // ou l'on travaille. `.large` lui rend la place que le
+                    // plein ecran lui donnait, sans lui reprendre le geste de
+                    // glissement.
+                    .presentationDetents([.large])
+                    // Le fond noir de la feuille, sinon le systeme pose un
+                    // gris qui casse le noir permanent.
+                    .presentationBackground(Ink.canvas)
             }
             // Un fil retenu redevient ouvert de lui-même à l'échéance. On le
             // constate à l'ouverture de l'écran plutôt que par une minuterie :

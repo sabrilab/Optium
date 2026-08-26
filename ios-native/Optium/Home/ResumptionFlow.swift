@@ -52,8 +52,7 @@ struct ResumptionFlow: View {
     }
 
     private func pause() {
-        thread.pause(at: Date())
-        Task { await LiveActivityController.end() }
+        ThreadRunner.pause(thread)
         dismiss()
     }
 

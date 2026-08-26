@@ -117,6 +117,16 @@ final class WorkThread {
         state = .inProgress
     }
 
+    /// Arrete la reprise en cours.
+    ///
+    /// **C'est le seul endroit ou une reprise s'arrete**, et c'est ce qui rend
+    /// les deux commandes de pause — celle de l'ecran du fil et celle de la
+    /// carte de l'accueil — cohérentes par construction : elles ne partagent
+    /// pas un etat, elles appellent la meme methode sur le meme objet, et
+    /// SwiftData previent toutes les vues.
+    ///
+    /// L'activite en direct, elle, vit hors du modele : chaque appelant doit
+    /// la terminer. Voir `ThreadRunner.pause(_:)`, qui fait les deux.
     func pause(at date: Date) {
         currentResumption?.endedAt = date
         if state == .inProgress { state = .open }
