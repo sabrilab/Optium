@@ -210,6 +210,7 @@ struct HomeScreen: View {
                 agitation: agitation,
                 isDay: true,
                 slope: live?.slope ?? 0,
+                dayMean: (clarityStore.dayMean ?? 50) / 100,
                 effort: clarityStore.isRefreshing ? 1 : 0,
                 isVisible: isVisible && scenePhase == .active
             )
@@ -328,7 +329,7 @@ struct HomeScreen: View {
     private func dayRule(at date: Date) -> some View {
         if reading.clarity != nil, let woke = reading.wokeAt, reading.curve.count > 2 {
             let awake = date.timeIntervalSince(woke) / 3600
-            if awake >= 0, awake <= 17 {
+            if awake >= 0, awake <= 20 {
                 DayRule(
                     points: reading.curve,
                     now: probedInstant ?? date,

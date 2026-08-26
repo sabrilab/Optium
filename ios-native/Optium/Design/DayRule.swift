@@ -396,7 +396,10 @@ struct DayRule: View {
 
                 // **La seule heure complète de la règle**, et la seule chose
                 // écrite en couleur.
-                Text(Clock.hhmm(now))
+                //
+                // Elle s'efface pendant le glissement : le doigt en écrit une
+                // autre juste à côté, et les deux se superposaient.
+                Text(probed == nil ? Clock.hhmm(now) : "")
                     .font(.system(size: labelSize, weight: .semibold, design: .rounded)
                         .monospacedDigit())
                     .foregroundStyle(marker)

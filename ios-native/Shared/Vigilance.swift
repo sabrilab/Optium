@@ -118,6 +118,20 @@ nonisolated struct Vigilance {
 
     /// La courbe, echantillonnee. Sert au dessin et a la derivation de la
     /// fenetre.
+    /// La clarte moyenne de la journee.
+    ///
+    /// **Le point d'ancrage de l'amplification.** Le fluide est trace autour
+    /// d'elle : elle porte ce que la nuit a decide, et l'ecart a elle porte ce
+    /// que l'heure fait. Amplifier autour de la moyenne exagere donc le
+    /// mouvement **sans deplacer la position d'ensemble** — c'est ce qui
+    /// permet de rendre la journee visible sans effacer la difference entre
+    /// une bonne et une mauvaise nuit.
+    var dayMean: Double {
+        let values = curve(from: 0.5, to: 15).map(\.clarity)
+        guard !values.isEmpty else { return 50 }
+        return values.reduce(0, +) / Double(values.count)
+    }
+
     /// La pente de la clarte a cet instant, normalisee -1…1.
     ///
     /// **Le sens de variation, jamais le niveau.** Le brief interdit a la

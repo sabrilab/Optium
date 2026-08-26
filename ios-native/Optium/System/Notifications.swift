@@ -29,7 +29,11 @@ enum Notifications {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [morning, evening])
         guard let window else { return }
+        // Meme raison : une invite de notification sur le simulateur ne
+        // protege rien et cache l'ecran qu'on vient y verifier.
+        #if !targetEnvironment(simulator)
         guard await requestAuthorization() else { return }
+        #endif
 
         // Trente minutes avant l'ouverture, jamais au reveil : prevenir
         // quelqu'un qui vient d'ouvrir les yeux, c'est l'interrompre.

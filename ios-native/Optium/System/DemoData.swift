@@ -15,7 +15,19 @@ import SwiftData
 /// verifier.
 enum DemoData {
     static var isRequested: Bool {
-        ProcessInfo.processInfo.arguments.contains("-demo")
+        #if targetEnvironment(simulator)
+        // **Le simulateur n'a pas de sommeil.** Aucune montre, aucun
+        // mouvement, un HealthKit vide : l'application y est donc
+        // structurellement muette, et tout ce qui se juge a l'oeil — la regle,
+        // le cerveau, la teinte, les cartes — y est invisible.
+        //
+        // Sur le simulateur, le jeu se seme donc toujours. Sur un appareil, il
+        // faut toujours l'argument : les vraies nuits ne doivent jamais se
+        // melanger a des nuits inventees.
+        return true
+        #else
+        return ProcessInfo.processInfo.arguments.contains("-demo")
+        #endif
     }
 
     static func seed(into context: ModelContext) {
@@ -24,6 +36,15 @@ enum DemoData {
 
         let calendar = Calendar.current
         let now = Date()
+
+        // **La derniere nuit se termine quatre heures avant maintenant.**
+        //
+        // Les nuits etaient calees sur minuit : lancer le simulateur a 3 h du
+        // matin donnait un lever vingt heures plus tot, hors de la journee que
+        // la regle sait dessiner — elle disparaissait donc, avec le mot et la
+        // courbe. Ancrees sur l'instant, le jeu montre toujours une journee en
+        // cours, a quelque heure qu'on ouvre.
+        let lastWake = now.addingTimeInterval(-4 * 3600)
 
         // Quarante nuits d'un dormeur regulier mais imparfait : coucher autour
         // de 23 h 15 avec une derive de quelques dizaines de minutes, nuits de
@@ -36,15 +57,20 @@ enum DemoData {
             // se ressemblent pas.
             let weekday = calendar.component(.weekday, from: day)
             let isFree = weekday == 1 || weekday == 7
-            let drift = Double((offset * 37) % 90 - 45) / 60.0
-            let bed = (isFree ? 0.9 : 23.15) + drift
-            let asleep = calendar.startOfDay(for: day)
-                .addingTimeInterval((bed >= 24 ? bed - 24 : bed) * 3600)
+            // La derive du lever, autour de l'ancre : quelques dizaines de
+            // minutes en semaine, plus tard le week-end.
+            let drift = Double((offset * 37) % 90 - 45) / 60.0 + (isFree ? 1.4 : 0)
+            let wake = lastWake.addingTimeInterval(Double(-offset) * 86_400 + drift * 3600)
             let hours = (isFree ? 8.4 : 7.2) + Double((offset * 23) % 70 - 35) / 60.0
+            let asleep = wake.addingTimeInterval(-hours * 3600)
             // Une nuit sur cinq vient du mouvement : la provenance doit se voir.
             context.insert(RecordedNight(
-                Night(asleepAt: asleep, wokeAt: asleep.addingTimeInterval(hours * 3600),
-                      origin: offset % 5 == 0 ? .inferred : .measured),
+                Night(asleepAt: asleep, wokeAt: wake,
+                      origin: offset % 5 == 0 ? .inferred : .measured,
+                      // Une demi-heure d'eveil au milieu de la nuit : le jeu
+                      // doit exercer la duree reelle, pas seulement
+                      // l'amplitude.
+                      measuredSleep: (hours - 0.5) * 3600),
                 measured: offset % 5 != 0
             ))
         }

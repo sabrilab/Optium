@@ -69,6 +69,9 @@ final class ClarityStore {
     /// La clarte a un instant donne, calculee sans toucher aux sources.
     ///
     /// - Returns: `nil` tant qu'aucune mesure n'existe.
+    /// La moyenne du jour, pour ancrer l'amplification du fluide.
+    var dayMean: Double? { vigilance?.dayMean }
+
     func live(at date: Date) -> (value: Int, ceiling: Double, level: ClarityLevel, slope: Double)? {
         guard let vigilance, let wakeAnchor, reading.clarity != nil else { return nil }
         let awake = max(0, date.timeIntervalSince(wakeAnchor) / 3600)

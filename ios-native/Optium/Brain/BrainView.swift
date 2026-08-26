@@ -16,6 +16,9 @@ struct BrainView: UIViewRepresentable {
     /// interrupteur : le signe seul ferait clignoter la scene a chaque passage
     /// par zero.
     var slope: Double = 0
+    /// 0…1 : la clarte moyenne du jour, autour de laquelle le mouvement est
+    /// amplifie.
+    var dayMean: Double = 0.5
     /// 0…1 : la scene travaille — lecture des nuits, appel au modele.
     var effort: Double = 0
     /// Le rendu est totalement suspendu quand la scene n'est pas visible :
@@ -67,6 +70,7 @@ struct BrainView: UIViewRepresentable {
         context.coordinator.renderer?.agitation = Float(agitation)
         context.coordinator.renderer?.isDay = isDay
         context.coordinator.renderer?.slope = Float(slope)
+        context.coordinator.renderer?.dayMean = Float(dayMean)
         context.coordinator.renderer?.effort = Float(effort)
         view.isPaused = !isVisible
     }

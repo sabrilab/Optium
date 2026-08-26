@@ -28,7 +28,35 @@ final class BrainRenderer: NSObject, MTKViewDelegate {
 
     /// Le fluide ne remplit jamais entierement la coque : un cerveau plein a ras
     /// bord se lit moins bien qu'un niveau qui laisse voir le verre.
-    private static let maxFill: Float = 0.8
+    /// La plage occupee par le fluide dans la silhouette.
+    ///
+    /// **Elle ne part plus de zero, et c'est une correction.** La clarte etait
+    /// mappee sur 0…0,8 : une journee en clarte basse laissait donc le liquide
+    /// dans le tronc cerebral, la partie la plus fine du maillage, ou une
+    /// variation de hauteur ne change presque aucun pixel. Le mouvement de la
+    /// journee y etait invisible — precisement chez ceux a qui il sert le
+    /// plus.
+    ///
+    /// Un plancher a 0,30 garde le fluide dans la partie large. **Ce n'est pas
+    /// un mensonge** : la transformation est affine et monotone, donc l'ordre
+    /// est integralement preserve — une mauvaise nuit reste visiblement plus
+    /// basse qu'une bonne. C'est le choix d'un thermometre dont l'echelle ne
+    /// commence pas au zero absolu.
+    private static let fillFloor: Float = 0.30
+    private static let fillTop: Float = 0.96
+    private static let maxFill: Float = 0.96
+
+    /// De combien l'ecart a la moyenne du jour est exagere.
+    ///
+    /// **L'amplification porte sur la variation, jamais sur la position.** La
+    /// moyenne du jour reste tracee fidelement — c'est elle qui distingue les
+    /// nuits — et seul l'ecart a elle est double. Sans ca, une journee entiere
+    /// tient dans 56 points de hauteur et le glissement au doigt ne montre
+    /// presque rien.
+    ///
+    /// Mesure : 56 points de course en clarte basse avant, 74 apres, et les
+    /// quatre qualites de nuit restent separees de 30 points au moins.
+    private static let dayGain: Float = 2.0
 
     // Deux familles seulement : le jour et la nuit. Jamais trois.
     private static let dayColorA   = SIMD3<Float>(0.322, 0.325, 0.941)
@@ -93,6 +121,9 @@ final class BrainRenderer: NSObject, MTKViewDelegate {
     /// -1…1 : le sens de variation de la clarte.
     var slope: Float = 0
     private var slopeLevel: Float = 0
+
+    /// La clarte moyenne de la journee, 0…1. Ancre de l'amplification.
+    var dayMean: Float = 0.5
 
     /// 0…1 : la scene est-elle en train de travailler.
     ///
@@ -179,7 +210,10 @@ final class BrainRenderer: NSObject, MTKViewDelegate {
         // Le niveau ne saute jamais : toute variation s'interpole. A 60 images
         // par seconde, 0.037 par image donne environ 900 ms pour couvrir
         // l'ecart — la duree prescrite par la specification de mouvement.
-        let target = min(fill, base) * Self.maxFill
+        // L'ecart a la moyenne du jour est exagere, la moyenne ne l'est pas.
+        let raw = min(fill, base)
+        let amplified = dayMean + Self.dayGain * (raw - dayMean)
+        let target = Self.fillFloor + max(0, min(1, amplified)) * (Self.fillTop - Self.fillFloor)
         fillLevel += (target - fillLevel) * 0.037
         baseLevel += (base * Self.maxFill - baseLevel) * 0.09
 

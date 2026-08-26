@@ -116,7 +116,13 @@ struct RootView: View {
         // lue par les deux onglets et par l'appel. Laissee dans l'accueil,
         // elle ne tournait pas quand l'application s'ouvrait ailleurs.
         .task {
+            // **Aucune invite sur le simulateur.** Il n'a ni Sante ni
+            // mouvement a autoriser : les deux feuilles s'y empilent devant
+            // l'ecran sans rien conditionner, et masquent precisement ce qu'on
+            // vient y verifier. Sur un appareil, elles sont indispensables.
+            #if !targetEnvironment(simulator)
             await clarity.requestPermission()
+            #endif
             await refresh()
         }
         .onChange(of: scenePhase) { _, phase in
