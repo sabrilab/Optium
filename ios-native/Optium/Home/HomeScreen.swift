@@ -176,27 +176,11 @@ struct HomeScreen: View {
                 brain(at: context.date)
             }
 
-            // La phrase de la regle se pose sous le cerveau, juste sous
-            // l'objet qu'elle nomme.
-            // **On ne dessine jamais une journee inventee.** La place se
-            // reserve par une phrase, pas par un faux objet : une regle nue
-            // devrait ancrer son axe sur quelque chose, et ce quelque chose
-            // serait invente.
-            if reading.clarity == nil, clarityStore.hasRead {
-                Text("Ta journée se lira ici, dès qu’Optium aura lu \(ClarityEngine.minimumNights) nuits.")
-                    .font(.footnote)
-                    .foregroundStyle(.tertiary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 16)
-            }
-
-            if pendingIntro == .rule {
-                IntroLine(
-                    title: "À droite, ta journée : du lever, en haut, au soir, en bas.",
-                    detail: "La longueur d’une graduation dit ce que cette heure laisse passer de ce que ta nuit permet."
-                )
-                .padding(.horizontal, 16)
-            }
+            // **Aucune phrase sous le cerveau.** L'introduction de la regle
+            // y etait posee en toutes lettres : c'etait du texte de plus a
+            // l'endroit le plus visible de l'application, pour expliquer un
+            // objet qui se lit sans explication. La regle porte des heures
+            // ecrites et une forme — ca suffit.
         }
     }
 
@@ -215,6 +199,15 @@ struct HomeScreen: View {
                 isVisible: isVisible && scenePhase == .active
             )
             .frame(height: 260)
+            // **Le cerveau se recentre dans l'espace qui lui reste.**
+            //
+            // La marge morte n'etait pas si morte : les graduations les plus
+            // longues de la regle avancent vers le cerveau, et sur un ecran de
+            // 393 points elles le touchaient. Le champ de vision du rendu
+            // etant vertical, retirer de la largeur ne retrecit pas le
+            // cerveau — ca le deplace seulement, ce qui est exactement ce
+            // qu'on veut.
+            .padding(.trailing, DayRule.width)
             // La regle vit dans la marge morte du cadre : le champ de vision
             // du rendu est vertical, donc le cerveau ne retrecit pas et reste
             // centre quelle que soit la largeur du cadre.

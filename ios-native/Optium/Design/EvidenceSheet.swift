@@ -2,10 +2,14 @@ import SwiftUI
 
 /// La modale qui dit sur quoi une affirmation repose.
 ///
-/// **Fond clair, texte sombre — la seule surface de l'application qui inverse
-/// le noir.** Tout le reste est noir permanent : cette rupture est le message.
-/// On quitte l'instrument pour lire un document, et l'œil le sait avant de
-/// lire un mot.
+/// **Noir, comme tout le reste.** Un fond clair avait été essayé — la rupture
+/// devait signaler qu'on quitte l'instrument pour lire un document. C'était
+/// payer l'unité de l'application pour un effet : le noir est une décision de
+/// direction artistique, pas un décor, et une seule surface qui s'en écarte
+/// se lit comme un accident.
+///
+/// La hiérarchie de lecture est portée par la typographie et l'espacement,
+/// jamais par l'inversion.
 ///
 /// **Aucune image.** Une photo de chercheur, de laboratoire ou de première
 /// page d'article emprunte une autorité au lieu de l'établir, et n'a
@@ -21,8 +25,8 @@ struct EvidenceSheet: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    private let paper = Color(red: 0.96, green: 0.955, blue: 0.94)
-    private let ink = Color(red: 0.11, green: 0.11, blue: 0.12)
+    private let paper = Ink.canvas
+    private let ink = Color.white
 
     var body: some View {
         NavigationStack {
@@ -41,13 +45,13 @@ struct EvidenceSheet: View {
                     block("CE QU’IL N’ÉTABLIT PAS", evidence.doesNotShow, emphasised: true)
                     block("CE QU’OPTIUM EN FAIT", evidence.usedFor)
 
-                    Divider().overlay(ink.opacity(0.18))
+                    Divider().overlay(ink.opacity(0.14))
 
                     // `Text(.init(_:))` interprete le markdown : sans ca, les
                     // asterisques du titre de revue s'affichent telles quelles.
                     Text(.init(evidence.reference))
                         .font(.footnote)
-                        .foregroundStyle(ink.opacity(0.62))
+                        .foregroundStyle(ink.opacity(0.45))
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.horizontal, 24)
@@ -60,9 +64,7 @@ struct EvidenceSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(paper, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            // La modale est un document : elle sort du noir permanent, donc
-            // aussi de l'apparence sombre forcée à la racine.
-            .preferredColorScheme(.light)
+            .preferredColorScheme(.dark)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Fermer") { dismiss() }
@@ -83,17 +85,17 @@ struct EvidenceSheet: View {
             Text(evidence.verification.rawValue.uppercased())
                 .font(.caption2.weight(.semibold))
                 .tracking(1.4)
-                .foregroundStyle(ink.opacity(0.55))
+                .foregroundStyle(ink.opacity(0.5))
             Text(evidence.verification.caution)
                 .font(.footnote)
-                .foregroundStyle(ink.opacity(0.7))
+                .foregroundStyle(ink.opacity(0.6))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
         .background {
             RoundedRectangle(cornerRadius: 12)
-                .fill(ink.opacity(0.05))
+                .fill(ink.opacity(0.07))
         }
     }
 
@@ -102,7 +104,7 @@ struct EvidenceSheet: View {
             Text(title)
                 .font(.caption2.weight(.semibold))
                 .tracking(1.4)
-                .foregroundStyle(ink.opacity(0.55))
+                .foregroundStyle(ink.opacity(0.5))
             Text(.init(body))
                 .font(.system(size: 16, weight: emphasised ? .regular : .light))
                 .foregroundStyle(ink)

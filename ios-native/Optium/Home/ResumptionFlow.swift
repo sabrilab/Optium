@@ -121,14 +121,25 @@ private struct ResumptionScreen: View {
             .padding(.top, 14)
 
             if settings.brainEnabled {
-                BrainView(
-                    fill: reading.brainFill,
-                    base: reading.brainBase,
-                    agitation: 0.35,
-                    isDay: true,
-                    isVisible: scenePhase == .active
-                )
+                // **Le fluide suit l'heure ici aussi.** La scene lisait
+                // `reading.brainFill`, fige au dernier rafraichissement :
+                // pendant une reprise d'une heure, elle restait donc
+                // immobile, alors que c'est precisement le moment ou la
+                // journee bouge sous les yeux de quelqu'un qui travaille.
+                TimelineView(.periodic(from: .now, by: 60)) { context in
+                    let live = clarityStore.live(at: context.date)
+                    BrainView(
+                        fill: live.map { Double($0.value) / 100 } ?? reading.brainFill,
+                        base: live.map { $0.ceiling / 100 } ?? reading.brainBase,
+                        agitation: 0.35,
+                        isDay: true,
+                        slope: live?.slope ?? 0,
+                        dayMean: (clarityStore.dayMean ?? 50) / 100,
+                        isVisible: scenePhase == .active
+                    )
+                }
                 .frame(maxHeight: .infinity)
+                .padding(.trailing, DayRule.width)
                 // **La regle pendant qu'on travaille.**
                 //
                 // C'est le moment ou savoir ou l'on en est dans la journee
