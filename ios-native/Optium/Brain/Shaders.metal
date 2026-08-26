@@ -89,16 +89,22 @@ fragment float4 fluid_fragment(FluidOut in [[stage_in]],
 
     float alpha = fill * (0.78 + rim * 0.18);
 
-    // La ligne de base : le plafond permis par la nuit. Le fluide ne monte
-    // jamais au-dessus, et la voir au-dessus de lui est ce qui rend le
-    // plafond intelligible plutot qu'arbitraire.
+    // **Le sommet du jour, pas un plafond.** Meme donnee, meme calcul,
+    // lecture inversee : ce n'est plus « voila ce que tu ne peux pas
+    // depasser » mais « voila ou tu vas monter aujourd'hui ».
     //
-    // Pointillee le long de la silhouette : un trait plein se lirait comme une
-    // limite du modele, un pointille comme une indication.
-    float dash = step(0.45, fract((p.x + p.z) * 7.0));
-    float onBase = smoothstep(0.010, 0.0, abs(in.normalizedY - u.baseLevel)) * dash;
-    color += onBase * float3(0.84, 0.87, 1.0) * 0.9;
-    alpha = max(alpha, onBase * 0.55);
+    // Le pointille a disparu — un pointille dit barriere. Un trait plein et
+    // discret dit rendez-vous. Pour quelqu'un qui dort mal, et c'est le public
+    // central, une barriere dessinee tous les jours au-dessus de sa tete est
+    // une machine a frustration.
+    //
+    // La hauteur du repere n'est **jamais normalisee** : c'est elle qui porte
+    // la difference entre une bonne et une mauvaise nuit. Sans cette regle,
+    // deux personnes ayant dormi trois et huit heures verraient la meme image,
+    // et la porte deviendrait inexplicable.
+    float onBase = smoothstep(0.008, 0.0, abs(in.normalizedY - u.baseLevel));
+    color += onBase * float3(0.84, 0.87, 1.0) * 0.75;
+    alpha = max(alpha, onBase * 0.42);
 
     return float4(color, alpha);
 }

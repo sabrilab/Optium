@@ -57,11 +57,20 @@ struct DayRule: View {
     /// l'application.
     var worked: [Double] = []
 
-    /// L'heure que le doigt designe, ou `nil` quand personne ne touche.
+    /// L'instant que le doigt designe, remonte a l'ecran.
     ///
-    /// **Une lecture, jamais un reglage.** Le doigt ne deplace rien : il
-    /// interroge. La regle reste un instrument qu'on consulte, et relacher
-    /// rend la main au present sans avoir rien change.
+    /// **Le glissement ne sert pas qu'a lire une heure : il deplace l'instant
+    /// dessine par toute la scene.** Le cerveau se remplit et se vide en
+    /// suivant, et c'est ce qui enseigne le mecanisme sans une phrase — en
+    /// trois secondes on comprend que la clarte n'est pas un verdict mais une
+    /// courbe.
+    ///
+    /// **Une lecture, jamais un reglage.** Le doigt ne change aucune donnee :
+    /// il deplace un point de vue. Relacher rend la main au present sans avoir
+    /// rien modifie.
+    var onProbe: ((Date?) -> Void)?
+
+    /// L'heure sondee, en heures depuis le reveil.
     @State private var probed: Double?
 
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -414,11 +423,15 @@ struct DayRule: View {
         .gesture(
             DragGesture(minimumDistance: 12)
                 .onChanged { value in
-                    let hour = hour(atY: value.location.y)
+                    let hour = min(Self.span, max(0, hour(atY: value.location.y)))
                     if probed == nil { Feedback.play(.answered) }
-                    probed = min(Self.span, max(0, hour))
+                    probed = hour
+                    onProbe?(wakeTime.addingTimeInterval(hour * 3600))
                 }
-                .onEnded { _ in probed = nil }
+                .onEnded { _ in
+                    probed = nil
+                    onProbe?(nil)
+                }
         )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("La règle de ta journée")

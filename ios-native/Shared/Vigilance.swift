@@ -118,6 +118,31 @@ nonisolated struct Vigilance {
 
     /// La courbe, echantillonnee. Sert au dessin et a la derivation de la
     /// fenetre.
+    /// La pente de la clarte a cet instant, normalisee -1…1.
+    ///
+    /// **Le sens de variation, jamais le niveau.** Le brief interdit a la
+    /// teinte de porter une hierarchie : encoder le niveau en couleur ferait
+    /// du verdict l'evenement visuel dominant de l'ecran, et le rendrait
+    /// illisible pour les huit pour cent d'hommes ayant une deficience de
+    /// vision des couleurs — alors que la hauteur du liquide se lit par tout
+    /// le monde.
+    ///
+    /// Mais monter ou descendre n'est pas etre bon ou mauvais. La teinte a
+    /// donc le droit de porter ca.
+    ///
+    /// **Le taux, jamais le signe.** Mapper la teinte sur le signe de la pente
+    /// la ferait clignoter a chaque passage par zero — au sommet et au creux,
+    /// c'est-a-dire aux deux moments qui comptent. Le taux, lui, derive
+    /// continument.
+    func slope(hoursAwake: Double) -> Double {
+        let step = 0.5
+        let before = clarity(hoursAwake: max(0, hoursAwake - step))
+        let after = clarity(hoursAwake: hoursAwake + step)
+        // Six points de clarte par heure saturent la teinte : au-dela, elle
+        // est franche et cesse de varier.
+        return max(-1, min(1, (after - before) / (2 * step) / 6))
+    }
+
     /// **Vingt heures, pas dix-sept.** La courbe s'arretait a dix-sept heures
     /// d'eveil, ce qui coupe la journee d'un mauvais dormeur avant qu'elle ne
     /// finisse : leve a 5 h apres une nuit courte, on depasse ce plafond a

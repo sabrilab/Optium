@@ -33,6 +33,17 @@ final class BrainRenderer: NSObject, MTKViewDelegate {
     // Deux familles seulement : le jour et la nuit. Jamais trois.
     private static let dayColorA   = SIMD3<Float>(0.322, 0.325, 0.941)
     private static let dayColorB   = SIMD3<Float>(0.510, 0.455, 1.000)
+
+    /// La teinte de recuperation : le turquoise de `Ink.restGlow`.
+    ///
+    /// **Elle porte un sens de variation, jamais un niveau.** Monter ou
+    /// descendre n'est pas etre bon ou mauvais — la teinte a donc le droit de
+    /// le dire, la ou encoder la clarte en couleur ferait du verdict
+    /// l'evenement visuel dominant.
+    ///
+    /// Elle ne derive **jamais vers le lime** `#D6E85D`, reserve au present.
+    private static let restColorA  = SIMD3<Float>(0.086, 0.647, 0.588)
+    private static let restColorB  = SIMD3<Float>(0.247, 0.839, 0.690)
     private static let nightColorA = SIMD3<Float>(0.149, 0.255, 0.561)
     private static let nightColorB = SIMD3<Float>(0.306, 0.353, 0.745)
 
@@ -78,6 +89,10 @@ final class BrainRenderer: NSObject, MTKViewDelegate {
     var agitation: Float = 0
     /// Vrai le jour, faux la nuit. Deux familles de teintes, jamais trois.
     var isDay = true
+
+    /// -1…1 : le sens de variation de la clarte.
+    var slope: Float = 0
+    private var slopeLevel: Float = 0
 
     /// 0…1 : la scene est-elle en train de travailler.
     ///
@@ -174,8 +189,23 @@ final class BrainRenderer: NSObject, MTKViewDelegate {
         dragVelocity *= 0.9
 
         // La teinte croise a l'extinction, une seule fois par jour : 2,4 s.
-        colorA = lerp(colorA, isDay ? Self.dayColorA : Self.nightColorA, t: 0.007)
-        colorB = lerp(colorB, isDay ? Self.dayColorB : Self.nightColorB, t: 0.007)
+        //
+        // **Et elle derive avec la pente.** Une clarte qui remonte tire vers
+        // le turquoise du repos, un sommet ou une descente vers l'indigo de
+        // l'effort. Le taux, jamais le signe : mapper sur le signe ferait
+        // clignoter la scene a chaque passage par zero — c'est-a-dire au
+        // sommet et au creux, les deux moments qui comptent.
+        //
+        // La derive est lente (0,007 par image, soit 2,4 s) et donc
+        // imperceptible en mouvement : la teinte se voit quand on regarde,
+        // elle ne reclame jamais le regard.
+        slopeLevel += (slope - slopeLevel) * 0.02
+        let recovering = max(0, min(1, slopeLevel)) * 0.55
+
+        let baseA = isDay ? Self.dayColorA : Self.nightColorA
+        let baseB = isDay ? Self.dayColorB : Self.nightColorB
+        colorA = lerp(colorA, lerp(baseA, Self.restColorA, t: recovering), t: 0.007)
+        colorB = lerp(colorB, lerp(baseB, Self.restColorB, t: recovering), t: 0.007)
 
         effortLevel += (effort - effortLevel) * 0.05
 

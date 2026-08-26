@@ -251,3 +251,45 @@ private func reading(at hoursAfterWake: Double, nights: [Night]) -> ClarityReadi
     }
     #expect(plain.level == ClarityLevel(value: value))
 }
+
+// ── La teinte suit le sens de variation ──
+//
+// Encoder le niveau en couleur ferait du verdict l'evenement visuel dominant,
+// et le rendrait illisible pour les huit pour cent d'hommes ayant une
+// deficience de vision des couleurs. Monter ou descendre, en revanche, n'est
+// pas etre bon ou mauvais.
+
+@Test func laPenteEstPositiveQuandLaClarteMonte() {
+    let model = Vigilance(ceilingAtWake: 90, pressureTau: 12)
+    // Deux heures apres le lever, on monte encore vers le sommet.
+    #expect(model.slope(hoursAwake: 1.5) > 0)
+}
+
+@Test func laPenteEstNegativeApresLeSommet() {
+    let model = Vigilance(ceilingAtWake: 90, pressureTau: 12)
+    let peak = model.curve(from: 0.5, to: 15).max(by: { $0.clarity < $1.clarity })!
+    #expect(model.slope(hoursAwake: peak.hoursAwake + 2) < 0)
+}
+
+@Test func laPenteNeClignotePasAuPassageParZero() {
+    // **C'est la raison d'etre du taux plutot que du signe.** Autour du
+    // sommet, le signe bascule d'un echantillon a l'autre ; le taux, lui,
+    // traverse zero continument.
+    let model = Vigilance(ceilingAtWake: 90, pressureTau: 12)
+    let peak = model.curve(from: 0.5, to: 15).max(by: { $0.clarity < $1.clarity })!
+
+    var previous = model.slope(hoursAwake: peak.hoursAwake - 1)
+    for offset in stride(from: -1.0, through: 1.0, by: 0.1) {
+        let current = model.slope(hoursAwake: peak.hoursAwake + offset)
+        #expect(abs(current - previous) < 0.25, "saut de teinte a \(offset) h du sommet")
+        previous = current
+    }
+}
+
+@Test func laPenteResteBornee() {
+    let model = Vigilance(ceilingAtWake: 55, pressureTau: 7)
+    for hour in stride(from: 0.0, through: 20.0, by: 0.5) {
+        let slope = model.slope(hoursAwake: hour)
+        #expect(slope >= -1 && slope <= 1)
+    }
+}

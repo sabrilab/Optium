@@ -35,6 +35,13 @@ struct HomeScreen: View {
     @State private var composing = false
     /// Le fil en cours de modification. Ouvre le meme ecran que la creation.
     @State private var editingThread: WorkThread?
+
+    /// L'instant que le doigt parcourt sur la regle, ou `nil` au present.
+    ///
+    /// **C'est ce qui fait suivre le cerveau.** Sans cet etat remonte a
+    /// l'ecran, le glissement ne deplacerait qu'un curseur dans la regle : la
+    /// scene resterait au present, et le geste n'enseignerait rien.
+    @State private var probedInstant: Date?
     @State private var showSettings = false
     @State private var calling = false
     @State private var baseExplanation: String?
@@ -194,13 +201,15 @@ struct HomeScreen: View {
     }
 
     private func brain(at date: Date) -> some View {
-        let live = clarityStore.live(at: date)
+        // Le doigt qui parcourt la regle deplace l'instant de toute la scene.
+        let live = clarityStore.live(at: probedInstant ?? date)
         return Group {
             BrainView(
                 fill: live.map { Double($0.value) / 100 } ?? reading.brainFill,
                 base: live.map { $0.ceiling / 100 } ?? base,
                 agitation: agitation,
                 isDay: true,
+                slope: live?.slope ?? 0,
                 effort: clarityStore.isRefreshing ? 1 : 0,
                 isVisible: isVisible && scenePhase == .active
             )
@@ -243,11 +252,17 @@ struct HomeScreen: View {
         }
     }
 
+    /// Ce que le repere du sommet dit, au toucher.
+    ///
+    /// **Un rendez-vous, jamais une limite.** La phrase disait « le plafond
+    /// que ta nuit permet » — c'est vrai, et c'est decourageant tous les jours
+    /// pour quelqu'un qui dort mal. La meme valeur, dite autrement, informe
+    /// sans decourager.
     private func explainBase() {
-        guard reading.clarity != nil, reading.regularity != nil else { return }
+        guard reading.clarity != nil, reading.ceiling != nil else { return }
         baseExplanation = reading.brainFill >= reading.brainBase - 0.02
-            ? "Tu es au plafond que ta nuit permet."
-            : "La ligne marque ce que ta nuit permet aujourd’hui."
+            ? "Tu es au sommet de ta journée."
+            : "Le trait est le sommet où tu montes aujourd’hui. Il descend à mesure que la journée avance."
         Task {
             try? await Task.sleep(for: .seconds(4))
             baseExplanation = nil
@@ -316,10 +331,15 @@ struct HomeScreen: View {
             if awake >= 0, awake <= 17 {
                 DayRule(
                     points: reading.curve,
-                    now: date,
+                    now: probedInstant ?? date,
                     window: windowBounds,
                     wakeTime: woke,
-                    worked: workedToday(since: woke)
+                    worked: workedToday(since: woke),
+                    onProbe: { instant in
+                        // Sans animation : la scene doit suivre le doigt
+                        // exactement, pas le rattraper.
+                        probedInstant = instant
+                    }
                 )
             }
         }

@@ -69,12 +69,12 @@ final class ClarityStore {
     /// La clarte a un instant donne, calculee sans toucher aux sources.
     ///
     /// - Returns: `nil` tant qu'aucune mesure n'existe.
-    func live(at date: Date) -> (value: Int, ceiling: Double, level: ClarityLevel)? {
+    func live(at date: Date) -> (value: Int, ceiling: Double, level: ClarityLevel, slope: Double)? {
         guard let vigilance, let wakeAnchor, reading.clarity != nil else { return nil }
         let awake = max(0, date.timeIntervalSince(wakeAnchor) / 3600)
         let value = Int(min(100, max(0, vigilance.clarity(hoursAwake: awake).rounded())))
         let level = ClarityLevel.level(value: value, previous: shownLevel ?? reading.level)
-        return (value, vigilance.ceiling(hoursAwake: awake), level)
+        return (value, vigilance.ceiling(hoursAwake: awake), level, vigilance.slope(hoursAwake: awake))
     }
 
     /// **Le niveau de l'instant, et la seule source de verite.**

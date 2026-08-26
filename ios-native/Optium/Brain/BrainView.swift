@@ -9,6 +9,13 @@ struct BrainView: UIViewRepresentable {
     /// Nombre de fils ouverts, normalise 0…1.
     var agitation: Double = 0
     var isDay: Bool = true
+    /// -1…1 : le sens de variation de la clarte. **Jamais son niveau.**
+    ///
+    /// Ca remonte → la teinte derive vers le repos, turquoise. Au sommet et en
+    /// descente → vers l'effort, indigo. C'est une derive continue, jamais un
+    /// interrupteur : le signe seul ferait clignoter la scene a chaque passage
+    /// par zero.
+    var slope: Double = 0
     /// 0…1 : la scene travaille — lecture des nuits, appel au modele.
     var effort: Double = 0
     /// Le rendu est totalement suspendu quand la scene n'est pas visible :
@@ -59,6 +66,7 @@ struct BrainView: UIViewRepresentable {
         context.coordinator.renderer?.base = Float(base)
         context.coordinator.renderer?.agitation = Float(agitation)
         context.coordinator.renderer?.isDay = isDay
+        context.coordinator.renderer?.slope = Float(slope)
         context.coordinator.renderer?.effort = Float(effort)
         view.isPaused = !isVisible
     }
