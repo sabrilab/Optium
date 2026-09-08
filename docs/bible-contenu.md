@@ -333,6 +333,76 @@ Le zéro n'a **pas** de barre. Le un **a** un empattement. Ne pas les redessiner
 
 ---
 
+## PARTIE IV bis — LE VERRE, POUR DE VRAI
+
+Le code vit dans `remotion/`. Cette section dit ce qui est vérifié et ce qui
+ne l'est pas.
+
+### La bonne nouvelle : Remotion est le meilleur endroit pour ce matériau
+
+`backdrop-filter: url(#filtre-svg)` avec un `feDisplacementMap` — la seule
+technique qui produise une vraie réfraction de bord — se comporte ainsi :
+
+| | |
+|---|---|
+| **Chromium** | supporté ✅ — et c'est ce que Remotion rend |
+| **Safari** | bug ouvert sur `feDisplacementMap` en `backdrop-filter` (WebKit 245510) |
+| **Firefox** | aucun filtre SVG en `backdrop-filter` |
+
+Autrement dit : **le verre sera plus vrai dans tes vidéos que sur ton propre
+site.** Vérifié ici, en Chromium headless — la grille derrière la carte se
+courbe réellement.
+
+### Ce qui est délicat
+
+La réfraction crédible ne vient pas du filtre, elle vient de **la carte de
+déplacement** : neutre (128,128) au centre, rampe concentrée dans la bande du
+bord, normale sortante correcte dans les coins. Composer des dégradés SVG ne
+marche pas — les modes de fusion cassent le neutre — et l'alignement carte /
+région de filtre est piégeux (`primitiveUnits`, viewport de l'hôte SVG).
+
+Le calcul est fourni dans `remotion/src/Glass.tsx` (`lensDisplacementMap`).
+Pour la production, **utiliser une bibliothèque maintenue** plutôt que de
+réécrire :
+
+- `PallavAg/liquid-glass-web-react` — génère la carte à la volée
+- `dpawlikowski/liquid-glass` — CSS + SVG, aberration chromatique
+- `LeonardSEO/liquid-glass-react` — carte PNG statique, ~5 ko
+- `nikdelvin/liquid-glass` — conteneurs, texte, boutons
+
+### Les deux règles qu'on oublie
+
+**1. Le verre sur du noir nu ne montre rien.** Il n'y a rien à réfracter. Dans
+l'application il fonctionne parce qu'il est posé sur le cerveau en Metal ou
+sur l'aura. En vidéo, même règle : **jamais de verre sur un fond plat.** C'est
+la tension réelle entre le brief — noir nu, pas de mode clair — et ce
+matériau.
+
+**2. Le speculaire fait plus de travail que la réfraction.** L'arête
+supérieure rallumée et les flancs portent l'essentiel de la lecture « c'est du
+verre ». La réfraction est ce qui la rend vivante quand le fond bouge. Sur un
+plan fixe, le repli sans réfraction suffit — et il n'a aucune dépendance.
+
+### Et la vérité sur le « vrai » verre
+
+Le verre le plus vrai pour une vidéo n'est pas une réimplémentation : c'est
+**un enregistrement d'écran de l'application réelle**, qui utilise le vrai
+`UIGlassEffect` d'iOS 26. Remotion compose autour.
+
+Une réimplémentation en React restera toujours une approximation — utile pour
+les scènes synthétiques, jamais supérieure à la source. Pour les plans où le
+verre est le sujet, **filmer l'app.** Pour les plans où il est un décor,
+réimplémenter.
+
+### Le rendu
+
+    npx remotion render --gl=angle-egl Scene out/video.mp4
+
+`--gl=angle-egl` active le GPU : en headless, Chromium le désactive par
+défaut, et `backdrop-filter` est une opération de composition coûteuse.
+
+---
+
 ## PARTIE V — CE QU'ON NE DIT JAMAIS
 
 Deux raisons : l'honnêteté, et le rejet App Store. Une allégation de santé fait
