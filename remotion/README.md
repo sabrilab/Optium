@@ -13,6 +13,28 @@ et c'est tout l'interet du dispositif qui tombe.
 | `src/Ink.ts` | Les jetons, la recette de carte, `withAlpha` |
 | `src/DotMatrix.tsx` | Les chiffres 5x7. Zero sans barre, un avec empattement |
 | `src/Glass.tsx` | Le verre, et la carte de deplacement d'une lentille |
+| `src/Film.tsx` | **Le film de 60 s**, sept plans, sous-titres compris |
+
+## Le film
+
+`src/Film.tsx` — vertical 1080 x 1920, 60 s a 30 images par seconde.
+
+**Tout le rendu est une fonction pure du temps : `draw(ctx, t)`.** Aucune
+animation CSS, aucun etat cache. C'est ce qui le rend deterministe : Remotion
+appelle `draw` avec `frame / fps`, l'apercu du navigateur l'appelle avec
+l'horloge, et les deux produisent exactement la meme image.
+
+Le modele de vigilance est **le vrai**, repris de `Clarity/Vigilance.swift` :
+la courbe que suit le liquide n'est pas decorative, c'est celle que
+l'application calcule.
+
+Le texte des sous-titres, dans `SHOTS`, **est le script de la voix off**, mot
+pour mot. La voix se pose par-dessus ; le film tient sans elle.
+
+> **Ce fichier n'a pas ete compile ici** — cet environnement n'a ni Remotion
+> ni `tsc`. Il est syntaxiquement equilibre et le rendu a ete verifie image par
+> image dans un navigateur, mais le premier `npx remotion studio` reste le
+> premier vrai controle.
 
 ## Le verre : ce qui est verifie, et ce qui ne l'est pas
 
