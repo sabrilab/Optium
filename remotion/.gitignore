@@ -1,0 +1,6 @@
+node_modules/
+out/
+.remotion/
+# Le maillage est une copie de mobile/assets/models/brain.glb.
+# `npm run setup` la refait ; le dupliquer dans le depot serait 3,5 Mo pour rien.
+public/brain.glb

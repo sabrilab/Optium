@@ -15,26 +15,52 @@ et c'est tout l'interet du dispositif qui tombe.
 | `src/Glass.tsx` | Le verre, et la carte de deplacement d'une lentille |
 | `src/Film.tsx` | **Le film de 60 s**, sept plans, sous-titres compris |
 
+## Demarrage
+
+    npm install
+    npm run setup     # copie brain.glb dans public/
+    npm run studio    # le film, scrubbable, rechargement a chaud
+
+Le maillage n'est **pas** duplique dans le depot : `setup` le copie depuis
+`mobile/assets/models/brain.glb`, la source unique.
+
+### Le rendu
+
+    npm run render        # GPU, via angle-egl
+    npm run render:soft   # ANGLE logiciel, demi-resolution
+
+**`--gl=angle-egl` echoue sans GPU** : le contexte WebGL ne se cree pas. Sur
+une machine sans carte — un conteneur, une CI — il faut `--gl=swangle`, qui
+marche mais compte en dizaines de minutes pour 1800 images.
+
 ## Le film
 
-`src/Film.tsx` — vertical 1080 x 1920, 60 s a 30 images par seconde.
+`src/Film.tsx` — vertical 1080 x 1920, 60 s a 30 images par seconde, sept
+plans.
 
-**Tout le rendu est une fonction pure du temps : `draw(ctx, t)`.** Aucune
-animation CSS, aucun etat cache. C'est ce qui le rend deterministe : Remotion
-appelle `draw` avec `frame / fps`, l'apercu du navigateur l'appelle avec
-l'horloge, et les deux produisent exactement la meme image.
+**Le cerveau est le vrai maillage**, `brain.glb`, celui-la meme que charge le
+rendu Metal de l'application. Un blob dessine a la main ne ressemble a rien
+d'autre qu'a un blob : le premier montage l'a prouve.
 
-Le modele de vigilance est **le vrai**, repris de `Clarity/Vigilance.swift` :
-la courbe que suit le liquide n'est pas decorative, c'est celle que
-l'application calcule.
+`src/Brain3D.tsx` — trois couches, et chacune fait un travail que les deux
+autres ne font pas :
+
+1. **La coque de verre**, en `DoubleSide`. Elle donne le volume et laisse voir
+   le liquide au travers.
+2. **Le liquide** — la MEME geometrie, coupee par un `THREE.Plane` horizontal.
+   C'est un vrai volume tranche, pas un remplissage : quand l'organe tourne,
+   la surface reste horizontale, et c'est ce detail qui vend l'objet.
+3. **Le Fresnel** — une arete qui s'allume la ou la surface fuit le regard.
+   Prefere a `transmission`, qui exige une carte d'environnement : sur fond
+   noir il n'y a rien a refracter, et le cout serait paye pour rien.
+
+L'anneau du sommet **ne tourne pas avec l'organe** : c'est un repere du monde.
+
+`src/Vigilance.ts` reprend `Clarity/Vigilance.swift`. **La courbe que suit le
+liquide n'est pas decorative** : c'est celle que l'application calcule.
 
 Le texte des sous-titres, dans `SHOTS`, **est le script de la voix off**, mot
 pour mot. La voix se pose par-dessus ; le film tient sans elle.
-
-> **Ce fichier n'a pas ete compile ici** — cet environnement n'a ni Remotion
-> ni `tsc`. Il est syntaxiquement equilibre et le rendu a ete verifie image par
-> image dans un navigateur, mais le premier `npx remotion studio` reste le
-> premier vrai controle.
 
 ## Le verre : ce qui est verifie, et ce qui ne l'est pas
 

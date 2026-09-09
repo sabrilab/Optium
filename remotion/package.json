@@ -1,0 +1,20 @@
+{
+  "name": "optium-remotion",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "setup": "mkdir -p public && cp ../mobile/assets/models/brain.glb public/",
+    "studio": "remotion studio",
+    "render": "remotion render Film out/optium.mp4 --gl=angle-egl",
+    "render:soft": "remotion render Film out/optium.mp4 --gl=swangle --scale=0.5"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.522",
+    "@remotion/three": "^4.0.522",
+    "@types/three": "^0.185.4",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "remotion": "^4.0.522",
+    "three": "^0.186.0"
+  }
+}
